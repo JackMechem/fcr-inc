@@ -12,7 +12,8 @@
 <details>
     <summary><h2>Links</h2></summary>
 
-[**Test Deplotment**](https://380-project.vercel.app/)
+[**Frontend Deplotment**](https://380-project.vercel.app/)
+[**Backend Deplotment**](https://comp-380-project.onrender.com/)
 
 ## Project Links
 
