@@ -10,7 +10,7 @@ public class Car {
     private String vin; // vehicle identification number
     private String make; // manufacturer of car
     private String model; // product of manufacturer name
-    private String modelYear; // year produced
+    private String modelYear; // year produced.
     private String description;
     private int numCylinders; // number of cylinders contained in engine
     private int numGears; // number of gears in transmission
