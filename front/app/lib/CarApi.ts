@@ -1,7 +1,7 @@
 import { Car } from "../types/CarTypes";
 
 const getAllCars = async (): Promise<Car[]> => {
-	const res: Response = await fetch("http://127.0.0.1:7070/cars", {
+	const res: Response = await fetch(`${process.env.API_BASE_URL}/cars`, {
 		next: { revalidate: 3600 },
 	});
 
@@ -14,9 +14,12 @@ const getAllCars = async (): Promise<Car[]> => {
 };
 
 const getCar = async (_vin: string): Promise<Car> => {
-	const res: Response = await fetch(`http://127.0.0.1:7070/cars/${_vin}`, {
-		next: { revalidate: 3600 },
-	});
+	const res: Response = await fetch(
+		`${process.env.API_BASE_URL}/cars/${_vin}`,
+		{
+			next: { revalidate: 3600 },
+		},
+	);
 
 	if (!res.ok) {
 		throw new Error(`Failed to fetch data from ${res.url}`);
