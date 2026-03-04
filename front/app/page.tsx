@@ -8,7 +8,6 @@ const Home = async () => {
 
 	return (
 		<div>
-			<LandingHeader />
 			<LandingSearchBar />
 			<div className="w-full md:px-[100px] px-[20px] mt-[50px]">
 				<h1 className=" text-accent font-titillium font-bold text-[24pt] italic">
