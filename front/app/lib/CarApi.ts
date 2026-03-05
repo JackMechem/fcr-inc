@@ -2,7 +2,7 @@ import { Car } from "../types/CarTypes";
 
 const getAllCars = async (): Promise<Car[]> => {
 	const res: Response = await fetch(`${process.env.API_BASE_URL}/cars`, {
-		next: { revalidate: 3600 },
+		next: { revalidate: Number(process.env.REVALIDATE_SECONDS) },
 	});
 
 	if (!res.ok) {
@@ -17,7 +17,7 @@ const getCar = async (_vin: string): Promise<Car> => {
 	const res: Response = await fetch(
 		`${process.env.API_BASE_URL}/cars/${_vin}`,
 		{
-			next: { revalidate: 3600 },
+			next: { revalidate: Number(process.env.REVALIDATE_SECONDS) },
 		},
 	);
 

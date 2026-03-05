@@ -1,6 +1,6 @@
 import { Car } from "@/app/types/CarTypes";
 import Image from "next/image";
-import ShowAllImagesButton from "../buttons/showAllImagesButton";
+import ShowAllImagesButton from "./showAllImagesButton";
 
 interface ImageViewProps {
 	imgUrls: Car["imageUrls"];

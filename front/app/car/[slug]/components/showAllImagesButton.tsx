@@ -15,7 +15,7 @@ const ShowAllImagesButton = ({ imgUrls }: ShowAllImagesButtonProps) => {
 	return (
 		<>
 			{imageViewShown && (
-				<div className="fixed w-full h-full top-0 left-0 right-0 bottom-0 bg-primary grid grid-cols-2 p-[20px] gap-[20px] overflow-y-scroll z-10">
+				<div className="fixed w-full h-full top-0 left-0 right-0 bottom-0 bg-primary grid md:grid-cols-2 grid-cols-1 p-[20px] gap-[20px] overflow-y-scroll z-10 pt-[120px]">
 					<button
 						onClick={() => setImageViewShown(false)}
 						className="fixed top-[40px] left-[40px] bg-primary rounded-full p-[10px] cursor-pointer"
@@ -29,7 +29,7 @@ const ShowAllImagesButton = ({ imgUrls }: ShowAllImagesButtonProps) => {
 							alt="car image"
 							width={400}
 							height={400}
-							className="w-full h-auto rounded-lg"
+							className="w-full h-full rounded-lg object-cover"
 						/>
 					))}
 				</div>

@@ -1,22 +1,29 @@
 import LandingHeader from "./components/headers/landingHeader";
 import CarScroll from "./components/scrolls/carScroll";
 import LandingSearchBar from "./components/searchBars/landingSearchBar";
+import TitleText from "./components/text/titleText";
 import { getAllCars } from "./lib/CarApi";
+import { Car } from "./types/CarTypes";
 
 const Home = async () => {
-	const carsData = await getAllCars();
+	const carsData: Car[] = await getAllCars();
+
+	const manualCarsData: Car[] = carsData.filter((car: Car) => {
+		return car.transmission === "manual";
+	});
+
+	const automaticCarsData: Car[] = carsData.filter((car: Car) => {
+		return car.transmission === "automatic";
+	});
 
 	return (
-		<div>
+		<>
 			<LandingSearchBar />
-			<div className="w-full md:px-[100px] px-[20px] mt-[50px]">
-				<h1 className=" text-accent font-titillium font-bold text-[24pt] italic">
-					All Cars
-				</h1>
-				<CarScroll cars={carsData} />
-				<p></p>
-			</div>
-		</div>
+			<TitleText className="mt-[80px]">Manual Transmission Cars</TitleText>
+			{manualCarsData.length > 0 && <CarScroll cars={manualCarsData} />}
+			<TitleText className="mt-[80px]">Automatic Transmission Cars</TitleText>
+			{manualCarsData.length > 0 && <CarScroll cars={automaticCarsData} />}
+		</>
 	);
 };
 

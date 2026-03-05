@@ -8,15 +8,14 @@ interface TitleTextProps extends PropsWithChildren {
 
 const TitleText = ({ children, className }: TitleTextProps) => {
 	return (
-		<div className="flex items-center">
+		<div
+			className={
+				className +
+				" flex items-center font-titillium text-[24pt] font-bold text-accent italic"
+			}
+		>
 			<Image src={FastLines.src} alt="text decoration" width={40} height={40} />
-			<h2
-				className={
-					className + " font-titillium text-[24pt] font-bold text-accent italic"
-				}
-			>
-				{children}
-			</h2>
+			<h2 className={""}>{children}</h2>
 		</div>
 	);
 };

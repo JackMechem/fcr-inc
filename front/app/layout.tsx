@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Titillium_Web } from "next/font/google";
 import "./globals.css";
 import LandingHeader from "./components/headers/landingHeader";
+import MainBodyContainer from "./components/containers/mainBodyContainer";
 
 const inter = Inter({
 	subsets: ["latin"],
@@ -29,7 +30,7 @@ export default function RootLayout({
 		<html lang="en">
 			<body className={`${inter.variable} ${titillium.variable} antialiased`}>
 				<LandingHeader />
-				{children}
+				<MainBodyContainer>{children}</MainBodyContainer>
 			</body>
 		</html>
 	);

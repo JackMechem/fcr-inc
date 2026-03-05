@@ -27,7 +27,7 @@
 				"https://images.turo.com/media/vehicle/images/FDjQzvc6T1aGV5524jb-9w.1242x745.jpg"
 			],
 			"features": ["Falcon Wing Doors", "Autopilot", "Heated Yoke Steering"],
-			"description": "Experience the fastest accelerating SUV in production. Perfect for luxury family trips."
+			"description": "The **2024 Tesla Model X Plaid** is the pinnacle of electric performance and futuristic utility. With a staggering **1,020 horsepower** delivered via its Tri-Motor All-Wheel Drive system, this SUV can launch from 0-60 mph in a physics-defying 2.5 seconds. Beyond the speed, it offers a sophisticated six-seat interior, a cinematic 17-inch center display, and the iconic **Falcon Wing doors** that make entry and exit a breeze in tight spaces. Whether you're hauling family or impressing clients, the Model X Plaid provides a tech-forward experience unlike any other vehicle on the road."
 		},
 		{
 			"vin": "7SAXCBE62RF001234",
@@ -56,7 +56,7 @@
 				"Adaptive Cruise Control",
 				"Blind Spot Monitor"
 			],
-			"description": "Reliable, fuel-efficient, and spacious for a compact SUV."
+			"description": "The **2024 Toyota Corolla Cross** takes the legendary reliability and efficiency of the Corolla nameplate and elevates it into a versatile crossover package. It features a modern, clean interior with an intuitive touchscreen interface and standard **Toyota Safety Sense**. With a fuel-efficient **32 MPG** and ample cargo space, it is the ideal companion for city commuting or weekend errands. This vehicle offers a smooth, predictable ride with the peace of mind that comes from one of the most trusted brands in the automotive industry."
 		},
 		{
 			"vin": "7SAXCBE62RF001235",
@@ -91,7 +91,7 @@
 				"https://images.turo.com/media/vehicle/images/jEgLkIAuR_us6BxVZIfvLQ.1242x745.jpg"
 			],
 			"features": ["V8 Performance", "Brembo Brakes", "Active Exhaust"],
-			"description": "Classic American muscle. This manual GT is a blast for coastal drives."
+			"description": "Unleash the roar of the **2024 Ford Mustang GT**, a car designed for those who truly love to drive. This seventh-generation 'S650' Mustang is powered by the legendary **5.0L Coyote V8** engine, paired with a tactile **6-speed manual transmission** for ultimate engagement. The cabin has been completely overhauled with a driver-centric digital cockpit inspired by fighter jets, featuring customizable Unreal Engine graphics. With **Brembo brakes** and an active valve exhaust system, this Mustang doesn't just look like a beast—it sounds and stops like one too."
 		},
 		{
 			"vin": "7SAXCBE62RF001236",
@@ -122,7 +122,7 @@
 				"https://images.turo.com/media/vehicle/images/3KJqv6d2QpmvIlVVSqr0OQ.1242x745.jpg"
 			],
 			"features": ["Panoramic Sunroof", "Heads-up Display", "Gesture Control"],
-			"description": "Luxurious and powerful. The perfect SUV for a business trip or premium vacation."
+			"description": "Redefine your travel standards with the **2024 BMW X5 sDrive40i**. This midsize luxury SUV combines athletic handling with a plush, high-tech interior featuring the new **BMW Curved Display**. The 375-hp turbocharged inline-6 engine is silky smooth, providing effortless power for highway cruising. Inside, you'll find premium materials, customizable ambient lighting, and a panoramic sunroof that opens up the cabin. It’s the perfect blend of German engineering, comfort, and prestige for any occasion."
 		},
 		{
 			"vin": "7SAXCBE62RF001237",
@@ -152,7 +152,7 @@
 				"https://images.turo.com/media/vehicle/images/WQS1CYN3QfGFbu97-DMsCA.1242x745.jpg"
 			],
 			"features": ["Removable Top", "All-Wheel Drive", "Electric-only Mode"],
-			"description": "The best of both worlds: iconic Jeep capability with plug-in hybrid efficiency."
+			"description": "Adventure meets efficiency in the **2024 Jeep Wrangler 4xe**. As a Plug-in Hybrid (PHEV), this Wrangler offers an estimated 21 miles of all-electric range for silent trail crawling or fuel-free city trips. When the gas engine and electric motor work together, you get a massive **470 lb-ft of torque**, making it one of the most capable Wranglers ever. With its removable top and doors, it provides an immersive outdoor experience whether you're heading to the mountains or the beach."
 		},
 		{
 			"vin": "7SAXCBE62RF001238",
@@ -185,7 +185,7 @@
 				"Bose Surround Sound",
 				"PASM Suspension"
 			],
-			"description": "The gold standard of sports cars. Experience precision handling and timeless design."
+			"description": "Experience the benchmark of automotive excellence with the **2024 Porsche 911 Carrera S**. This '992' generation masterpiece is engineered for surgical precision on the road. The rear-mounted twin-turbo flat-six engine provides a distinctive howl and relentless acceleration, while the lightning-fast 8-speed PDK transmission ensures you're always in the power band. Featuring the **Sport Chrono Package** for adjustable drive modes and an interior that perfectly balances heritage with modern luxury, this is more than a car—it's a masterpiece of performance art."
 		},
 		{
 			"vin": "7SAXCBE62RF001239",
@@ -216,7 +216,7 @@
 				"Augmented Reality HUD",
 				"V2L Capability"
 			],
-			"description": "Futuristic design meets practical EV performance. Incredibly quiet and smooth."
+			"description": "The **2024 Hyundai Ioniq 5** is a award-winning electric crossover that looks like it stepped right out of a sci-fi movie. Its 'Parametric Pixel' lighting and spacious, lounge-like interior set it apart from everything else on the road. Beyond the aesthetics, its **800V battery architecture** allows for some of the fastest charging speeds available, taking you from 10% to 80% in about 18 minutes at a compatible charger. It’s quiet, incredibly smooth, and packed with smart tech like a sliding center console and a head-up display with augmented reality."
 		},
 		{
 			"vin": "7SAXCBE62RF001240",
@@ -253,7 +253,7 @@
 				"Rear Seat Entertainment",
 				"Panoramic Sunroof"
 			],
-			"description": "Massive space for the whole family and their gear. The ultimate road trip machine."
+			"description": "When you need to move a crowd in total comfort, the **2024 Chevrolet Tahoe** is the answer. This full-size SUV features three rows of seating with actual adult-sized legroom in the back. The 5.3L V8 engine provides robust towing capability and a smooth ride, while the huge cargo area is ready for all your luggage. This model is loaded with family-friendly features including a rear-seat entertainment system and a massive **panoramic sunroof**, making it the ultimate vehicle for long-distance family road trips."
 		},
 		{
 			"vin": "7SAXCBE62RF001241",
@@ -283,7 +283,7 @@
 				"https://images.turo.com/media/vehicle/images/j005ilooTKeVhWad_wKmpw.1242x745.heic"
 			],
 			"features": ["Quattro AWD", "Virtual Cockpit", "Leather Interior"],
-			"description": "Sleek, stylish, and sporty. A great balance of luxury and performance."
+			"description": "The **2024 Audi A5 Sportback** is the thinking person's luxury car, combining the sleek roofline of a coupe with the four-door practicality of a sedan and the cargo versatility of a hatchback. Audi's legendary **Quattro All-Wheel Drive** provides confidence in all weather conditions, while the **Virtual Cockpit** digital instrument cluster puts everything you need directly in your line of sight. With its minimalist, high-quality interior and composed ride, the A5 Sportback is a masterclass in understated elegance."
 		},
 		{
 			"vin": "7SAXCBE62RF001242",
@@ -317,7 +317,7 @@
 				"Bose Audio",
 				"Limited Slip Differential"
 			],
-			"description": "Pure driving joy. Drop the top and enjoy the open road in this manual roadster."
+			"description": "The **2024 Mazda MX-5 Miata RF** (Retractable Fastback) is a love letter to driving purity. It offers a unique power-folding hardtop that transforms the car in seconds while maintaining a stunning coupe-like silhouette when closed. The **6-speed manual transmission** is widely regarded as one of the best in the world, offering short, crisp throws that make every gear change a joy. Lightweight and perfectly balanced, this Miata isn't about top speed—it's about the connection between driver, machine, and the winding road."
 		}
 	]
 }
