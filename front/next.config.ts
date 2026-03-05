@@ -9,6 +9,12 @@ const nextConfig: NextConfig = {
 				port: "",
 				pathname: "/cdn-cgi/image/**",
 			},
+			{
+				protocol: "https",
+				hostname: "images.turo.com",
+				port: "",
+				pathname: "/media/vehicle/images/**",
+			},
 		],
 	},
 };
