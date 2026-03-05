@@ -1,67 +1,74 @@
 {
-  "cars": [
-    {
-      "vin": "7SAXCBE62RF001230",
-      "make": "Volkswagen",
-      "model": "Golf GTI",
-      "year": 2024,
-      "transmission": "manual",
-      "gears": 6,
-      "fuelType": "gas",
-      "engineType": "Turbocharged Inline 4",
-      "torqe": 273,
-      "horsepower": 228,
-      "seats": 5,
-      "mpg": 30,
-      "pricePerDay": 85.0,
-      "imageUrls": [
-        "https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=5/4822e9034b0b6b357b3f73fabdfc10e586c36f68/photos/rND57zAw-2731jrOuwN/edit/0cyfp.jpg?t=176762561454",
-        "https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=5/4822e9034b0b6b357b3f73fabdfc10e586c36f68/photos/rND57zAw-bTHemehVhY/edit/0gCJ2.jpg?t=176762563847"
-      ],
-      "features": ["Heated Seats", "Keyless Ignition", "Leather Seats"],
-      "description": "It's a VW Golf GTI and it's sick."
-    },
-    {
-      "vin": "7SAXCBE62RF001231",
-      "make": "Volkswagen",
-      "model": "Golf GTI",
-      "year": 2024,
-      "transmission": "manual",
-      "gears": 6,
-      "fuelType": "gas",
-      "engineType": "Turbocharged Inline 4",
-      "torqe": 273,
-      "horsepower": 228,
-      "seats": 5,
-      "mpg": 30,
-      "pricePerDay": 85.0,
-      "imageUrls": [
-        "https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=5/8e6341e27a680ffab7d98e42bef83b0dd1b0fb94/photos/exterior/rw2l2YQX--4uLqoP/edit/_09M5.jpg?t=176160068522",
-        "https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=5/8e6341e27a680ffab7d98e42bef83b0dd1b0fb94/photos/exterior/rw2l2YQX-pVtdzwx/edit/x2DVS.jpg?t=176141796226"
-      ],
-      "features": ["Heated Seats", "Keyless Ignition", "Leather Seats"],
-      "description": "It's a VW Golf GTI and it's sick."
-    },
-    {
-      "vin": "7SAXCBE62RF001232",
-      "make": "Volkswagen",
-      "model": "Golf GTI",
-      "year": 2024,
-      "transmission": "manual",
-      "gears": 6,
-      "fuelType": "gas",
-      "engineType": "Turbocharged Inline 4",
-      "torqe": 273,
-      "horsepower": 228,
-      "seats": 5,
-      "mpg": 30,
-      "pricePerDay": 85.0,
-      "imageUrls": [
-        "https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=5/ee7f173e46ec801a48d1673c50f9cebaa1bf2854/photos/3p7xeZyw-zFiZclHiPH-(edit).jpg?t=171753285017",
-        "https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=5/ea93686cb7f6bba23b9693c4dac92c0715d7c4cd/photos/3p7xeZyw-qeadojkmIp-(edit).jpg?t=171686555001"
-      ],
-      "features": ["Heated Seats", "Keyless Ignition", "Leather Seats"],
-      "description": "It's a VW Golf GTI and it's sick."
-    }
-  ]
+	"cars": [
+		{
+			"vin": "7SAXCBE62RF001230",
+			"make": "Volkswagen",
+			"model": "Golf GTI",
+			"year": 2024,
+			"transmission": "manual",
+			"gears": 6,
+			"fuelType": "gas",
+			"engineType": "Turbocharged Inline 4",
+			"torqe": 273,
+			"horsepower": 228,
+			"seats": 5,
+			"mpg": 30,
+			"pricePerDay": 85.0,
+			"imageUrls": [
+				"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=5/4822e9034b0b6b357b3f73fabdfc10e586c36f68/photos/rND57zAw-2731jrOuwN/edit/0cyfp.jpg?t=176762561454",
+				"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=5/4822e9034b0b6b357b3f73fabdfc10e586c36f68/photos/rND57zAw-2731jrOuwN/edit/0cyfp.jpg?t=176762561454",
+				"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=5/4822e9034b0b6b357b3f73fabdfc10e586c36f68/photos/rND57zAw-2731jrOuwN/edit/0cyfp.jpg?t=176762561454",
+				"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=5/4822e9034b0b6b357b3f73fabdfc10e586c36f68/photos/rND57zAw-2731jrOuwN/edit/0cyfp.jpg?t=176762561454",
+				"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=5/4822e9034b0b6b357b3f73fabdfc10e586c36f68/photos/rND57zAw-2731jrOuwN/edit/0cyfp.jpg?t=176762561454",
+				"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=5/4822e9034b0b6b357b3f73fabdfc10e586c36f68/photos/rND57zAw-2731jrOuwN/edit/0cyfp.jpg?t=176762561454",
+				"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=5/4822e9034b0b6b357b3f73fabdfc10e586c36f68/photos/rND57zAw-2731jrOuwN/edit/0cyfp.jpg?t=176762561454",
+				"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=5/4822e9034b0b6b357b3f73fabdfc10e586c36f68/photos/rND57zAw-bTHemehVhY/edit/0gCJ2.jpg?t=176762563847"
+			],
+			"features": ["Heated Seats", "Keyless Ignition", "Leather Seats"],
+			"description": "It's a VW Golf GTI and it's sick."
+		},
+		{
+			"vin": "7SAXCBE62RF001231",
+			"make": "Volkswagen",
+			"model": "Golf GTI",
+			"year": 2024,
+			"transmission": "manual",
+			"gears": 6,
+			"fuelType": "gas",
+			"engineType": "Turbocharged Inline 4",
+			"torqe": 273,
+			"horsepower": 228,
+			"seats": 5,
+			"mpg": 30,
+			"pricePerDay": 85.0,
+			"imageUrls": [
+				"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=5/8e6341e27a680ffab7d98e42bef83b0dd1b0fb94/photos/exterior/rw2l2YQX--4uLqoP/edit/_09M5.jpg?t=176160068522",
+				"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=5/8e6341e27a680ffab7d98e42bef83b0dd1b0fb94/photos/exterior/rw2l2YQX-pVtdzwx/edit/x2DVS.jpg?t=176141796226"
+			],
+			"features": ["Heated Seats", "Keyless Ignition", "Leather Seats"],
+			"description": "It's a VW Golf GTI and it's sick."
+		},
+		{
+			"vin": "7SAXCBE62RF001232",
+			"make": "Volkswagen",
+			"model": "Golf GTI",
+			"year": 2024,
+			"transmission": "manual",
+			"gears": 6,
+			"fuelType": "gas",
+			"engineType": "Turbocharged Inline 4",
+			"torqe": 273,
+			"horsepower": 228,
+			"seats": 5,
+			"mpg": 30,
+			"pricePerDay": 85.0,
+			"imageUrls": [
+				"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=5/ee7f173e46ec801a48d1673c50f9cebaa1bf2854/photos/3p7xeZyw-zFiZclHiPH-(edit).jpg?t=171753285017",
+				"https://media.carsandbids.com/cdn-cgi/image/width=2080,quality=5/ea93686cb7f6bba23b9693c4dac92c0715d7c4cd/photos/3p7xeZyw-qeadojkmIp-(edit).jpg?t=171686555001"
+			],
+			"features": ["Heated Seats", "Keyless Ignition", "Leather Seats"],
+			"description": "It's a VW Golf GTI and it's sick."
+		}
+	]
 }
+
