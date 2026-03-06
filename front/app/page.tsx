@@ -1,4 +1,3 @@
-import LandingHeader from "./components/headers/landingHeader";
 import CarScroll from "./components/scrolls/carScroll";
 import LandingSearchBar from "./components/searchBars/landingSearchBar";
 import TitleText from "./components/text/titleText";
@@ -19,9 +18,9 @@ const Home = async () => {
 	return (
 		<>
 			<LandingSearchBar />
-			<TitleText className="mt-[80px]">Manual Transmission Cars</TitleText>
+			<TitleText className="mt-[80px]">Manual Transmission</TitleText>
 			{manualCarsData.length > 0 && <CarScroll cars={manualCarsData} />}
-			<TitleText className="mt-[80px]">Automatic Transmission Cars</TitleText>
+			<TitleText className="mt-[80px]">Automatic Transmission</TitleText>
 			{manualCarsData.length > 0 && <CarScroll cars={automaticCarsData} />}
 		</>
 	);

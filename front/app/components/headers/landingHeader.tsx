@@ -5,7 +5,7 @@ import Link from "next/link";
 
 const LandingHeader = () => {
 	return (
-		<div className="md:py-[20px] px-[10px] md:px-[100px] px-[20px] flex items-center justify-between">
+		<div className="relative md:py-[20px] px-[10px] md:px-[100px] px-[20px] flex items-center justify-between">
 			<Link href={"/"}>
 				<Image
 					width={200}
