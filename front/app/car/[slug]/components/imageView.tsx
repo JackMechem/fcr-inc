@@ -16,6 +16,8 @@ const ImageView = ({ imgUrls }: ImageViewProps) => {
 				alt="car image"
 				height={800}
 				width={800}
+				priority
+				loading="eager"
 			/>
 			{imgUrls.length > 5 && (
 				<div className="lg:grid hidden grid-cols-2 w-[40%] gap-[2px]">
@@ -29,6 +31,7 @@ const ImageView = ({ imgUrls }: ImageViewProps) => {
 									height={600}
 									width={600}
 									className="w-auto h-full object-cover"
+									loading="lazy"
 								/>
 							);
 						}

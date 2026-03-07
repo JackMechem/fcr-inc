@@ -30,6 +30,7 @@ const ShowAllImagesButton = ({ imgUrls }: ShowAllImagesButtonProps) => {
 							width={400}
 							height={400}
 							className="w-full h-full rounded-lg object-cover"
+							loading="lazy"
 						/>
 					))}
 				</div>

@@ -18,6 +18,7 @@ const CarCard = async ({ car }: CarCardProps) => {
 				alt={"car image"}
 				src={car.imageUrls[0]}
 				className="rounded-xl w-full h-[200px] object-cover"
+				loading="lazy"
 			/>
 			<h2 className="text-[16pt]">
 				{car.make} {car.model}
