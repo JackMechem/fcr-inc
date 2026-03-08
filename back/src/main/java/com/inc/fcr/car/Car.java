@@ -229,7 +229,7 @@ public class Car {
                 model_year + " " + make + " " + model + " | " + vin + "" +
                 "\n" + "Drivetrain: " + "" + engineLayout.toString().toLowerCase() + " " + cylinders + "-cylinder" + " " + fuel.toString().toLowerCase()
                 + "\nPerformance: " + horsepower + "HP, TQ: " + torque + "\nSeats: " + seats + "\nMPG: " + mpg +
-                "\nDescription: " + description + "\nFeatures: " + features;
+                "\nFeatures: " + features.toString()+"\n";
 
 
     }

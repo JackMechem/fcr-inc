@@ -42,6 +42,7 @@ public class Main {
         }).start(port);
         System.out.println("Hello from stdout java");
         DatabaseController database = new DatabaseController();
-        database.getCarDB();
+        System.out.println(database.getCarDB());
+
     }
 }
