@@ -1,11 +1,21 @@
 package com.inc.fcr;
 
+import com.inc.fcr.car.Car;
 import com.inc.fcr.car.CarController;
+import com.inc.fcr.car.enums.Drivetrain;
+import com.inc.fcr.car.enums.EngineLayout;
+import com.inc.fcr.car.enums.FuelType;
+import com.inc.fcr.car.enums.TransmissionType;
+import com.inc.fcr.database.DatabaseController;
 import io.javalin.Javalin;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+
 import static io.javalin.apibuilder.ApiBuilder.*;
 
 public class Main {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
 
         // Check for the "PORT" environment variable, default to 8080 if not found
         String portProperty = System.getenv("PORT");
@@ -30,7 +40,9 @@ public class Main {
                 });
             });
         }).start(port);
-
         System.out.println("Hello from stdout java");
+        DatabaseController database = new DatabaseController();
+        System.out.println(database.getCarDB());
+
     }
 }
