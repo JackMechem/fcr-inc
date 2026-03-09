@@ -20,8 +20,29 @@ public class CarController {
 
     public static void getAllCars(Context ctx) {
         try {
-            ctx.json(DatabaseController.getCarDB(-1, -1, ""));
-        } catch (Exception e) {
+            String paramsQuery = ctx.queryParam("params");
+            String pageQuery = ctx.queryParam("page");
+            String pageSizeQuery = ctx.queryParam("pageSize");
+            int pageNum = -1;
+            int pageSizeNum = -1;
+            try {
+                pageNum = Integer.parseInt(pageQuery);
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid number format: " + e.getMessage());
+            }
+
+            try {
+                pageSizeNum = Integer.parseInt(pageSizeQuery);
+            } catch (NumberFormatException e) {
+                System.out.println("Invalid number format: " + e.getMessage());
+            }
+
+            String[] columns = (paramsQuery != null) ? paramsQuery.split(",") : null;
+            ctx.json(DatabaseController.getCarDB(pageNum, pageSizeNum, columns));
+
+        } catch (
+
+        Exception e) {
             ctx.status(500).result("Database error: " + e);
         }
     }
@@ -33,7 +54,11 @@ public class CarController {
 
     public static void getCar(Context ctx) {
         Car car = DatabaseController.getCarFromVin(ctx.pathParam("id"));
-        if (car != null) {ctx.json(car);} else {carNotFound(ctx);}
+        if (car != null) {
+            ctx.json(car);
+        } else {
+            carNotFound(ctx);
+        }
     }
 
     public static void updateCar(Context ctx) {
