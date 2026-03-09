@@ -124,7 +124,15 @@ public class DatabaseController {
      * DELETE
      */
     public static boolean deleteCar(String vin) {
-        return true;
+        final String sql = "DELETE FROM cars WHERE vin = ?";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, vin);
+            int rowsAffected = stmt.executeUpdate();
+            return rowsAffected > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
     /*
