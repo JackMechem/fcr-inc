@@ -12,6 +12,9 @@ import java.util.ArrayList;
 
 public class DatabaseController {
 
+    private static int DEFAULT_PAGE_SIZE = 5;
+    private static int DEFAULT_PAGE = 1;
+
     /*
      * Helper Functions
      */
@@ -139,17 +142,16 @@ public class DatabaseController {
      * GET
      */
 
-    public static ArrayList<Car> getCarDB() {
-        return getCarDB(1, 3);
-    }
-
-    public static ArrayList<Car> getCarDB(int page, int pageSize) {
+    public static ArrayList<Car> getCarDB(int page, int pageSize, String params) {
         final String sql = "SELECT vin, make, model, model_year, description, num_cylinders, gears, " +
                 "horsepower, torque, seats, priceperday, mpg, transmission, drivetrain, engineLayout, fuel, images, features "
                 +
                 "FROM cars " + "LIMIT ? OFFSET ?";
 
         ArrayList<Car> cars = new ArrayList<>();
+
+        if (page == -1)
+            page = DEFAULT_PAGE;
 
         int offset = (page - 1) * pageSize;
 

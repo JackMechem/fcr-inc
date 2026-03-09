@@ -19,8 +19,9 @@ import java.util.stream.StreamSupport;
 public class CarController {
 
     public static void getAllCars(Context ctx) {
-        try {ctx.json(DatabaseController.getCarDB());}
-        catch (Exception e) {
+        try {
+            ctx.json(DatabaseController.getCarDB(-1, -1, ""));
+        } catch (Exception e) {
             ctx.status(500).result("Database error: " + e);
         }
     }
@@ -32,8 +33,11 @@ public class CarController {
 
     public static void getCar(Context ctx) {
         Car car = DatabaseController.getCarFromVin(ctx.pathParam("id"));
-        if (car != null) {ctx.json(car);}
-        else {carNotFound(ctx);}
+        if (car != null) {
+            ctx.json(car);
+        } else {
+            ctx.status(404).result("Car not found.");
+        }
     }
 
     public static void updateCar(Context ctx) {
@@ -43,9 +47,12 @@ public class CarController {
 
     public static void deleteCar(Context ctx) {
         boolean successfullyDeleted = DatabaseController.deleteCar(ctx.pathParam("id"));
-        if (successfullyDeleted) {ctx.status(204);} else {carNotFound(ctx);}
+        if (successfullyDeleted) {
+            ctx.status(204);
+        } else {
+            carNotFound(ctx);
+        }
     }
-
 
     // Helper methods
     private static void carNotFound(Context ctx) {
