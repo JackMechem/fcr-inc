@@ -20,9 +20,10 @@ public class CarController {
 
     public static void getAllCars(Context ctx) {
         try {
-            ctx.json(new DatabaseController().getCarDB());
+            throw new SQLException("test");
+//            ctx.json(new DatabaseController().getCarDB());
         } catch (SQLException e) {
-            throw new RuntimeException("Database error", e);
+            ctx.status(500).result("Database error: "+e);
         }
     }
     public static void createCar(Context ctx) {
