@@ -39,8 +39,8 @@ public class Main {
                 });
             });
         }).start(port);
-        DatabaseController database = new DatabaseController();
-        System.out.println(database.getCarDB());
 
+        DatabaseController database = new DatabaseController();
+//        System.out.println(database.getCarDB());
     }
 }

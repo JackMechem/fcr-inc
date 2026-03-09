@@ -3,6 +3,8 @@ package com.inc.fcr.car;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.MissingNode;
+import com.inc.fcr.Role;
+import io.javalin.Javalin;
 import io.javalin.http.Context;
 
 import com.inc.fcr.database.DatabaseController;
@@ -17,11 +19,8 @@ import java.util.stream.StreamSupport;
 public class CarController {
 
     public static void getAllCars(Context ctx) {
-
         try {
-            DatabaseController database = new DatabaseController();
-            ArrayList<Car> cars = database.getCarDB();
-            ctx.json(cars);
+            ctx.json(new DatabaseController().getCarDB());
         } catch (SQLException e) {
             throw new RuntimeException("Database error", e);
         }
