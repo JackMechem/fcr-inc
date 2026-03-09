@@ -125,77 +125,86 @@ public class DatabaseController {
      */
 
     public static ArrayList<Car> getCarDB() {
+        return getCarDB(1, 3);
+    }
+
+    public static ArrayList<Car> getCarDB(int page, int pageSize) {
         final String sql = "SELECT vin, make, model, model_year, description, num_cylinders, gears, " +
                 "horsepower, torque, seats, priceperday, mpg, transmission, drivetrain, engineLayout, fuel, images, features "
                 +
-                "FROM cars";
+                "FROM cars " + "LIMIT ? OFFSET ?";
 
         ArrayList<Car> cars = new ArrayList<>();
 
-        try (PreparedStatement stmt = conn.prepareStatement(sql);
-                ResultSet rs = stmt.executeQuery()) {
+        int offset = (page - 1) * pageSize;
 
-            while (rs.next()) {
-                try {
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, pageSize);
+            stmt.setInt(2, offset);
+            try (ResultSet rs = stmt.executeQuery()) {
 
-                    TransmissionType transmission = enumFromToString(TransmissionType.class,
-                            rs.getString("transmission"));
+                while (rs.next()) {
+                    try {
 
-                    Drivetrain drivetrain = enumFromToString(Drivetrain.class, rs.getString("drivetrain"));
+                        TransmissionType transmission = enumFromToString(TransmissionType.class,
+                                rs.getString("transmission"));
 
-                    EngineLayout engineLayout = enumFromToString(EngineLayout.class, rs.getString("engineLayout"));
+                        Drivetrain drivetrain = enumFromToString(Drivetrain.class, rs.getString("drivetrain"));
 
-                    FuelType fuel = enumFromToString(FuelType.class, rs.getString("fuel"));
+                        EngineLayout engineLayout = enumFromToString(EngineLayout.class, rs.getString("engineLayout"));
 
-                    String featuresJson = rs.getString("features");
+                        FuelType fuel = enumFromToString(FuelType.class, rs.getString("fuel"));
 
-                    ArrayList<String> features = new ArrayList<>();
+                        String featuresJson = rs.getString("features");
 
-                    if (featuresJson != null && !featuresJson.equals("[]")) {
-                        featuresJson = featuresJson.replace("[", "").replace("]", "").replace("\"", "");
-                        String[] parts = featuresJson.split(",");
-                        for (String part : parts) {
-                            features.add(part.trim());
+                        ArrayList<String> features = new ArrayList<>();
+
+                        if (featuresJson != null && !featuresJson.equals("[]")) {
+                            featuresJson = featuresJson.replace("[", "").replace("]", "").replace("\"", "");
+                            String[] parts = featuresJson.split(",");
+                            for (String part : parts) {
+                                features.add(part.trim());
+                            }
                         }
-                    }
 
-                    String imagesJson = rs.getString("images");
+                        String imagesJson = rs.getString("images");
 
-                    ArrayList<String> images = new ArrayList<>();
+                        ArrayList<String> images = new ArrayList<>();
 
-                    if (imagesJson != null && !imagesJson.equals("[]")) {
-                        imagesJson = imagesJson.replace("[", "").replace("]", "").replace("\"", "");
-                        String[] parts = imagesJson.split(",");
-                        for (String part : parts) {
-                            images.add(part.trim());
+                        if (imagesJson != null && !imagesJson.equals("[]")) {
+                            imagesJson = imagesJson.replace("[", "").replace("]", "").replace("\"", "");
+                            String[] parts = imagesJson.split(",");
+                            for (String part : parts) {
+                                images.add(part.trim());
+                            }
                         }
+
+                        Car car = new Car(
+                                rs.getString("vin"),
+                                rs.getString("make"),
+                                rs.getString("model"),
+                                rs.getInt("model_year"),
+                                rs.getString("description"),
+                                rs.getInt("num_cylinders"),
+                                rs.getInt("gears"),
+                                rs.getInt("horsepower"),
+                                rs.getInt("torque"),
+                                rs.getInt("seats"),
+                                rs.getDouble("priceperday"),
+                                rs.getDouble("mpg"),
+                                features,
+                                images,
+                                transmission,
+                                drivetrain,
+                                engineLayout,
+                                fuel);
+
+                        cars.add(car);
+                    } catch (IllegalArgumentException iae) {
+                        System.err.println(
+                                "Skipping row due to enum mismatch (vin=" + rs.getString("vin") + "): "
+                                        + iae.getMessage());
                     }
-
-                    Car car = new Car(
-                            rs.getString("vin"),
-                            rs.getString("make"),
-                            rs.getString("model"),
-                            rs.getInt("model_year"),
-                            rs.getString("description"),
-                            rs.getInt("num_cylinders"),
-                            rs.getInt("gears"),
-                            rs.getInt("horsepower"),
-                            rs.getInt("torque"),
-                            rs.getInt("seats"),
-                            rs.getDouble("priceperday"),
-                            rs.getDouble("mpg"),
-                            features,
-                            images,
-                            transmission,
-                            drivetrain,
-                            engineLayout,
-                            fuel);
-
-                    cars.add(car);
-
-                } catch (IllegalArgumentException iae) {
-                    System.err.println(
-                            "Skipping row due to enum mismatch (vin=" + rs.getString("vin") + "): " + iae.getMessage());
                 }
             }
 
