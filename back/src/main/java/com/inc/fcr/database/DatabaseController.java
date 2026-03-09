@@ -217,6 +217,12 @@ public class DatabaseController {
                         "horsepower, torque, seats, priceperday, mpg, transmission, drivetrain, engineLayout, fuel, images, features " +
                         "FROM cars WHERE vin = ?";
 
+        /* Not too sure what to add here for /cars?param=vin...
+
+
+
+        */
+
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, vin);
@@ -275,5 +281,92 @@ public class DatabaseController {
 
         return null;
     }
+
+    /* wasn't too sure after seeing this and I didn't want to make a mess of what you already have, so I made my work a comment - i will fix this because I know what I wrote is wrong, but I will need to ask some questions
+       everything above in vin seems done to me? I'm not too sure how to add to it aside from below, which I'm not sure about becasue it's new methods.
+
+        public Car getCarFromMake(String Make) {
+        final String sql =
+                "SELECT vin, make, model, model_year, description, num_cylinders, gears, " +
+                        "horsepower, torque, seats, priceperday, mpg, transmission, drivetrain, engineLayout, fuel, images, features " +
+                        "FROM cars WHERE make = ?";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, make);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    try {
+
+                        TransmissionType transmission =
+                                enumFromToString(TransmissionType.class, rs.getString("transmission"));
+
+                        Drivetrain drivetrain =
+                                enumFromToString(Drivetrain.class, rs.getString("drivetrain"));
+
+                        EngineLayout engineLayout =
+                                enumFromToString(EngineLayout.class, rs.getString("engineLayout"));
+
+                        FuelType fuel =
+                                enumFromToString(FuelType.class, rs.getString("fuel"));
+
+                        ArrayList<String> features = jsonToStringArrayList(rs.getString("features"));
+                        ArrayList<String> images = jsonToStringArrayList(rs.getString("images"));
+
+                        return new Car(
+                                rs.getString("vin"),
+                                rs.getString("make"),
+                                rs.getString("model"),
+                                rs.getInt("model_year"),
+                                rs.getString("description"),
+                                rs.getInt("num_cylinders"),
+                                rs.getInt("gears"),
+                                rs.getInt("horsepower"),
+                                rs.getInt("torque"),
+                                rs.getInt("seats"),
+                                rs.getDouble("priceperday"),
+                                rs.getDouble("mpg"),
+                                features,
+                                images,
+                                transmission,
+                                drivetrain,
+                                engineLayout,
+                                fuel
+                        );
+
+                    } catch (IllegalArgumentException iae) {
+                        System.err.println(
+                                "Skipping row due to enum mismatch (make=" + rs.getString("make") + "): " + iae.getMessage()
+                        );
+                    }
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    } - but it's just what you did but with make, is that what you had meant?
+
+        /cars?params=makevin
+        /cars?params=model
+        /cars?params=model_year
+        /cars?params=description
+        /cars?params=num_cylinders
+        /cars?params=gears
+        /cars?params=horsepower
+        /cars?params=torque
+        /cars?params=seats
+        /cars?params=priceperday
+        /cars?params=mpg
+
+
+
+
+
+
+        */
 
 }
