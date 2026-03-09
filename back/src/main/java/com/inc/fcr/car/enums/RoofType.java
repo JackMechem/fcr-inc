@@ -1,5 +1,5 @@
 package com.inc.fcr.car.enums;
 
 public enum RoofType {
-    CONVERTABLE, SUNROOF, MOONROOF, HARDTOP, PANORAMIC
+    SOFTTOP, HARDTOP, TARGA, SLICKTOP, SUNROOF, PANORAMIC
 }
