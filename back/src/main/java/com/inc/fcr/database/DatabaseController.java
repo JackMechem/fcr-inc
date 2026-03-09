@@ -2,10 +2,7 @@ package com.inc.fcr.database;
 
 import com.inc.fcr.ValidationException;
 import com.inc.fcr.car.Car;
-import com.inc.fcr.car.enums.Drivetrain;
-import com.inc.fcr.car.enums.EngineLayout;
-import com.inc.fcr.car.enums.FuelType;
-import com.inc.fcr.car.enums.TransmissionType;
+import com.inc.fcr.car.enums.*;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -17,11 +14,10 @@ public class DatabaseController {
 
     private static int DEFAULT_PAGE_SIZE = 5;
     private static int DEFAULT_PAGE = 1;
-    private static String[] DEFAULT_PARAMS = null;
     private static final Set<String> VALID_COLUMNS = new HashSet<>(Arrays.asList(
             "vin", "make", "model", "model_year", "description", "num_cylinders", "gears",
             "horsepower", "torque", "seats", "priceperday", "mpg", "transmission",
-            "drivetrain", "engineLayout", "fuel", "images", "features"));
+            "drivetrain", "engineLayout", "fuel", "images", "features", "roof_type", "vehicle_class", "body_type"));
 
     private static String sanitizeColumns(String[] columns) {
         if (columns == null || columns.length == 0)
@@ -96,7 +92,7 @@ public class DatabaseController {
      * POST / PATCH
      */
 
-    // TODO: Add features and images
+    // TODO: Add features and images - refactor
     public static void insertCar(Car car) {
         final String checkSQL = "SELECT 1 FROM cars WHERE vin = ?";
 
@@ -200,6 +196,15 @@ public class DatabaseController {
                         FuelType fuel = hasCol(colSet, "fuel")
                                 ? enumFromToString(FuelType.class, rs.getString("fuel"))
                                 : null;
+                        BodyType bodyType = hasCol(colSet, "body_type")
+                                ? enumFromToString(BodyType.class, rs.getString("body_type"))
+                                : null;
+                        RoofType roofType = hasCol(colSet, "roof_type")
+                                ? enumFromToString(RoofType.class, rs.getString("roof_type"))
+                                : null;
+                        VehicleClassProperty vehicleClassProperty = hasCol(colSet, "vehicle_class")
+                                ? enumFromToString(VehicleClassProperty.class, rs.getString("vehicle_class"))
+                                : null;
 
                         ArrayList<String> features = new ArrayList<>();
                         if (hasCol(colSet, "features")) {
@@ -235,7 +240,9 @@ public class DatabaseController {
                                 hasCol(colSet, "priceperday") ? rs.getDouble("priceperday") : 0,
                                 hasCol(colSet, "mpg") ? rs.getDouble("mpg") : 0,
                                 features, images,
-                                transmission, drivetrain, engineLayout, fuel);
+                                transmission, drivetrain, engineLayout, fuel,
+                                bodyType, roofType, vehicleClassProperty
+                                );
                         cars.add(car);
                     } catch (IllegalArgumentException iae) {
                         System.err.println("Skipping row due to enum mismatch (vin=" + rs.getString("vin") + "): "
@@ -298,7 +305,10 @@ public class DatabaseController {
                                 transmission,
                                 drivetrain,
                                 engineLayout,
-                                fuel);
+                                fuel,
+                                null,
+                                null,
+                                null);
 
                     } catch (IllegalArgumentException iae) {
                         System.err.println(

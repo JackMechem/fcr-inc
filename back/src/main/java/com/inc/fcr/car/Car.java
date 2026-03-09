@@ -1,10 +1,7 @@
 package com.inc.fcr.car;
 
 import com.inc.fcr.ValidationException;
-import com.inc.fcr.car.enums.Drivetrain;
-import com.inc.fcr.car.enums.EngineLayout;
-import com.inc.fcr.car.enums.FuelType;
-import com.inc.fcr.car.enums.TransmissionType;
+import com.inc.fcr.car.enums.*;
 import java.util.ArrayList;
 
 public class Car {
@@ -27,10 +24,14 @@ public class Car {
     private Drivetrain drivetrain;
     private EngineLayout engineLayout;
     private FuelType fuel;
+    private BodyType bodyType;
+    private RoofType roofType;
+    private VehicleClassProperty vehicleClassProperty;
 
     public Car(String vin, String make, String model, int model_year, String description,
                int cylinders, int gears, int horsepower, int torque, int seats, double pricePerDay, double mpg, ArrayList<String> features, ArrayList<String> images,
-               TransmissionType transmission, Drivetrain drivetrain, EngineLayout engineLayout, FuelType fuel) {
+               TransmissionType transmission, Drivetrain drivetrain, EngineLayout engineLayout, FuelType fuel,
+               BodyType bodyType, RoofType roofType, VehicleClassProperty vehicleClassProperty) {
 
         this.vin = vin;
         this.make = make;
@@ -50,6 +51,9 @@ public class Car {
         this.engineLayout = engineLayout;
         this.fuel = fuel;
         this.images = images;
+        this.bodyType = bodyType;
+        this.roofType = roofType;
+        this.vehicleClassProperty = vehicleClassProperty;
     }
 
     // Getters
@@ -125,6 +129,18 @@ public class Car {
         return engineLayout;
     }
 
+    public BodyType getBodyType() {
+        return bodyType;
+    }
+
+    public RoofType getRoofType() {
+        return roofType;
+    }
+
+    public VehicleClassProperty getVehicleClassProperty() {
+        return vehicleClassProperty;
+    }
+
     // Setters
     // NOTE: consider for String types: default null or ""?
     //       should we data validate String types?
@@ -138,6 +154,18 @@ public class Car {
 
     public void setModel(String model) {
         this.model = model;
+    }
+
+    public void setBodyType(BodyType bodyType) {
+        this.bodyType = bodyType;
+    }
+
+    public void setRoofType(RoofType roofType) {
+        this.roofType = roofType;
+    }
+
+    public void setVehicleClassProperty(VehicleClassProperty vehicleClassProperty) {
+        this.vehicleClassProperty = vehicleClassProperty;
     }
 
     public void setYear(int model_year) throws ValidationException {
@@ -231,6 +259,8 @@ public class Car {
     public void setEngineLayout(EngineLayout engineLayout) {
         this.engineLayout = engineLayout;
     }
+
+    // methods
 
     @Override
     public String toString() {
