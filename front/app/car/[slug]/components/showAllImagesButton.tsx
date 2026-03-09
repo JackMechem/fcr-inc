@@ -7,10 +7,10 @@ import { BiImage } from "react-icons/bi";
 import { GrClose } from "react-icons/gr";
 
 interface ShowAllImagesButtonProps {
-	imgUrls: Car["imageUrls"];
+	images: Car["images"];
 }
 
-const ShowAllImagesButton = ({ imgUrls }: ShowAllImagesButtonProps) => {
+const ShowAllImagesButton = ({ images: images }: ShowAllImagesButtonProps) => {
 	const [imageViewShown, setImageViewShown] = useState<boolean>(false);
 	return (
 		<>
@@ -22,7 +22,7 @@ const ShowAllImagesButton = ({ imgUrls }: ShowAllImagesButtonProps) => {
 					>
 						<GrClose />
 					</button>
-					{imgUrls.map((url: string, index: number) => (
+					{images.map((url: string, index: number) => (
 						<Image
 							key={url + index}
 							src={url}

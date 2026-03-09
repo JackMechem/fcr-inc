@@ -12,7 +12,7 @@ export interface Car {
 	seats: number;
 	mpg: number;
 	pricePerDay: number;
-	imageUrls: string[];
+	images: string[];
 	features: string[];
 	description: string;
 }

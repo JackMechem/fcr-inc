@@ -27,7 +27,7 @@ build:
 
 rundev:
 	@echo -e "$(GREEN)$(BOLD)Starting on port $(PORT)...$(RESET)"
-	docker run -p $(PORT):$(PORT) $(IMAGE_NAME)
+	docker run --env-file ./.env -p $(PORT):$(PORT) $(IMAGE_NAME)
 
 dev: build rundev
 
@@ -41,7 +41,7 @@ sudobuild:
 sudorundev:
 	@echo -e "$(RED)$(BOLD)Running docker as sudo!$(RESET)"
 	@echo -e "$(GREEN)$(BOLD)Starting on port $(PORT)...$(RESET)"
-	sudo docker run -p $(PORT):$(PORT) $(IMAGE_NAME)
+	sudo docker run --env-file ./.env -p $(PORT):$(PORT) $(IMAGE_NAME)
 
 sudodev: sudobuild sudorundev
 

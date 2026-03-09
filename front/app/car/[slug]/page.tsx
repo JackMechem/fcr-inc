@@ -8,10 +8,11 @@ const CarPage = async ({ params }: { params: Promise<{ slug: string }> }) => {
 	const { slug } = await params;
 
 	const carData: Car = await getCar(slug);
+	console.log(carData);
 
 	return (
 		<>
-			<ImageView imgUrls={carData.imageUrls} />
+			<ImageView images={carData.images} />
 			<div className="flex md:flex-row flex-col gap-[20px]">
 				<LeftColumn carData={carData}></LeftColumn>
 				<RightColumn carData={carData}></RightColumn>

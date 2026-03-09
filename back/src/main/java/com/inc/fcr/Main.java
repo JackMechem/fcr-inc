@@ -21,14 +21,13 @@ public class Main {
         String portProperty = System.getenv("PORT");
         int port = (portProperty != null) ? Integer.parseInt(portProperty) : 8080;
 
-        // Initiate API
         Javalin app = Javalin.create(config -> {
             config.router.mount(router -> {
                 router.beforeMatched(Auth::handleAccess);
             }).apiBuilder(() -> {
-                // Specify default redirect (unspecified endpoint to cars endpoint)
+                // Default redirect (/cars)
                 get("/", ctx -> ctx.redirect("/cars"), Role.ANYONE);
-                // Cars endpoint
+
                 path("cars", () -> {
                     get(CarController::getAllCars, Role.ANYONE);
                     post(CarController::createCar, Role.WRITE);
@@ -40,7 +39,6 @@ public class Main {
                 });
             });
         }).start(port);
-        System.out.println("Hello from stdout java");
         DatabaseController database = new DatabaseController();
         System.out.println(database.getCarDB());
 

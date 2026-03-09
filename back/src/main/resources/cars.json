@@ -14,7 +14,7 @@
 			"seats": 6,
 			"mpg": 102,
 			"pricePerDay": 250.0,
-			"imageUrls": [
+			"images": [
 				"https://images.turo.com/media/vehicle/images/quc_DXOlSmi9xxwl6DNZ8g.1242x745.jpg",
 				"https://images.turo.com/media/vehicle/images/1HPyoqdQSv-81DQQT-bJNw.1242x745.jpg",
 				"https://images.turo.com/media/vehicle/images/A1lziaGnQreBAWkQ2EwgGw.1242x745.jpg",
@@ -43,7 +43,7 @@
 			"seats": 5,
 			"mpg": 32,
 			"pricePerDay": 65.0,
-			"imageUrls": [
+			"images": [
 				"https://images.turo.com/media/vehicle/images/NvWULGvfSm-g8qaf-oavvQ.1242x745.heic",
 				"https://images.turo.com/media/vehicle/images/DoXu2OMKRpW6jKE5ioCowA.1242x745.heic",
 				"https://images.turo.com/media/vehicle/images/getFDcabTxGtVHJJ4Q1eCg.1242x745.heic",
@@ -72,7 +72,7 @@
 			"seats": 4,
 			"mpg": 18,
 			"pricePerDay": 120.0,
-			"imageUrls": [
+			"images": [
 				"https://images.turo.com/media/vehicle/images/U-9L_hySQjKYeZqjCVmkPw.1242x745.jpg",
 				"https://images.turo.com/media/vehicle/images/KymGVmYYQ2eydbYps_bEGQ.1242x745.jpg",
 				"https://images.turo.com/media/vehicle/images/9be0Jbf1S7SnS89w_s6FIw.1242x745.jpg",
@@ -107,7 +107,7 @@
 			"seats": 5,
 			"mpg": 25,
 			"pricePerDay": 145.0,
-			"imageUrls": [
+			"images": [
 				"https://images.turo.com/media/vehicle/images/N3_W6WXFSp2GDmHx6JBJbQ.1242x745.jpg",
 				"https://images.turo.com/media/vehicle/images/NiVyLrcFRcme1TncJLNP1w.1242x745.jpg",
 				"https://images.turo.com/media/vehicle/images/3O_lfG1aR2eQmTwAb0cPJA.1242x745.jpg",
@@ -138,7 +138,7 @@
 			"seats": 5,
 			"mpg": 49,
 			"pricePerDay": 110.0,
-			"imageUrls": [
+			"images": [
 				"https://images.turo.com/media/vehicle/images/bAEJ8hIpQIGPfapy0Xh-kQ.1242x745.jpg",
 				"https://images.turo.com/media/vehicle/images/4Nz4rsgcT0edqft05RlXfw.1242x745.jpg",
 				"https://images.turo.com/media/vehicle/images/_Svw3GAeTRWY14m6udgLHw.1242x745.jpg",
@@ -168,7 +168,7 @@
 			"seats": 4,
 			"mpg": 20,
 			"pricePerDay": 350.0,
-			"imageUrls": [
+			"images": [
 				"https://images.turo.com/media/vehicle/images/44FuLN2QTxmAxfbryLpsUg.1242x745.heic",
 				"https://images.turo.com/media/vehicle/images/6LVEWkzGRE2NrS43DV-UeA.1242x745.heic",
 				"https://images.turo.com/media/vehicle/images/DdX0lgvKQuGBMsu8HvmNGw.1242x745.heic",
@@ -201,7 +201,7 @@
 			"seats": 5,
 			"mpg": 110,
 			"pricePerDay": 95.0,
-			"imageUrls": [
+			"images": [
 				"https://images.turo.com/media/vehicle/images/5l7qspv0RNyWidzXfuJ2NA.1242x745.jpg",
 				"https://images.turo.com/media/vehicle/images/ev9MQGW4TKSCd8pN_aDUDA.1242x745.jpg",
 				"https://images.turo.com/media/vehicle/images/qPbWMek6SNegToy4rADsHw.1242x745.jpg",
@@ -232,7 +232,7 @@
 			"seats": 8,
 			"mpg": 17,
 			"pricePerDay": 135.0,
-			"imageUrls": [
+			"images": [
 				"https://images.turo.com/media/vehicle/images/JybYxi2URGO_MncZgAoykQ.1242x745.jpg",
 				"https://images.turo.com/media/vehicle/images/If9kkBrhSX-Oe2aGYZhTJA.1242x745.jpg",
 				"https://images.turo.com/media/vehicle/images/zWMHAcByR52kfQ5fX2MYbg.1242x745.jpg",
@@ -269,7 +269,7 @@
 			"seats": 5,
 			"mpg": 28,
 			"pricePerDay": 95.0,
-			"imageUrls": [
+			"images": [
 				"https://images.turo.com/media/vehicle/images/qIYhYmxuRH6sr0Ul50AiGw.1242x745.heic",
 				"https://images.turo.com/media/vehicle/images/DJSOu4hmS3i19SQhQOFAYQ.1242x745.heic",
 				"https://images.turo.com/media/vehicle/images/2RtE7dNtRBKojHrEXm792A.1242x745.heic",
@@ -299,7 +299,7 @@
 			"seats": 2,
 			"mpg": 30,
 			"pricePerDay": 85.0,
-			"imageUrls": [
+			"images": [
 				"https://images.turo.com/media/vehicle/images/C6yeraHRQ1qkvm9KUNoCsQ.1242x745.jpg",
 				"https://images.turo.com/media/vehicle/images/AHCXtq8gQ-6TqTEe8BEcgA.1242x745.jpg",
 				"https://images.turo.com/media/vehicle/images/JXFRKKE8RQGk8ziAJWDXBQ.1242x745.jpg",
@@ -321,4 +321,3 @@
 		}
 	]
 }
-

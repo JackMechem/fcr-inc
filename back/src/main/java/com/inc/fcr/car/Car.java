@@ -9,8 +9,8 @@ import java.util.ArrayList;
 
 public class Car {
 
-    private String vin; // vehicle identification number
-    private String make; // manufacturer
+    private String vin; 
+    private String make;
     private String model;
     private int model_year;
     private String description;
@@ -20,16 +20,16 @@ public class Car {
     private int torque;
     private int seats;
     private double pricePerDay;
-    private double mpg; // average combined miles per gallon
-    private ArrayList<String> features = new ArrayList<String>(); // misc feature highlights
-    // ex: heated seats, ambient lighting, adaptive cruise control, lane keep assist, etc.
+    private double mpg;
+    private ArrayList<String> features = new ArrayList<String>();
+    private ArrayList<String> images = new ArrayList<String>();
     private TransmissionType transmission;
     private Drivetrain drivetrain;
     private EngineLayout engineLayout;
     private FuelType fuel;
 
     public Car(String vin, String make, String model, int model_year, String description,
-               int cylinders, int gears, int horsepower, int torque, int seats, double pricePerDay, double mpg, ArrayList<String> features,
+               int cylinders, int gears, int horsepower, int torque, int seats, double pricePerDay, double mpg, ArrayList<String> features, ArrayList<String> images,
                TransmissionType transmission, Drivetrain drivetrain, EngineLayout engineLayout, FuelType fuel) {
 
         this.vin = vin;
@@ -49,6 +49,7 @@ public class Car {
         this.drivetrain = drivetrain;
         this.engineLayout = engineLayout;
         this.fuel = fuel;
+        this.images = images;
     }
 
     // Getters
@@ -102,6 +103,10 @@ public class Car {
 
     public ArrayList<String> getFeatures() {
         return features;
+    }
+
+    public ArrayList<String> getImages() {
+        return images;
     }
 
     public TransmissionType getTransmission() {
@@ -205,6 +210,10 @@ public class Car {
 
     public void setFeatures(ArrayList<String> features) {
         this.features = features;
+    }
+
+    public void setImages(ArrayList<String> images) {
+        this.images = images;
     }
 
     public void setTransmission(TransmissionType transmission) {

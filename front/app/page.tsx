@@ -6,13 +6,14 @@ import { Car } from "./types/CarTypes";
 
 const Home = async () => {
 	const carsData: Car[] = await getAllCars();
+	console.log(carsData);
 
 	const manualCarsData: Car[] = carsData.filter((car: Car) => {
-		return car.transmission === "manual";
+		return car.transmission === "MANUAL";
 	});
 
 	const automaticCarsData: Car[] = carsData.filter((car: Car) => {
-		return car.transmission === "automatic";
+		return car.transmission === "AUTOMATIC";
 	});
 
 	return (

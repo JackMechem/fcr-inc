@@ -1,0 +1,3 @@
+DB_URL=jdbc:mysql://<ENDPOINT>:3306/fcr_db
+DB_USER=
+DB_PASSWORD=

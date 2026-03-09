@@ -81,7 +81,7 @@ public class DatabaseController {
     public ArrayList<Car> getCarDB() {
         final String sql =
                 "SELECT vin, make, model, model_year, description, num_cylinders, gears, " +
-                        "horsepower, torque, seats, priceperday, mpg, transmission, drivetrain, engineLayout, fuel " +
+                        "horsepower, torque, seats, priceperday, mpg, transmission, drivetrain, engineLayout, fuel, images, features " +
                         "FROM cars";
 
         ArrayList<Car> cars = new ArrayList<>();
@@ -91,7 +91,6 @@ public class DatabaseController {
 
             while (rs.next()) {
                 try {
-                    ArrayList<String> features = new ArrayList<>(); // until you store features
 
                     TransmissionType transmission =
                             enumFromToString(TransmissionType.class, rs.getString("transmission"));
@@ -104,6 +103,33 @@ public class DatabaseController {
 
                     FuelType fuel =
                             enumFromToString(FuelType.class, rs.getString("fuel"));
+
+
+                    String featuresJson = rs.getString("features");
+
+                    ArrayList<String> features = new ArrayList<>();
+
+                    if (featuresJson != null && !featuresJson.equals("[]")) {
+                        featuresJson = featuresJson.replace("[", "").replace("]", "").replace("\"", "");
+                        String[] parts = featuresJson.split(",");
+                        for (String part : parts) {
+                            features.add(part.trim());
+                        }
+                    }
+
+                    String imagesJson = rs.getString("images");
+
+                    ArrayList<String> images = new ArrayList<>();
+
+                    if (imagesJson != null && !imagesJson.equals("[]")) {
+                        imagesJson = imagesJson.replace("[", "").replace("]", "").replace("\"", "");
+                        String[] parts = imagesJson.split(",");
+                        for (String part : parts) {
+                            images.add(part.trim());
+                        }
+                    }
+
+
 
                     Car car = new Car(
                             rs.getString("vin"),
@@ -119,6 +145,7 @@ public class DatabaseController {
                             rs.getDouble("priceperday"),
                             rs.getDouble("mpg"),
                             features,
+                            images,
                             transmission,
                             drivetrain,
                             engineLayout,
@@ -140,6 +167,101 @@ public class DatabaseController {
 
         return cars;
     }
+
+
+    public Car getCarFromVin(String vin) {
+        final String sql =
+                "SELECT vin, make, model, model_year, description, num_cylinders, gears, " +
+                        "horsepower, torque, seats, priceperday, mpg, transmission, drivetrain, engineLayout, fuel, images, features " +
+                        "FROM cars WHERE vin = '" + vin + "'";
+
+        Car car;
+
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                try {
+
+                    TransmissionType transmission =
+                            enumFromToString(TransmissionType.class, rs.getString("transmission"));
+
+                    Drivetrain drivetrain =
+                            enumFromToString(Drivetrain.class, rs.getString("drivetrain"));
+
+                    EngineLayout engineLayout =
+                            enumFromToString(EngineLayout.class, rs.getString("engineLayout"));
+
+                    FuelType fuel =
+                            enumFromToString(FuelType.class, rs.getString("fuel"));
+
+
+                    String featuresJson = rs.getString("features");
+
+                    ArrayList<String> features = new ArrayList<>();
+
+                    if (featuresJson != null && !featuresJson.equals("[]")) {
+                        featuresJson = featuresJson.replace("[", "").replace("]", "").replace("\"", "");
+                        String[] parts = featuresJson.split(",");
+                        for (String part : parts) {
+                            features.add(part.trim());
+                        }
+                    }
+
+                    String imagesJson = rs.getString("images");
+
+                    ArrayList<String> images = new ArrayList<>();
+
+                    if (imagesJson != null && !imagesJson.equals("[]")) {
+                        imagesJson = imagesJson.replace("[", "").replace("]", "").replace("\"", "");
+                        String[] parts = imagesJson.split(",");
+                        for (String part : parts) {
+                            images.add(part.trim());
+                        }
+                    }
+
+
+
+                    car = new Car(
+                            rs.getString("vin"),
+                            rs.getString("make"),
+                            rs.getString("model"),
+                            rs.getInt("model_year"),
+                            rs.getString("description"),
+                            rs.getInt("num_cylinders"),
+                            rs.getInt("gears"),
+                            rs.getInt("horsepower"),
+                            rs.getInt("torque"),
+                            rs.getInt("seats"),
+                            rs.getDouble("priceperday"),
+                            rs.getDouble("mpg"),
+                            features,
+                            images,
+                            transmission,
+                            drivetrain,
+                            engineLayout,
+                            fuel
+                    );
+
+                    return car;
+
+
+                } catch (IllegalArgumentException iae) {
+                    System.err.println(
+                            "Skipping row due to enum mismatch (vin=" + rs.getString("vin") + "): " + iae.getMessage()
+                    );
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+
+
 
     // Maps DB string -> enum by comparing enum.toString() (case-insensitive)
     private static <E extends Enum<E>> E enumFromToString(Class<E> enumClass, String dbValue) {
