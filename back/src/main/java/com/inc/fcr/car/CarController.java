@@ -33,7 +33,7 @@ public class CarController {
     public static void getCar(Context ctx) {
         Car car = DatabaseController.getCarFromVin(ctx.pathParam("id"));
         if (car != null) {ctx.json(car);}
-        else {ctx.status(404).result("Car not found.");}
+        else {carNotFound(ctx);}
     }
 
     public static void updateCar(Context ctx) {
@@ -42,7 +42,13 @@ public class CarController {
     }
 
     public static void deleteCar(Context ctx) {
-        // TODO
+        boolean successfullyDeleted = DatabaseController.deleteCar(ctx.pathParam("id"));
+        if (successfullyDeleted) {ctx.status(204);} else {carNotFound(ctx);}
     }
 
+
+    // Helper methods
+    private static void carNotFound(Context ctx) {
+        ctx.status(404).result("Car not found.");
+    }
 }
