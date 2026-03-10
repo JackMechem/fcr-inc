@@ -3,11 +3,8 @@ package com.inc.fcr.car;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.MissingNode;
-import com.inc.fcr.Role;
 import com.inc.fcr.ValidationException;
 import com.inc.fcr.car.enums.*;
-import io.javalin.Javalin;
 import io.javalin.http.Context;
 
 import com.inc.fcr.database.DatabaseController;
@@ -16,8 +13,7 @@ import com.inc.fcr.car.Car;
 import java.sql.*;
 import java.util.ArrayList;
 
-import java.io.IOException;
-import java.util.stream.StreamSupport;
+import java.util.Map;
 
 public class CarController {
     public static void getAllCars(Context ctx) {
@@ -72,32 +68,44 @@ public class CarController {
             ctx.status(201);
 
         } catch (Exception e) {
-            if (e instanceof SQLException) {
-                databaseError(ctx, e);
-            } else {
-                ctx.status(400).result("Improper car format: " + e);
-            }
+            if (e instanceof SQLException) {databaseError(ctx, e);}
+            else {validationError(ctx, e);}
         }
     }
 
     public static void getCar(Context ctx) {
-        Car car = null;
         try {
-            car = DatabaseController.getCarFromVin(ctx.pathParam("id"));
-        } catch (Exception e) {
-            databaseError(ctx, e);
+            Car car = DatabaseController.getCarFromVin(ctx.pathParam("id"));
+            if (car == null) {carNotFound(ctx);}
+            else {ctx.json(car);}
         }
-
-        if (car != null) {
-            ctx.json(car);
-        } else {
-            carNotFound(ctx);
+        catch (Exception e) {
+            databaseError(ctx, e);
         }
     }
 
     public static void updateCar(Context ctx) {
-        // TODO
-        // uses: ctx.bodyAsClass(AnyClassHere.class)
+        try {
+            // Retrieve car from database
+            Car car = DatabaseController.getCarFromVin(ctx.pathParam("id"));
+            if (car == null) {carNotFound(ctx); return;}
+
+            // Update car fields specified
+            var fields = ctx.bodyAsClass(JsonNode.class).fields();
+            while (fields.hasNext()) {
+                Map.Entry<String, JsonNode> entry = fields.next();
+                Car.setterKeyMap.get(entry.getKey()).accept(car, entry.getValue());
+            }
+            // Send back to database
+            DatabaseController.updateCar(car);
+            ctx.status(201);
+
+        } catch (Exception e) {
+            if (e instanceof SQLException) {databaseError(ctx, e);}
+            else if (e instanceof ValidationException) {validationError(ctx, e);}
+            else {ctx.status(500).result("Server error: "+e);}
+        }
+
     }
 
     public static void deleteCar(Context ctx) {
@@ -116,5 +124,8 @@ public class CarController {
 
     private static void databaseError(Context ctx, Exception e) {
         ctx.status(500).result("Database error: " + e);
+    }
+    private static void validationError(Context ctx, Exception e) {
+        ctx.status(400).result("Improper car format: " + e);
     }
 }

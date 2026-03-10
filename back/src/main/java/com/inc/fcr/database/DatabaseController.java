@@ -143,7 +143,7 @@ public class DatabaseController {
             insertStmt.setObject(17, toJsonArray(car.getFeatures()));
             insertStmt.setObject(18, toJsonArray(car.getImages()));
             insertStmt.setString(19, car.getRoofType().toString());
-            insertStmt.setString(20, car.getVehicleClassProperty().toString());
+            insertStmt.setString(20, car.getVehicleClass().toString());
             insertStmt.setString(21, car.getBodyType().toString());
 
             int rows = insertStmt.executeUpdate();
@@ -233,7 +233,7 @@ public class DatabaseController {
                         RoofType roofType = hasCol(colSet, "roof_type")
                                 ? enumFromToString(RoofType.class, rs.getString("roof_type"))
                                 : null;
-                        VehicleClass vehicleClassProperty = hasCol(colSet, "vehicle_class")
+                        VehicleClass vehicleClass = hasCol(colSet, "vehicle_class")
                                 ? enumFromToString(VehicleClass.class, rs.getString("vehicle_class"))
                                 : null;
 
@@ -272,7 +272,7 @@ public class DatabaseController {
                                 hasCol(colSet, "mpg") ? rs.getDouble("mpg") : 0,
                                 features, images,
                                 transmission, drivetrain, engineLayout, fuel,
-                                bodyType, roofType, vehicleClassProperty);
+                                bodyType, roofType, vehicleClass);
                         cars.add(car);
                     } catch (IllegalArgumentException iae) {
                         System.err.println("Skipping row due to enum mismatch (vin=" + rs.getString("vin") + "): "
@@ -312,7 +312,7 @@ public class DatabaseController {
 
                         FuelType fuel = enumFromToString(FuelType.class, rs.getString("fuel"));
 
-                        VehicleClass vehicleClassProperty = enumFromToString(VehicleClass.class,
+                        VehicleClass vehicleClass = enumFromToString(VehicleClass.class,
                                 rs.getString("vehicle_class"));
 
                         RoofType roofType = enumFromToString(RoofType.class, rs.getString("roof_type"));
@@ -343,7 +343,7 @@ public class DatabaseController {
                                 fuel,
                                 bodyType,
                                 roofType,
-                                vehicleClassProperty);
+                                vehicleClass);
 
                     } catch (IllegalArgumentException iae) {
                         System.err.println(

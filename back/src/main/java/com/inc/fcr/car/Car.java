@@ -1,10 +1,44 @@
 package com.inc.fcr.car;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.inc.fcr.ValidationException;
 import com.inc.fcr.car.enums.*;
 import java.util.ArrayList;
+import java.util.Map;
 
 public class Car {
+
+    @FunctionalInterface
+    public interface ThrowingBiConsumer<T, U> {
+        void accept(T t, U u) throws ValidationException;
+    } // Need a custom consumer to throw exceptions up
+    private static final ObjectMapper mapper = new ObjectMapper(); // used to convert features & imgs
+    // This map is in here, used by CarController::updateCar, as it must be appended to when car expanded
+    public static final Map<String, ThrowingBiConsumer<Car, JsonNode>> setterKeyMap = Map.ofEntries(
+        Map.entry("vin", (c,v) -> c.setVin(v.asText())),
+        Map.entry("make", (c,v) -> c.setMake(v.asText())),
+        Map.entry("model", (c,v) -> c.setModel(v.asText())),
+        Map.entry("modelYear", (c,v) -> c.setModelYear(v.asInt())),
+        Map.entry("description", (c,v) -> c.setDescription(v.asText())),
+        Map.entry("cylinders", (c,v) -> c.setCylinders(v.asInt())),
+        Map.entry("gears", (c,v) -> c.setGears(v.asInt())),
+        Map.entry("horsepower", (c,v) -> c.setHorsepower(v.asInt())),
+        Map.entry("torque", (c,v) -> c.setTorque(v.asInt())),
+        Map.entry("seats", (c,v) -> c.setSeats(v.asInt())),
+        Map.entry("pricePerDay", (c,v) -> c.setPricePerDay(v.asDouble())),
+        Map.entry("mpg", (c,v) -> c.setMpg(v.asDouble())),
+        Map.entry("features", (c,v) -> c.setFeatures(mapper.convertValue(v, new TypeReference<ArrayList<String>>() {}))),
+        Map.entry("images", (c,v) -> c.setImages(mapper.convertValue(v, new TypeReference<ArrayList<String>>() {}))),
+        Map.entry("transmission", (c,v) -> c.setTransmission(TransmissionType.valueOf(v.asText()))),
+        Map.entry("drivetrain", (c,v) -> c.setDrivetrain(Drivetrain.valueOf(v.asText()))),
+        Map.entry("engineLayout", (c,v) -> c.setEngineLayout(EngineLayout.valueOf(v.asText()))),
+        Map.entry("fuel", (c,v) -> c.setFuel(FuelType.valueOf(v.asText()))),
+        Map.entry("bodyType", (c,v) -> c.setBodyType(BodyType.valueOf(v.asText()))),
+        Map.entry("roofType", (c,v) -> c.setRoofType(RoofType.valueOf(v.asText()))),
+        Map.entry("vehicleClass", (c,v) -> c.setVehicleClass(VehicleClass.valueOf(v.asText())))
+    );
 
     private String vin; 
     private String make;
@@ -46,14 +80,14 @@ public class Car {
         setPricePerDay(pricePerDay);
         setMpg(mpg);
         setFeatures(features);
+        setImages(images);
         setTransmission(transmission);
         setDrivetrain(drivetrain);
         setEngineLayout(engineLayout);
         setFuel(fuel);
-        setImages(images);
         setBodyType(bodyType);
         setRoofType(roofType);
-        setVehicleClassProperty(vehicleClass);
+        setVehicleClass(vehicleClass);
     }
 
     // Getters
@@ -137,7 +171,7 @@ public class Car {
         return roofType;
     }
 
-    public VehicleClass getVehicleClassProperty() {
+    public VehicleClass getVehicleClass() {
         return vehicleClass;
     }
 
@@ -164,7 +198,7 @@ public class Car {
         this.roofType = roofType;
     }
 
-    public void setVehicleClassProperty(VehicleClass vehicleClass) {
+    public void setVehicleClass(VehicleClass vehicleClass) {
         this.vehicleClass = vehicleClass;
     }
 
