@@ -17,38 +17,23 @@ import java.io.IOException;
 import java.util.stream.StreamSupport;
 
 public class CarController {
-
     public static void getAllCars(Context ctx) {
         try {
-            String paramsQuery = ctx.queryParam("params");
-            String pageQuery = ctx.queryParam("page");
-            String pageSizeQuery = ctx.queryParam("pageSize");
-            int pageNum = -1;
-            int pageSizeNum = -1;
-            try {
-                pageNum = Integer.parseInt(pageQuery);
-            } catch (NumberFormatException e) {
-                System.out.println("Invalid number format: " + e.getMessage());
-            }
+            int pageNum = ctx.queryParamAsClass("page", int.class).getOrDefault(-1);
+            int pageSizeNum = ctx.queryParamAsClass("pageSize", int.class).getOrDefault(-1);
+            String paramsQuery = ctx.queryParamAsClass("params", String.class).getOrDefault("");
 
-            try {
-                pageSizeNum = Integer.parseInt(pageSizeQuery);
-            } catch (NumberFormatException e) {
-                System.out.println("Invalid number format: " + e.getMessage());
-            }
-
-            String[] columns = (paramsQuery != null) ? paramsQuery.split(",") : null;
+            String[] columns = paramsQuery.split(",");
             ctx.json(DatabaseController.getCarDB(pageNum, pageSizeNum, columns));
 
-        } catch (
-
-        Exception e) {
+        } catch (Exception e) {
             ctx.status(500).result("Database error: " + e);
         }
     }
 
     public static void createCar(Context ctx) {
         // TODO
+//        ctx.bodyAsClass(Car.class)
         // uses: ctx.bodyAsClass(AnyClassHere.class)
     }
 
