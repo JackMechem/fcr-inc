@@ -17,6 +17,7 @@ docker run -p 8080:8080 fcr-backend
 4. DONT use the deprecated run configurations under `/back/.run/`
 5. DO use `Build / Build Project` (Ctrl + F9) or hammer icon bottom left 
 
+
 # Status Codes
 1. 1xx - Request received, but no response yet
 2. 2xx - Request received = Success series:
@@ -28,8 +29,13 @@ docker run -p 8080:8080 fcr-backend
    - 301 moved permanently
    - 302 found
 4. 4xx - Request can't be done because of user error = Bad Request/Client Error series:
-- 400 Bad Request (invalid parameters or malformed JSON)
-- 401 Unauthorized
-- 404 Not Found (product doesn't exist)
+   - 400 Bad Request (invalid parameters or malformed JSON)
+   - 401 Unauthorized
+   - 404 Not Found (product doesn't exist)
 5. 5xx - Request not completed because of issues on server end = Server Error series:
-- 500 Internal Server Error (unexpected server-side failure)
+   - 500 Internal Server Error (unexpected server-side failure)
+
+
+# API Structure
+api/cars/{vin}
+
