@@ -15,8 +15,8 @@ public class DatabaseController {
 
     private static final Set<String> VALID_COLUMNS = new HashSet<>(Arrays.asList(
             "vin", "make", "model", "model_year", "description", "num_cylinders", "gears",
-            "horsepower", "torque", "seats", "priceperday", "mpg", "transmission",
-            "drivetrain", "engineLayout", "fuel", "images", "features", "roof_type", "vehicle_class", "body_type"));
+            "horsepower", "torque", "seats", "price_per_day", "mpg", "transmission",
+            "drivetrain", "engine_layout", "fuel", "images", "features", "roof_type", "vehicle_class", "body_type"));
 
     private static String sanitizeColumns(String[] columns) {
         if (columns == null || columns.length == 0)
@@ -105,7 +105,7 @@ public class DatabaseController {
 
         final String insertSQL = "INSERT INTO cars " +
                 "(vin, make, model, model_year, description, num_cylinders, gears, horsepower, torque, seats, " +
-                " priceperday, mpg, transmission, fuel, engineLayout, drivetrain, features, images, roof_type, vehicle_class, body_type) "
+                " price_per_day, mpg, transmission, fuel, engine_layout, drivetrain, features, images, roof_type, vehicle_class, body_type) "
                 +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,? ,?)";
 
@@ -213,8 +213,8 @@ public class DatabaseController {
                         Drivetrain drivetrain = hasCol(colSet, "drivetrain")
                                 ? enumFromToString(Drivetrain.class, rs.getString("drivetrain"))
                                 : null;
-                        EngineLayout engineLayout = hasCol(colSet, "engineLayout")
-                                ? enumFromToString(EngineLayout.class, rs.getString("engineLayout"))
+                        EngineLayout engineLayout = hasCol(colSet, "engine_layout")
+                                ? enumFromToString(EngineLayout.class, rs.getString("engine_layout"))
                                 : null;
                         FuelType fuel = hasCol(colSet, "fuel")
                                 ? enumFromToString(FuelType.class, rs.getString("fuel"))
@@ -260,7 +260,7 @@ public class DatabaseController {
                                 hasCol(colSet, "horsepower") ? rs.getInt("horsepower") : 0,
                                 hasCol(colSet, "torque") ? rs.getInt("torque") : 0,
                                 hasCol(colSet, "seats") ? rs.getInt("seats") : 0,
-                                hasCol(colSet, "priceperday") ? rs.getDouble("priceperday") : 0,
+                                hasCol(colSet, "price_per_day") ? rs.getDouble("price_per_day") : 0,
                                 hasCol(colSet, "mpg") ? rs.getDouble("mpg") : 0,
                                 features, images,
                                 transmission, drivetrain, engineLayout, fuel,
@@ -285,7 +285,7 @@ public class DatabaseController {
 
     public static Car getCarFromVin(String vin) throws ValidationException {
         final String sql = "SELECT vin, make, model, model_year, description, num_cylinders, gears, " +
-                "horsepower, torque, seats, priceperday, mpg, transmission, drivetrain, engineLayout, fuel, images, features,vehicle_class,body_type,roof_type "
+                "horsepower, torque, seats, price_per_day, mpg, transmission, drivetrain, engine_layout, fuel, images, features,vehicle_class,body_type,roof_type "
                 +
                 "FROM cars WHERE vin = ?";
 
@@ -302,7 +302,7 @@ public class DatabaseController {
 
                         Drivetrain drivetrain = enumFromToString(Drivetrain.class, rs.getString("drivetrain"));
 
-                        EngineLayout engineLayout = enumFromToString(EngineLayout.class, rs.getString("engineLayout"));
+                        EngineLayout engineLayout = enumFromToString(EngineLayout.class, rs.getString("engine_layout"));
 
                         FuelType fuel = enumFromToString(FuelType.class, rs.getString("fuel"));
 
@@ -327,7 +327,7 @@ public class DatabaseController {
                                 rs.getInt("horsepower"),
                                 rs.getInt("torque"),
                                 rs.getInt("seats"),
-                                rs.getDouble("priceperday"),
+                                rs.getDouble("price_per_day"),
                                 rs.getDouble("mpg"),
                                 features,
                                 images,
