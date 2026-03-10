@@ -105,7 +105,7 @@ public class DatabaseController {
 
         final String insertSQL = "INSERT INTO cars " +
                 "(vin, make, model, model_year, description, num_cylinders, gears, horsepower, torque, seats, " +
-                " priceperday, mpg, transmission, fuel, engineLayout, drivetrain, features, images, roof_type, vehicle_class, body_type) "
+                " price_per_day, mpg, transmission, fuel, engine_layout, drivetrain, features, images, roof_type, vehicle_class, body_type) "
                 +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,? ,?)";
 
@@ -285,7 +285,7 @@ public class DatabaseController {
 
     public static Car getCarFromVin(String vin) throws ValidationException {
         final String sql = "SELECT vin, make, model, model_year, description, num_cylinders, gears, " +
-                "horsepower, torque, seats, priceperday, mpg, transmission, drivetrain, engineLayout, fuel, images, features,vehicle_class,body_type,roof_type "
+                "horsepower, torque, seats, price_per_day, mpg, transmission, drivetrain, engine_layout, fuel, images, features,vehicle_class,body_type,roof_type "
                 +
                 "FROM cars WHERE vin = ?";
 
