@@ -6,7 +6,7 @@ const getAllCars = async (): Promise<Car[]> => {
 
 	const token = btoa(`${username}:${password}`);
 
-	const res: Response = await fetch(`${process.env.API_BASE_URL}/cars`, {
+	const res: Response = await fetch(`${process.env.API_BASE_URL}/cars?pageSize=0`, {
 		next: { revalidate: Number(process.env.REVALIDATE_SECONDS) },
 		headers: {
 			Authorization: `Basic ${token}`,
