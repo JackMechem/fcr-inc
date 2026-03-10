@@ -12,8 +12,6 @@ import java.util.Set;
 
 public class DatabaseController {
 
-    private static int DEFAULT_PAGE_SIZE = 5;
-    private static int DEFAULT_PAGE = 1;
     private static final Set<String> VALID_COLUMNS = new HashSet<>(Arrays.asList(
             "vin", "make", "model", "model_year", "description", "num_cylinders", "gears",
             "horsepower", "torque", "seats", "priceperday", "mpg", "transmission",
@@ -75,12 +73,11 @@ public class DatabaseController {
      * Database Connection
      */
 
-    static String url = requireEnv("DB_URL");
-    static String user = requireEnv("DB_USER");
-    static String pass = requireEnv("DB_PASSWORD");
-    static final Connection conn = dbConnect();
-
-    public static Connection dbConnect() {
+    protected static final String url = requireEnv("DB_URL");
+    protected static final String user = requireEnv("DB_USER");
+    protected static final String pass = requireEnv("DB_PASSWORD");
+    protected static final Connection conn = dbConnect();
+    protected static Connection dbConnect() {
         try {
             return (DriverManager.getConnection(url, user, pass));
         } catch (Exception e) {
@@ -160,10 +157,19 @@ public class DatabaseController {
      * GET
      */
 
+    private static final int DEFAULT_PAGE_SIZE = 5;
+    private static final int DEFAULT_PAGE = 1;
+
+    public static ArrayList<Car> getCarDB() {
+        return getCarDB(-1,-1,new String[0]);
+    }
+    public static ArrayList<Car> getCarDB(String[] columns) {
+        return getCarDB(-1,-1,columns);
+    }
     public static ArrayList<Car> getCarDB(int page, int pageSize, String[] columns) {
-        if (page == -1)
+        if (page <= 0)
             page = DEFAULT_PAGE;
-        if (pageSize == -1)
+        if (pageSize <= 0)
             pageSize = DEFAULT_PAGE_SIZE;
 
         String selectCols = sanitizeColumns(columns);
