@@ -168,6 +168,14 @@ public class DatabaseController {
         }
     }
 
+
+    /*
+     * DELETE
+     */
+    public static void updateCar(Car car) throws SQLException {
+        // TODO
+    }
+
     /*
      * GET
      */
