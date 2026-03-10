@@ -24,10 +24,12 @@ public class CarController {
         try {
             int pageNum = ctx.queryParamAsClass("page", int.class).getOrDefault(-1);
             int pageSizeNum = ctx.queryParamAsClass("pageSize", int.class).getOrDefault(-1);
-            String paramsQuery = ctx.queryParamAsClass("params", String.class).getOrDefault("");
+            String paramsQuery = ctx.queryParamAsClass("params", String.class).getOrDefault(null);
 
-            String[] columns = paramsQuery.split(",");
-            ctx.json(DatabaseController.getCarDB(pageNum, pageSizeNum, columns));
+            String[] columns = (paramsQuery != null) ? paramsQuery.split(",") : null;
+            
+            ArrayList<Car> cars = DatabaseController.getCarDB(pageNum, pageSizeNum, columns);
+            ctx.json(cars);
 
         } catch (Exception e) {
             databaseError(ctx, e);
@@ -38,8 +40,11 @@ public class CarController {
         JsonNode body = ctx.bodyAsClass(JsonNode.class);
         try {
             ObjectMapper mapper = new ObjectMapper();
-            ArrayList<String> features = mapper.convertValue(body.get("features"), new TypeReference<ArrayList<String>>() {});
-            ArrayList<String> images = mapper.convertValue(body.get("images"), new TypeReference<ArrayList<String>>() {});
+            ArrayList<String> features = mapper.convertValue(body.get("features"),
+                    new TypeReference<ArrayList<String>>() {
+                    });
+            ArrayList<String> images = mapper.convertValue(body.get("images"), new TypeReference<ArrayList<String>>() {
+            });
             // TODO: add some default values if not found here
             Car car = new Car(
                     body.get("vin").asText(),
@@ -62,8 +67,7 @@ public class CarController {
                     FuelType.valueOf(body.get("fuel").asText()),
                     BodyType.valueOf(body.get("bodyType").asText()),
                     RoofType.valueOf(body.get("roofType").asText()),
-                    VehicleClass.valueOf(body.get("vehicleClass").asText())
-            );
+                    VehicleClass.valueOf(body.get("vehicleClass").asText()));
             DatabaseController.insertCar(car);
             ctx.status(201);
 
@@ -84,8 +88,11 @@ public class CarController {
             databaseError(ctx, e);
         }
 
-        if (car != null) {ctx.json(car);}
-        else {carNotFound(ctx);}
+        if (car != null) {
+            ctx.json(car);
+        } else {
+            carNotFound(ctx);
+        }
     }
 
     public static void updateCar(Context ctx) {
@@ -106,6 +113,7 @@ public class CarController {
     private static void carNotFound(Context ctx) {
         ctx.status(404).result("Car not found.");
     }
+
     private static void databaseError(Context ctx, Exception e) {
         ctx.status(500).result("Database error: " + e);
     }
