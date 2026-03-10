@@ -9,7 +9,7 @@ public class Car {
     private String vin; 
     private String make;
     private String model;
-    private int model_year;
+    private int modelYear;
     private String description;
     private int cylinders;
     private int gears;
@@ -26,34 +26,34 @@ public class Car {
     private FuelType fuel;
     private BodyType bodyType;
     private RoofType roofType;
-    private VehicleClassProperty vehicleClassProperty;
+    private VehicleClass vehicleClass;
 
-    public Car(String vin, String make, String model, int model_year, String description,
+    public Car(String vin, String make, String model, int modelYear, String description,
                int cylinders, int gears, int horsepower, int torque, int seats, double pricePerDay, double mpg, ArrayList<String> features, ArrayList<String> images,
                TransmissionType transmission, Drivetrain drivetrain, EngineLayout engineLayout, FuelType fuel,
-               BodyType bodyType, RoofType roofType, VehicleClassProperty vehicleClassProperty) {
+               BodyType bodyType, RoofType roofType, VehicleClass vehicleClass) throws ValidationException {
 
-        this.vin = vin;
-        this.make = make;
-        this.model = model;
-        this.model_year = model_year;
-        this.description = description;
-        this.cylinders = cylinders;
-        this.gears = gears;
-        this.horsepower = horsepower;
-        this.torque = torque;
-        this.seats = seats;
-        this.pricePerDay = pricePerDay;
-        this.mpg = mpg;
-        this.features = features;
-        this.transmission = transmission;
-        this.drivetrain = drivetrain;
-        this.engineLayout = engineLayout;
-        this.fuel = fuel;
-        this.images = images;
-        this.bodyType = bodyType;
-        this.roofType = roofType;
-        this.vehicleClassProperty = vehicleClassProperty;
+        setVin(vin);
+        setMake(make);
+        setModel(model);
+        setModelYear(modelYear);
+        setDescription(description);
+        setCylinders(cylinders);
+        setGears(gears);
+        setHorsepower(horsepower);
+        setTorque(torque);
+        setSeats(seats);
+        setPricePerDay(pricePerDay);
+        setMpg(mpg);
+        setFeatures(features);
+        setTransmission(transmission);
+        setDrivetrain(drivetrain);
+        setEngineLayout(engineLayout);
+        setFuel(fuel);
+        setImages(images);
+        setBodyType(bodyType);
+        setRoofType(roofType);
+        setVehicleClassProperty(vehicleClass);
     }
 
     // Getters
@@ -70,7 +70,7 @@ public class Car {
     }
 
     public int getYear() {
-        return model_year;
+        return modelYear;
     }
 
     public String getDescription() {
@@ -137,8 +137,8 @@ public class Car {
         return roofType;
     }
 
-    public VehicleClassProperty getVehicleClassProperty() {
-        return vehicleClassProperty;
+    public VehicleClass getVehicleClassProperty() {
+        return vehicleClass;
     }
 
     // Setters
@@ -164,15 +164,15 @@ public class Car {
         this.roofType = roofType;
     }
 
-    public void setVehicleClassProperty(VehicleClassProperty vehicleClassProperty) {
-        this.vehicleClassProperty = vehicleClassProperty;
+    public void setVehicleClassProperty(VehicleClass vehicleClass) {
+        this.vehicleClass = vehicleClass;
     }
 
-    public void setYear(int model_year) throws ValidationException {
-        if (model_year > 0 && model_year < 10000) {
-            this.model_year = model_year;
+    public void setModelYear(int modelYear) throws ValidationException {
+        if (modelYear > 0 && modelYear < 10000) {
+            this.modelYear = modelYear;
         } else {
-            throw new ValidationException("Invalid year: " + model_year);
+            throw new ValidationException("Invalid year: " + modelYear);
         }
     }
 
@@ -265,7 +265,7 @@ public class Car {
     @Override
     public String toString() {
         return "\n" +
-                model_year + " " + make + " " + model + " | " + vin + "" +
+                modelYear + " " + make + " " + model + " | " + vin + "" +
                 "\n" + "Drivetrain: " + "" + engineLayout.toString().toLowerCase() + " " + cylinders + "-cylinder" + " " + fuel.toString().toLowerCase()
                 + "\nPerformance: " + horsepower + "HP, TQ: " + torque + "\nSeats: " + seats + "\nMPG: " + mpg +
                 "\nFeatures: " + features.toString()+"\n";

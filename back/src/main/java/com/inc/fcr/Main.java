@@ -34,13 +34,12 @@ public class Main {
                     path("{id}", () -> {
                         get(CarController::getCar, Role.ANYONE);
                         patch(CarController::updateCar, Role.WRITE);
-                        delete(CarController::deleteCar, Role.WRITE);
+                        delete(CarController::deleteCar, Role.ADMIN);
                     });
                 });
             });
         }).start(port);
 
-        DatabaseController database = new DatabaseController();
-        // System.out.println(database.getCarDB());
+//         System.out.println(DatabaseController.getCarDB());
     }
 }

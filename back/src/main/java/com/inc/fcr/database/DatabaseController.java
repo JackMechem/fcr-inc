@@ -9,11 +9,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class DatabaseController {
 
-    private static int DEFAULT_PAGE_SIZE = 5;
-    private static int DEFAULT_PAGE = 1;
     private static final Set<String> VALID_COLUMNS = new HashSet<>(Arrays.asList(
             "vin", "make", "model", "model_year", "description", "num_cylinders", "gears",
             "horsepower", "torque", "seats", "priceperday", "mpg", "transmission",
@@ -71,16 +70,24 @@ public class DatabaseController {
         return out;
     }
 
+    private static String toJsonArray(ArrayList<String> list) {
+        if (list == null || list.isEmpty())
+            return "[]";
+        return "[" + list.stream()
+                .map(s -> "\"" + s + "\"")
+                .collect(Collectors.joining(",")) + "]";
+    }
+
     /*
      * Database Connection
      */
 
-    static String url = requireEnv("DB_URL");
-    static String user = requireEnv("DB_USER");
-    static String pass = requireEnv("DB_PASSWORD");
-    static final Connection conn = dbConnect();
+    protected static final String url = requireEnv("DB_URL");
+    protected static final String user = requireEnv("DB_USER");
+    protected static final String pass = requireEnv("DB_PASSWORD");
+    protected static final Connection conn = dbConnect();
 
-    public static Connection dbConnect() {
+    protected static Connection dbConnect() {
         try {
             return (DriverManager.getConnection(url, user, pass));
         } catch (Exception e) {
@@ -93,13 +100,14 @@ public class DatabaseController {
      */
 
     // TODO: Add features and images - refactor
-    public static void insertCar(Car car) {
+    public static void insertCar(Car car) throws SQLException {
         final String checkSQL = "SELECT 1 FROM cars WHERE vin = ?";
 
         final String insertSQL = "INSERT INTO cars " +
                 "(vin, make, model, model_year, description, num_cylinders, gears, horsepower, torque, seats, " +
-                " priceperday, mpg, transmission, fuel, engineLayout, drivetrain) " +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                " priceperday, mpg, transmission, fuel, engineLayout, drivetrain, features, images, roof_type, vehicle_class, body_type) "
+                +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,? ,?)";
 
         try (PreparedStatement checkStmt = conn.prepareStatement(checkSQL);
                 PreparedStatement insertStmt = conn.prepareStatement(insertSQL)) {
@@ -132,27 +140,31 @@ public class DatabaseController {
             insertStmt.setString(14, car.getFuel().toString());
             insertStmt.setString(15, car.getEngineLayout().toString());
             insertStmt.setString(16, car.getDrivetrain().toString());
+            insertStmt.setObject(17, toJsonArray(car.getFeatures()));
+            insertStmt.setObject(18, toJsonArray(car.getImages()));
+            insertStmt.setString(19, car.getRoofType().toString());
+            insertStmt.setString(20, car.getVehicleClassProperty().toString());
+            insertStmt.setString(21, car.getBodyType().toString());
 
             int rows = insertStmt.executeUpdate();
             System.out.println(rows == 1 ? "insert successful" : "insert failed");
 
         } catch (SQLException e) {
             e.printStackTrace();
+            throw e;
         }
     }
 
     /*
      * DELETE
      */
-    public static boolean deleteCar(String vin) {
+    public static void deleteCar(String vin) throws SQLException {
         final String sql = "DELETE FROM cars WHERE vin = ?";
         try (PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, vin);
-            int rowsAffected = stmt.executeUpdate();
-            return rowsAffected > 0;
+            stmt.executeUpdate();
         } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
+            throw e;
         }
     }
 
@@ -160,10 +172,21 @@ public class DatabaseController {
      * GET
      */
 
-    public static ArrayList<Car> getCarDB(int page, int pageSize, String[] columns) {
-        if (page == -1)
+    private static final int DEFAULT_PAGE_SIZE = 5;
+    private static final int DEFAULT_PAGE = 1;
+
+    public static ArrayList<Car> getCarDB() throws ValidationException {
+        return getCarDB(-1, -1, new String[0]);
+    }
+
+    public static ArrayList<Car> getCarDB(String[] columns) throws ValidationException {
+        return getCarDB(-1, -1, columns);
+    }
+
+    public static ArrayList<Car> getCarDB(int page, int pageSize, String[] columns) throws ValidationException {
+        if (page <= 0)
             page = DEFAULT_PAGE;
-        if (pageSize == -1)
+        if (pageSize <= 0)
             pageSize = DEFAULT_PAGE_SIZE;
 
         String selectCols = sanitizeColumns(columns);
@@ -202,8 +225,8 @@ public class DatabaseController {
                         RoofType roofType = hasCol(colSet, "roof_type")
                                 ? enumFromToString(RoofType.class, rs.getString("roof_type"))
                                 : null;
-                        VehicleClassProperty vehicleClassProperty = hasCol(colSet, "vehicle_class")
-                                ? enumFromToString(VehicleClassProperty.class, rs.getString("vehicle_class"))
+                        VehicleClass vehicleClassProperty = hasCol(colSet, "vehicle_class")
+                                ? enumFromToString(VehicleClass.class, rs.getString("vehicle_class"))
                                 : null;
 
                         ArrayList<String> features = new ArrayList<>();
@@ -241,8 +264,7 @@ public class DatabaseController {
                                 hasCol(colSet, "mpg") ? rs.getDouble("mpg") : 0,
                                 features, images,
                                 transmission, drivetrain, engineLayout, fuel,
-                                bodyType, roofType, vehicleClassProperty
-                                );
+                                bodyType, roofType, vehicleClassProperty);
                         cars.add(car);
                     } catch (IllegalArgumentException iae) {
                         System.err.println("Skipping row due to enum mismatch (vin=" + rs.getString("vin") + "): "
@@ -261,9 +283,9 @@ public class DatabaseController {
         return colSet == null || colSet.contains(col);
     }
 
-    public static Car getCarFromVin(String vin) {
+    public static Car getCarFromVin(String vin) throws ValidationException {
         final String sql = "SELECT vin, make, model, model_year, description, num_cylinders, gears, " +
-                "horsepower, torque, seats, priceperday, mpg, transmission, drivetrain, engineLayout, fuel, images, features "
+                "horsepower, torque, seats, priceperday, mpg, transmission, drivetrain, engineLayout, fuel, images, features,vehicle_class,body_type,roof_type "
                 +
                 "FROM cars WHERE vin = ?";
 
@@ -283,6 +305,13 @@ public class DatabaseController {
                         EngineLayout engineLayout = enumFromToString(EngineLayout.class, rs.getString("engineLayout"));
 
                         FuelType fuel = enumFromToString(FuelType.class, rs.getString("fuel"));
+
+                        VehicleClass vehicleClassProperty = enumFromToString(VehicleClass.class,
+                                rs.getString("vehicle_class"));
+
+                        RoofType roofType = enumFromToString(RoofType.class, rs.getString("roof_type"));
+
+                        BodyType bodyType = enumFromToString(BodyType.class, rs.getString("body_type"));
 
                         ArrayList<String> features = jsonToStringArrayList(rs.getString("features"));
                         ArrayList<String> images = jsonToStringArrayList(rs.getString("images"));
@@ -306,9 +335,9 @@ public class DatabaseController {
                                 drivetrain,
                                 engineLayout,
                                 fuel,
-                                null,
-                                null,
-                                null);
+                                bodyType,
+                                roofType,
+                                vehicleClassProperty);
 
                     } catch (IllegalArgumentException iae) {
                         System.err.println(
@@ -324,5 +353,22 @@ public class DatabaseController {
 
         return null;
     }
+
+    /**
+     * SORT BY ATTRIBUTE
+     * Sort by transmission type, fuel type, drivetrain, body_type, vehicle_class,
+     * price per day.
+     */
+
+    // private static String sortByAttribute(Sort data){
+    // return switch(data){
+    // case TRANSMISSION -> "transmission";
+    // case FUEL -> "fuel";
+    // case DRIVETRAIN -> "drivetrain";
+    // case BODY_TYPE -> "body_type";
+    // case VEHICLE_CLASS -> "vehicle_class";
+    // case PRICE_PER_DAY -> "price_per_pday";
+    // };
+    // }
 
 }
