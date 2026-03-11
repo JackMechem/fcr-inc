@@ -99,7 +99,6 @@ public class DatabaseController {
      * POST / PATCH
      */
 
-    // TODO: Add features and images - refactor
     public static void insertCar(Car car) throws SQLException {
         final String checkSQL = "SELECT 1 FROM cars WHERE vin = ?";
 
@@ -155,6 +154,68 @@ public class DatabaseController {
         }
     }
 
+
+    /*
+     * UPDATE
+     */
+
+    public static void updateCar(Car car) throws SQLException {
+        final String checkSQL = "SELECT 1 FROM cars WHERE vin = ?";
+
+        final String updateSQL = "UPDATE cars SET " +
+                "vin = ?, make = ?, model = ?, model_year = ?, description = ?, num_cylinders = ?, gears = ?, horsepower = ?, torque = ?, seats = ?, " +
+                "price_per_day = ?, mpg = ?, transmission = ?, fuel = ?, engine_layout = ?, drivetrain = ?, features = ?, images = ?, roof_type = ?, vehicle_class = ?, body_type = ?"
+                +" WHERE vin = ?";
+
+        try (PreparedStatement checkStmt = conn.prepareStatement(checkSQL);
+             PreparedStatement updateStmt = conn.prepareStatement(updateSQL)) {
+
+            // Check duplicate VIN
+            checkStmt.setString(1, car.getVin());
+            try (ResultSet rs = checkStmt.executeQuery()) {
+                if (rs.next()) {
+                    System.out.println("insert failed: VIN already exists");
+                    return;
+                }
+            }
+
+            // Bind parameters in the SAME order as the columns in insertSQL
+            updateStmt.setString(1, car.getVin());
+            updateStmt.setString(2, car.getMake());
+            updateStmt.setString(3, car.getModel());
+            updateStmt.setInt(4, car.getYear());
+            updateStmt.setString(5, car.getDescription());
+            updateStmt.setInt(6, car.getCylinders());
+            updateStmt.setInt(7, car.getGears());
+            updateStmt.setInt(8, car.getHorsepower());
+            updateStmt.setInt(9, car.getTorque());
+            updateStmt.setInt(10, car.getSeats());
+            updateStmt.setDouble(11, car.getPricePerDay());
+            updateStmt.setDouble(12, car.getMpg());
+
+            // Stored as enum.toString()
+            updateStmt.setString(13, car.getTransmission().toString());
+            updateStmt.setString(14, car.getFuel().toString());
+            updateStmt.setString(15, car.getEngineLayout().toString());
+            updateStmt.setString(16, car.getDrivetrain().toString());
+            updateStmt.setObject(17, toJsonArray(car.getFeatures()));
+            updateStmt.setObject(18, toJsonArray(car.getImages()));
+            updateStmt.setString(19, car.getRoofType().toString());
+            updateStmt.setString(20, car.getVehicleClass().toString());
+            updateStmt.setString(21, car.getBodyType().toString());
+
+            // Set vin in WHERE clause
+            updateStmt.setString(22, car.getVin());
+
+            int rows = updateStmt.executeUpdate();
+            System.out.println(rows == 1 ? "update successful" : "update failed");
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
     /*
      * DELETE
      */
@@ -166,14 +227,6 @@ public class DatabaseController {
         } catch (SQLException e) {
             throw e;
         }
-    }
-
-
-    /*
-     * DELETE
-     */
-    public static void updateCar(Car car) throws SQLException {
-        // TODO
     }
 
     /*
