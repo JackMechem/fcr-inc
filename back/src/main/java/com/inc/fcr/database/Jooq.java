@@ -27,19 +27,19 @@ public final class Jooq {
         config.setJdbcUrl(url);
         config.setUsername(user);
         config.setPassword(password);
-        config.setMaximumPoolSize(5);
-        config.setPoolName("fcr-pool    ");
-        config.setConnectionTimeout(10_000);
+        config.setMaximumPoolSize(1);
+        config.setPoolName("fcr-pool");
+        config.setConnectionTimeout(100_000);
 
         return new HikariDataSource(config);
     }
 
-    private static final DSLContext SQL = DSL.using(DS, SQLDialect.MYSQL);
+    private static final DSLContext CTX = DSL.using(DS, SQLDialect.MYSQL);
 
     private Jooq() {}
 
     public static DSLContext ctx() {
-        return SQL;
+        return CTX;
     }
 
     public static void close() {

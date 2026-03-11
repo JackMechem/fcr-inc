@@ -16,9 +16,9 @@
         <jooq.version>3.19.10</jooq.version>
 
 
-        <db.url>jdbc:mysql://localhost:3306/your_db</db.url>
-        <db.user>root</db.user>
-        <db.password>password</db.password>
+        <db.url>${env.DB_URL}</db.url>
+        <db.user>${env.DB_USER}</db.user>
+        <db.password>${env.DB_PASSWORD}</db.password>
         <jooq.codegen.package>com.inc.fcr.jooq</jooq.codegen.package>
         <jooq.codegen.directory>${project.build.directory}/generated-sources/jooq</jooq.codegen.directory>
     </properties>

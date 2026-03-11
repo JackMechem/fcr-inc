@@ -5,6 +5,7 @@ import com.inc.fcr.car.Car;
 import com.inc.fcr.car.enums.*;
 
 import org.jooq.*;
+import org.jooq.Record;
 import org.jooq.impl.DSL;
 
 import java.sql.*;
@@ -14,6 +15,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+
 
 import static org.jooq.impl.DSL.*;
 
