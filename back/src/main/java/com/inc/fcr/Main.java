@@ -24,7 +24,8 @@ public class Main {
         Javalin app = Javalin.create(config -> {
             config.bundledPlugins.enableCors(cors -> {
                 cors.addRule(it -> {
-                    it.allowHost("https://fcr-inc.org", "http://localhost:3000");
+                    it.reflectClientOrigin = true;
+                    it.allowCredentials = true;
                 });
             });
             config.router.mount(router -> {
@@ -45,6 +46,6 @@ public class Main {
             });
         }).start(port);
 
-//         System.out.println(DatabaseController.getCarDB());
+        // System.out.println(DatabaseController.getCarDB());
     }
 }
