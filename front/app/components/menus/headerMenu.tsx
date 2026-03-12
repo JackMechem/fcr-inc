@@ -5,7 +5,7 @@ import Image from "next/image";
 
 const HeaderMenu = () => {
 	return (
-		<div className="absolute z-100 right-[10px] top-[80%] bg-primary py-[10px] px-[15px] shadow-md text-foreground min-w-[300px] rounded-md">
+		<div className="absolute z-100 right-[0px] top-[100%] bg-primary py-[10px] px-[15px] shadow-md text-foreground min-w-[300px] rounded-md">
 			<div className="flex w-full flex-col justify-center items-center">
 				<div className="flex flex-col gap-[0px] items-center justify-center pl-[5px] pr-[5px] py-[5px] mt-[20px]">
 					<div className="h-[60px] relative overflow-hidden aspect-square bg-third rounded-full mb-[10px]">

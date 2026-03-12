@@ -1,5 +1,8 @@
+"use client"
+
 import TitleText from "@/app/components/text/titleText";
 import { Car } from "@/app/types/CarTypes";
+import { useCartStore } from "@/stores/cartStore";
 import { PropsWithChildren } from "react";
 
 interface RightColumnProps extends PropsWithChildren {
@@ -7,6 +10,11 @@ interface RightColumnProps extends PropsWithChildren {
 }
 
 const RightColumn = ({ children, carData }: RightColumnProps) => {
+
+    const { addVin, removeVin, hasVin } = useCartStore();
+    const inCart = hasVin(carData.vin);
+
+
 	return (
 		<div className="flex flex-col gap-[15px] md:w-[500px] h-fit mt-[20px] bg-primary border-2 border-third p-[20px] rounded-xl shadow-md">
 			<div>
@@ -52,7 +60,7 @@ const RightColumn = ({ children, carData }: RightColumnProps) => {
 				</div>
 			</div>
 			<div className="w-full h-[1px] bg-third" />
-			<button className="w-full flex items-center justify-center py-[10px] bg-accent rounded-xl text-primary font-[500] shadow-sm hover:brightness-[110%] hover:scale-[101%] cursor-pointer duration-[100ms]">
+			<button onClick={() => inCart ? removeVin(carData.vin) : addVin(carData.vin)} className="w-full flex items-center justify-center py-[10px] bg-accent rounded-xl text-primary font-[500] shadow-sm hover:brightness-[110%] hover:scale-[101%] cursor-pointer duration-[100ms]">
 				Add to cart
 			</button>
 		</div>
