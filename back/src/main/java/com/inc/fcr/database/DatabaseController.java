@@ -48,8 +48,7 @@ public class DatabaseController {
         ArrayList<String> out = new ArrayList<String>();
         if (json != null && !json.equals("[]")) {
             json = json.replace("[", "").replace("]", "").replace("\"", "");
-            String[] parts = json.split(",");
-            for (String part : parts) {
+            for (String part : json.split(",")) {
                 out.add(part.trim());
             }
         }
@@ -200,25 +199,8 @@ public class DatabaseController {
         }
         ResultSet rs = stmt.executeQuery();
         while (rs.next()) {
-            ArrayList<String> features = new ArrayList<>();
-            if (hasCol(colSet, "features")) {
-                String featuresJson = rs.getString("features");
-                if (featuresJson != null && !featuresJson.equals("[]")) {
-                    featuresJson = featuresJson.replace("[", "").replace("]", "").replace("\"", "");
-                    for (String part : featuresJson.split(","))
-                        features.add(part.trim());
-                }
-            }
-
-            ArrayList<String> images = new ArrayList<>();
-            if (hasCol(colSet, "images")) {
-                String imagesJson = rs.getString("images");
-                if (imagesJson != null && !imagesJson.equals("[]")) {
-                    imagesJson = imagesJson.replace("[", "").replace("]", "").replace("\"", "");
-                    for (String part : imagesJson.split(","))
-                        images.add(part.trim());
-                }
-            }
+            ArrayList<String> features = jsonToStringArrayList(rs.getString("features"));
+            ArrayList<String> images = jsonToStringArrayList(rs.getString("images"));
 
             cars.add(new Car(
                 hasCol(colSet, "vin") ? rs.getString("vin") : null,
