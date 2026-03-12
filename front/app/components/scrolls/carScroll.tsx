@@ -1,30 +1,24 @@
 "use client";
-
 import { Car } from "@/app/types/CarTypes";
 import CarCard from "../cards/carCard";
-import { ReactNode, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { FaAngleLeft, FaAngleRight } from "react-icons/fa";
-
 interface CarScrollProps {
 	cars: Car[];
 }
-
 const CarScroll = ({ cars }: CarScrollProps) => {
-	const scrollAmount = 300;
-
 	const [controllerVisible, setControllerVisible] = useState<boolean>(false);
-
 	const scrollRef = useRef<HTMLDivElement>(null);
-
-	const scroll = (offset: number) => {
+	const scroll = (direction: number) => {
 		if (scrollRef.current) {
+			const firstChild = scrollRef.current.firstElementChild as HTMLElement | null;
+			const scrollAmount = firstChild ? firstChild.offsetWidth + 20 : 300;
 			scrollRef.current.scrollBy({
-				left: offset,
-				behavior: "smooth", // This makes the scrolling fluid
+				left: direction * scrollAmount,
+				behavior: "smooth",
 			});
 		}
 	};
-
 	return (
 		<div
 			ref={scrollRef}
@@ -40,13 +34,13 @@ const CarScroll = ({ cars }: CarScrollProps) => {
 					className={`sticky mr-0 pointer-events-auto float-right mt-[10px] mr-[0px] w-fit h-fit duration-[200ms] text-[20px] text-secondary bg-primary shadow-md flex gap-[10px] p-[6px] rounded-full ${controllerVisible ? "opacity-[1]" : "sm:opacity-[0] opacity-[1]"} `}
 				>
 					<div
-						onClick={() => scroll(-scrollAmount)}
+						onClick={() => scroll(-1)}
 						className="w-[32px] h-[32px] flex items-center justify-center rounded-full hover:bg-third duration-[200ms] cursor-pointer"
 					>
 						<FaAngleLeft />
 					</div>
 					<div
-						onClick={() => scroll(scrollAmount)}
+						onClick={() => scroll(1)}
 						className="w-[32px] h-[32px] flex items-center justify-center rounded-full hover:bg-third duration-[200ms] cursor-pointer"
 					>
 						<FaAngleRight />
@@ -56,5 +50,4 @@ const CarScroll = ({ cars }: CarScrollProps) => {
 		</div>
 	);
 };
-
 export default CarScroll;
