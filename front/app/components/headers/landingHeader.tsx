@@ -3,6 +3,7 @@ import bigLogoImageWhite from "../../media/bigLogoWhite.svg";
 import bigLogoImageRed from "../../media/bigLogo.svg";
 import HeaderMenuButton from "../buttons/headerMenuButton";
 import Link from "next/link";
+import CartButton from "../buttons/cartButton";
 
 const LandingHeader = ({ white }: { white?: boolean }) => {
 	return (
@@ -24,8 +25,10 @@ const LandingHeader = ({ white }: { white?: boolean }) => {
 					/>
 				)}
 			</Link>
-
-			<HeaderMenuButton />
+		<div className={`relative ${white ? "text-primary" : "text-accent"} flex gap-[15px] text-[20pt] items-center`}>
+            <CartButton />
+			<HeaderMenuButton red={!white} />
+		</div>
 		</div>
 	);
 };
