@@ -51,9 +51,8 @@ public class DatabaseController {
     private static ArrayList<String> jsonToStringArrayList(String json) throws JsonProcessingException {
         return mapper.readValue(json, new TypeReference<ArrayList<String>>(){});
     }
-    private static String toJsonArray(ArrayList<String> list) {
-        try {return mapper.writeValueAsString(list);}
-        catch (Exception e){return "";}
+    private static String toJsonArray(ArrayList<String> list) throws JsonProcessingException {
+        return mapper.writeValueAsString(list);
     }
 
     /*
@@ -78,7 +77,7 @@ public class DatabaseController {
      */
 
     // TODO: Add features and images - refactor
-    public static void insertCar(Car car) throws SQLException {
+    public static void insertCar(Car car) throws SQLException, JsonProcessingException {
         final String checkSQL = "SELECT 1 FROM cars WHERE vin = ?";
 
         final String insertSQL = "INSERT INTO cars " +
