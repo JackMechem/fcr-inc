@@ -73,58 +73,75 @@ public class DatabaseController {
     }
 
     /*
-     * POST / PATCH
+     * INSERT & UPDATE
      */
 
-    // TODO: Add features and images - refactor
     public static void insertCar(Car car) throws SQLException, JsonProcessingException {
-        final String checkSQL = "SELECT 1 FROM cars WHERE vin = ?";
+        insertUpdateCar(car, true);
+    }
+    public static void updateCar(Car car) throws SQLException, JsonProcessingException {
+        insertUpdateCar(car, false);
+    }
 
-        final String insertSQL = "INSERT INTO cars " +
-                "(vin, make, model, model_year, description, num_cylinders, gears, horsepower, torque, seats, " +
-                " price_per_day, mpg, transmission, fuel, engine_layout, drivetrain, features, images, roof_type, vehicle_class, body_type) "
-                +
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,? ,?)";
+    public static void insertUpdateCar(Car car, boolean insertingCar) throws SQLException, JsonProcessingException {
+        final String checkSQL = "SELECT 1 FROM cars WHERE vin = ?";
+        final String insertUpdateSQL;
+        
+        if (insertingCar) {
+            insertUpdateSQL = "INSERT INTO cars " +
+                    "(vin, make, model, model_year, description, num_cylinders, gears, horsepower, torque, seats, " +
+                    " price_per_day, mpg, transmission, fuel, engine_layout, drivetrain, features, images, roof_type, vehicle_class, body_type)"
+                    + " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? ,? ,?)";
+        } else { // updatingCar
+            insertUpdateSQL = "UPDATE cars SET " +
+                    "vin = ?, make = ?, model = ?, model_year = ?, description = ?, num_cylinders = ?, gears = ?, horsepower = ?, torque = ?, seats = ?, " +
+                    "price_per_day = ?, mpg = ?, transmission = ?, fuel = ?, engine_layout = ?, drivetrain = ?, features = ?, images = ?, roof_type = ?, vehicle_class = ?, body_type = ?"
+                    + " WHERE vin = ?";
+        }
 
         try (PreparedStatement checkStmt = conn.prepareStatement(checkSQL);
-                PreparedStatement insertStmt = conn.prepareStatement(insertSQL)) {
+             PreparedStatement insertUpdateStmt = conn.prepareStatement(insertUpdateSQL)) {
 
-            // Check duplicate VIN
+            // Check if VIN exists
             checkStmt.setString(1, car.getVin());
-            try (ResultSet rs = checkStmt.executeQuery()) {
-                if (rs.next()) {
-                    System.out.println("insert failed: VIN already exists");
-                    return;
-                }
+            ResultSet rs = checkStmt.executeQuery();
+            boolean carInDB = rs.next();
+
+            if (insertingCar && carInDB || !insertingCar && !carInDB) {
+                if (insertingCar) throw new SQLException("Car already exists.");
+                throw new SQLException("Car doesn't exist.");
             }
 
             // Bind parameters in the SAME order as the columns in insertSQL
-            insertStmt.setString(1, car.getVin());
-            insertStmt.setString(2, car.getMake());
-            insertStmt.setString(3, car.getModel());
-            insertStmt.setInt(4, car.getYear());
-            insertStmt.setString(5, car.getDescription());
-            insertStmt.setInt(6, car.getCylinders());
-            insertStmt.setInt(7, car.getGears());
-            insertStmt.setInt(8, car.getHorsepower());
-            insertStmt.setInt(9, car.getTorque());
-            insertStmt.setInt(10, car.getSeats());
-            insertStmt.setDouble(11, car.getPricePerDay());
-            insertStmt.setDouble(12, car.getMpg());
-
+            insertUpdateStmt.setString(1, car.getVin());
+            insertUpdateStmt.setString(2, car.getMake());
+            insertUpdateStmt.setString(3, car.getModel());
+            insertUpdateStmt.setInt(4, car.getYear());
+            insertUpdateStmt.setString(5, car.getDescription());
+            insertUpdateStmt.setInt(6, car.getCylinders());
+            insertUpdateStmt.setInt(7, car.getGears());
+            insertUpdateStmt.setInt(8, car.getHorsepower());
+            insertUpdateStmt.setInt(9, car.getTorque());
+            insertUpdateStmt.setInt(10, car.getSeats());
+            insertUpdateStmt.setDouble(11, car.getPricePerDay());
+            insertUpdateStmt.setDouble(12, car.getMpg());
             // Stored as enum.toString()
-            insertStmt.setString(13, car.getTransmission().toString());
-            insertStmt.setString(14, car.getFuel().toString());
-            insertStmt.setString(15, car.getEngineLayout().toString());
-            insertStmt.setString(16, car.getDrivetrain().toString());
-            insertStmt.setObject(17, toJsonArray(car.getFeatures()));
-            insertStmt.setObject(18, toJsonArray(car.getImages()));
-            insertStmt.setString(19, car.getRoofType().toString());
-            insertStmt.setString(20, car.getVehicleClass().toString());
-            insertStmt.setString(21, car.getBodyType().toString());
+            insertUpdateStmt.setString(13, car.getTransmission().toString());
+            insertUpdateStmt.setString(14, car.getFuel().toString());
+            insertUpdateStmt.setString(15, car.getEngineLayout().toString());
+            insertUpdateStmt.setString(16, car.getDrivetrain().toString());
+            insertUpdateStmt.setObject(17, toJsonArray(car.getFeatures()));
+            insertUpdateStmt.setObject(18, toJsonArray(car.getImages()));
+            insertUpdateStmt.setString(19, car.getRoofType().toString());
+            insertUpdateStmt.setString(20, car.getVehicleClass().toString());
+            insertUpdateStmt.setString(21, car.getBodyType().toString());
 
-            int rows = insertStmt.executeUpdate();
-            System.out.println(rows == 1 ? "insert successful" : "insert failed");
+            // Set vin in WHERE clause - when updating
+            if (!insertingCar) insertUpdateStmt.setString(22, car.getVin());
+
+            // Execute SQL instruction
+            int rows = insertUpdateStmt.executeUpdate();
+            if (rows < 1) throw new SQLException("No database rows updated.");
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -143,14 +160,6 @@ public class DatabaseController {
         } catch (SQLException e) {
             throw e;
         }
-    }
-
-
-    /*
-     * DELETE
-     */
-    public static void updateCar(Car car) throws SQLException {
-        // TODO
     }
 
     /*
