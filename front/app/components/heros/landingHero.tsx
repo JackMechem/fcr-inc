@@ -4,11 +4,8 @@ import CarTransparentBg from "../../media/transparentCar.png";
 
 const LandingHero = () => {
 	return (
-		<div
-			className="relative w-full flex flex-col gap-[20px] items-center overflow-x-clip md:mb-[330px] mb-[300px]"
-		>
+		<div className="relative w-full flex flex-col gap-[20px] items-center overflow-x-clip md:mb-[330px] mb-[300px]">
 			<div
-			id="hero-section"
 				className="absolute xl:w-[140vw] xl:h-[140vw] lg:w-[170vw] lg:h-[170vw] md:w-[180vw] md:h-[180vw] w-[550vw] h-[550vw] md:bottom-[-150px] bottom-[-100px] left-1/2 -translate-x-1/2 rounded-full overflow-hidden z-[-1]"
 				style={{
 					background:
@@ -24,7 +21,9 @@ const LandingHero = () => {
 					}}
 				/>
 			</div>
-			<h1 className="font-titillium md:text-[76pt] text-[64pt] text-primary font-bold max-w-[500px] text-center leading-[90%] tracking-[-2%]  w-fit md:mt-0 mt-[20px]">
+			<h1
+				className="font-titillium md:text-[76pt] text-[64pt] text-primary font-bold max-w-[500px] text-center leading-[90%] tracking-[-2%]  w-fit md:mt-0 mt-[20px]"
+			>
 				Get a Fast Car Fast
 			</h1>
 			<p className="text-center text-primary font-[500] text-[14pt] mb-[20px]">

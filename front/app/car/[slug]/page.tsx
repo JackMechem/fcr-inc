@@ -13,8 +13,8 @@ const CarPage = async ({ params }: { params: Promise<{ slug: string }> }) => {
 	console.log(carData);
 
 	return (
-		<>
-			<LandingHeader />
+		<div>
+			<LandingHeader white={false} />
 			<MainBodyContainer>
 				<ImageView images={carData.images} />
 				<div className="flex md:flex-row flex-col gap-[20px]">
@@ -22,7 +22,7 @@ const CarPage = async ({ params }: { params: Promise<{ slug: string }> }) => {
 					<RightColumn carData={carData}></RightColumn>
 				</div>
 			</MainBodyContainer>
-		</>
+		</div>
 	);
 };
 

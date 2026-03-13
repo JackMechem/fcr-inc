@@ -9,30 +9,33 @@ import Link from "next/link";
 import CartButton from "../buttons/cartButton";
 import SmallSearchBar from "../searchBars/smallSearchBar";
 
-const LandingHeader = ({ white = false }: { white?: boolean }) => {
-	const [isOverRed, setIsOverRed] = useState(false);
+const LandingHeader = ({ white = true }: { white?: boolean }) => {
+	const [isOverRed, setIsOverRed] = useState(true);
 	const sentinelRef = useRef<HTMLAnchorElement>(null);
 
 	useEffect(() => {
-		const hero = document.getElementById("hero-section");
-		if (!hero) {
-			return;
-		}
+		if (white === true) {
+			const handleScroll = () => {
+				setIsOverRed(window.scrollY < 60);
+			};
 
-		const observer = new IntersectionObserver(
-			([entry]) => setIsOverRed(entry.isIntersecting),
-			{ threshold: 0, rootMargin: "-300px 0px 0px 0px" },
-		);
-		observer.observe(hero);
-		return () => observer.disconnect();
+			handleScroll();
+
+			window.addEventListener("scroll", handleScroll, { passive: true });
+			return () => window.removeEventListener("scroll", handleScroll);
+		}
 	}, []);
 
-	const isWhite = isOverRed;
+	let isWhite = isOverRed;
 
+    if (!white) {
+        isWhite = false;
+    }
+    console.log("isWhite: " + isWhite);
 	return (
 		<>
 			<div
-				className={`relative sticky z-1 float-top top-0 flex items-center justify-between duration-[200ms] ${!isWhite ? "bg-primary/70 shadow-md m-[10px] rounded-full border border-third top-[10px] h-fit py-[8px] pl-[8px] pr-[20px] backdrop-blur-md" : "md:px-[100px] px-[40px] md:py-[20px] py-0"}`}
+				className={`relative sticky z-1 float-top mb-[10px] top-0 flex items-center justify-between duration-[200ms] ${!isWhite ? "bg-primary/70 shadow-md shadow-third/50 border-b border-third top-[0px] h-fit py-[8px] pl-[8px] pr-[20px] backdrop-blur-md" : "md:px-[100px] px-[40px] md:py-[20px] py-0 border border-transparent"}`}
 			>
 				<Link ref={sentinelRef} href={"/"}>
 					{isWhite ? (
@@ -44,17 +47,12 @@ const LandingHeader = ({ white = false }: { white?: boolean }) => {
 							alt={"Header Logo"}
 						/>
 					) : (
-						<Image
-							width={55}
-							height={55}
-							src={smallLogo}
-							alt={"Header Logo"}
-						/>
+						<Image width={55} height={55} src={smallLogo} alt={"Header Logo"} />
 					)}
 				</Link>
 				{!isWhite && <SmallSearchBar />}
 				<div
-					className={`${isWhite ? "text-primary" : "text-accent"} text-[20pt]  duration-300`}
+					className={`${isWhite ? "text-primary" : "text-accent"} text-[20pt] duration-300`}
 				>
 					<HeaderMenuButton />
 				</div>
@@ -62,4 +60,5 @@ const LandingHeader = ({ white = false }: { white?: boolean }) => {
 		</>
 	);
 };
+
 export default LandingHeader;
