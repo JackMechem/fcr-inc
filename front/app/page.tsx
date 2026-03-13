@@ -26,9 +26,9 @@ const Home = async () => {
 
 	return (
 		<>
-			<LandingHeader white />
+			<LandingHeader  />
 			<LandingHero />
-			<MainBodyContainer className="flex flex-col gap-[40px]">
+			<MainBodyContainer className="flex flex-col gap-[40px] pb-[500px]">
 				<BrandScroll>
 					<CarBrandCard
 						title="Porsche"

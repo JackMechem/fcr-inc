@@ -1,28 +1,31 @@
+import { CartProps } from "@/app/types/CartTypes";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 interface CartStore {
-  vins: string[];
-  addVin: (vin: string) => void;
-  removeVin: (vin: string) => void;
+  carData: CartProps[];
+  addCar: (car: CartProps) => void;
+  removeCar: (vin: string) => void;
   clearCart: () => void;
-  hasVin: (vin: string) => boolean;
+  inCart: (vin: string) => boolean;
 }
 
 export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
-      vins: [],
-      addVin: (vin) =>
+      carData: [],
+      addCar: (car) =>
         set((state) => ({
-          vins: state.vins.includes(vin) ? state.vins : [...state.vins, vin],
+          carData: state.carData.some((c) => c.vin === car.vin)
+            ? state.carData
+            : [...state.carData, car],
         })),
-      removeVin: (vin) =>
+      removeCar: (vin) =>
         set((state) => ({
-          vins: state.vins.filter((v) => v !== vin),
+          carData: state.carData.filter((c) => c.vin !== vin),
         })),
-      clearCart: () => set({ vins: [] }),
-      hasVin: (vin) => get().vins.includes(vin),
+      clearCart: () => set({ carData: [] }),
+      inCart: (vin) => get().carData.some((c) => c.vin === vin),
     }),
     { name: "cart-storage" }
   )
