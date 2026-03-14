@@ -26,7 +26,7 @@ export default function DynamicTable<T extends Car>({
 		"vin",
 		"make",
 		"model",
-		"year",
+		"modelYear",
 		"pricePerDay",
 		"vehicleClass",
 	];

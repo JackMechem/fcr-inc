@@ -1,7 +1,7 @@
 import CarScroll from "./components/scrolls/carScroll";
 import TitleText from "./components/text/titleText";
 import { getAllCars } from "./lib/CarApi";
-import { Car } from "./types/CarTypes";
+import { Car, CarPages } from "./types/CarTypes";
 import MainBodyContainer from "./components/containers/mainBodyContainer";
 import LandingPageFilterButtons from "./components/buttons/landingPageFilterButtons";
 import LandingHeader from "./components/headers/landingHeader";
@@ -21,8 +21,8 @@ import VolkswagenLogo from "./media/carBrandLogos/volkswagen.svg";
 import VolkswagenCarImage from "./media/transparentCarImages/volkswagen.png";
 
 const Home = async () => {
-	const carsData: Car[] = await getAllCars();
-	console.log(carsData);
+	const carPagesData: CarPages = await getAllCars({});
+    const carsData: Car[] = carPagesData.cars;
 
 	return (
 		<>

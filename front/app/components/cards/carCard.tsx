@@ -28,7 +28,7 @@ const CarCard = ({ car }: CarCardProps) => {
 							{car.make} {car.model}
 						</h2>
 						<p className="text-[11pt] mt-[-3px] lowercase font-[400] text-secondary">
-							{car.year}
+							{car.modelYear}
 						</p>
 					</div>
                     <BiHeart className="w-[25px] min-w-[25px] max-w-[25px] justify-self-end" />

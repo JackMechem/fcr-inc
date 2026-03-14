@@ -17,7 +17,7 @@ const LeftColumn = ({ children, carData }: LeftColumnProps) => {
 		<div className="w-full">
 			<div className="mt-[20px]">
 				<TitleText>
-					{carData.year} {carData.make} {carData.model}
+					{carData.modelYear} {carData.make} {carData.model}
 				</TitleText>
 				<p className="text-secondary capitalize text-[12pt]">
 					{carData.fuelType} {carData.engineType}

@@ -22,3 +22,10 @@ export interface Car {
 	modelYear: number;
 	[key: string]: string | number | string[] | undefined;
 }
+
+export interface CarPages {
+    cars: Car[];
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+}

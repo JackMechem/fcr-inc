@@ -1,15 +1,21 @@
-import { Car } from "../types/CarTypes";
+import { Car, CarPages } from "../types/CarTypes";
 
-export const getAllCars = async (): Promise<Car[]> => {
+export const getAllCars = async ({
+	page,
+	pageSize,
+}: {
+	page?: number;
+	pageSize?: number;
+}): Promise<CarPages> => {
 	const username = "jim";
 	const password = "intentionallyInsecurePassword#3";
 
 	const token = btoa(`${username}:${password}`);
 
 	const res: Response = await fetch(
-		`${process.env.NEXT_PUBLIC_API_BASE_URL}/cars?pageSize=0`,
+		`${process.env.NEXT_PUBLIC_API_BASE_URL}/cars?${pageSize ? "pageSize=" + pageSize + "&" : ""}${page ? "page=" + page + "&" : ""}`,
 		{
-			next: { revalidate: Number(process.env.NEXT_PUBLIC_REVALIDATE_SECONDS) },
+			next: { revalidate: false },
 			headers: {
 				Authorization: `Basic ${token}`,
 				"Content-Type": "application/json",
@@ -21,7 +27,7 @@ export const getAllCars = async (): Promise<Car[]> => {
 		throw new Error(await res.text());
 	}
 
-	const cars: Promise<Car[]> = res.json();
+	const cars: Promise<CarPages> = res.json();
 	return cars;
 };
 
