@@ -11,10 +11,9 @@ import java.util.ArrayList;
 import java.util.Map;
 
 @Entity
-@Table(name = "carstest")
+@Table(name = "cars")
 public class Car {
 
-    // --- JSON CONVERTER (Static Inner Class) ---
     @Converter
     public static class JsonListConverter implements AttributeConverter<ArrayList<String>, String> {
         private static final ObjectMapper converterMapper = new ObjectMapper();
@@ -82,13 +81,13 @@ public class Car {
     @Column(nullable = false)
     private String model;
 
-    @Column(name = "model_year")
+    @Column(name = "modelYear")
     private int modelYear;
 
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "num_cylinders")
+    @Column(name = "numCylinders")
     private int cylinders;
 
     private int gears;
@@ -96,12 +95,11 @@ public class Car {
     private int torque;
     private int seats;
 
-    @Column(name = "price_per_day")
+    @Column(name = "pricePerDay")
     private double pricePerDay;
 
     private double mpg;
 
-    // --- JSON Columns using the Inner Class Converter ---
     @Convert(converter = JsonListConverter.class)
     @Column(columnDefinition = "json")
     private ArrayList<String> features = new ArrayList<>();
@@ -117,22 +115,22 @@ public class Car {
     private Drivetrain drivetrain;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "engine_layout")
+    @Column(name = "engineLayout")
     private EngineLayout engineLayout;
 
     @Enumerated(EnumType.STRING)
     private FuelType fuel;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "body_type")
+    @Column(name = "bodyType")
     private BodyType bodyType;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "roof_type")
+    @Column(name = "roofType")
     private RoofType roofType;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "vehicle_class")
+    @Column(name = "vehicleClass")
     private VehicleClass vehicleClass;
 
     // --- CONSTRUCTORS ---
