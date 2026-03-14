@@ -2,42 +2,42 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import bigLogoImageWhite from "../../media/bigLogoWhite.svg";
-import bigLogoImageRed from "../../media/bigLogo.svg";
 import smallLogo from "../../media/smallLogo.svg";
 import HeaderMenuButton from "../buttons/headerMenuButton";
 import Link from "next/link";
-import CartButton from "../buttons/cartButton";
 import SmallSearchBar from "../searchBars/smallSearchBar";
 
+const COMPACT_SCROLL_THRESHOLD = 30;
+const COMPACT_SCROLL_HYSTERESIS = 30;
+
 const LandingHeader = ({ white = true }: { white?: boolean }) => {
-	const [isOverRed, setIsOverRed] = useState(true);
-	const sentinelRef = useRef<HTMLAnchorElement>(null);
+	const [isExpanded, setIsExpanded] = useState(true);
+	const logoLinkRef = useRef<HTMLAnchorElement>(null);
 
 	useEffect(() => {
 		if (white === true) {
 			const handleScroll = () => {
-				setIsOverRed(window.scrollY < 60);
+				const y = window.scrollY;
+				setIsExpanded((prev) => {
+					if (prev && y >= COMPACT_SCROLL_THRESHOLD) return false;
+					if (!prev && y <= COMPACT_SCROLL_THRESHOLD - COMPACT_SCROLL_HYSTERESIS) return true;
+					return prev;
+				});
 			};
-
 			handleScroll();
-
 			window.addEventListener("scroll", handleScroll, { passive: true });
 			return () => window.removeEventListener("scroll", handleScroll);
 		}
 	}, []);
 
-	let isWhite = isOverRed;
+	const isWhite = white && isExpanded;
 
-    if (!white) {
-        isWhite = false;
-    }
-    console.log("isWhite: " + isWhite);
 	return (
 		<>
 			<div
-				className={`relative sticky z-1 float-top mb-[10px] top-0 flex items-center justify-between duration-[200ms] ${!isWhite ? "bg-primary/70 shadow-md shadow-third/50 border-b border-third top-[0px] h-fit py-[8px] pl-[8px] pr-[20px] backdrop-blur-md" : "md:px-[100px] px-[40px] md:py-[20px] py-0 border border-transparent"}`}
+				className={`relative sticky z-1 float-top mb-[10px] top-0 flex items-center justify-between duration-[200ms] ${!isWhite ? "bg-primary/90 shadow-md shadow-third/10  border-third top-[0px] h-fit py-[8px] pl-[8px] pr-[20px] backdrop-blur-md" : "md:px-[100px] px-[40px] md:py-[20px] py-0 border border-transparent"}`}
 			>
-				<Link ref={sentinelRef} href={"/"}>
+				<Link ref={logoLinkRef} href={"/"}>
 					{isWhite ? (
 						<Image
 							width={200}
@@ -60,5 +60,4 @@ const LandingHeader = ({ white = true }: { white?: boolean }) => {
 		</>
 	);
 };
-
 export default LandingHeader;
