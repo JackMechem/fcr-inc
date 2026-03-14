@@ -1,5 +1,7 @@
 package com.inc.fcr.car;
 
+import jakarta.persistence.*;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -8,64 +10,140 @@ import com.inc.fcr.car.enums.*;
 import java.util.ArrayList;
 import java.util.Map;
 
+@Entity
+@Table(name = "carstest")
 public class Car {
+
+    // --- JSON CONVERTER (Static Inner Class) ---
+    @Converter
+    public static class JsonListConverter implements AttributeConverter<ArrayList<String>, String> {
+        private static final ObjectMapper converterMapper = new ObjectMapper();
+
+        @Override
+        public String convertToDatabaseColumn(ArrayList<String> attribute) {
+            try {
+                return (attribute == null) ? "[]" : converterMapper.writeValueAsString(attribute);
+            } catch (JsonProcessingException e) {
+                return "[]";
+            }
+        }
+
+        @Override
+        public ArrayList<String> convertToEntityAttribute(String dbData) {
+            try {
+                return (dbData == null || dbData.isEmpty()) ? new ArrayList<>() : 
+                    converterMapper.readValue(dbData, new TypeReference<ArrayList<String>>() {});
+            } catch (JsonProcessingException e) {
+                return new ArrayList<>();
+            }
+        }
+    }
 
     @FunctionalInterface
     public interface ThrowingBiConsumer<T, U> {
         void accept(T t, U u) throws ValidationException;
-    } // Need a custom consumer to throw exceptions up
-    private static final ObjectMapper mapper = new ObjectMapper(); // used to convert features & imgs
-    // This map is in here, used by CarController::updateCar, as it must be appended to when car expanded
+    }
+
+    @Transient 
+    private static final ObjectMapper mapper = new ObjectMapper();
+
+    @Transient 
     public static final Map<String, ThrowingBiConsumer<Car, JsonNode>> setterKeyMap = Map.ofEntries(
-        Map.entry("vin", (c,v) -> c.setVin(v.asText())),
-        Map.entry("make", (c,v) -> c.setMake(v.asText())),
-        Map.entry("model", (c,v) -> c.setModel(v.asText())),
-        Map.entry("modelYear", (c,v) -> c.setModelYear(v.asInt())),
-        Map.entry("description", (c,v) -> c.setDescription(v.asText())),
-        Map.entry("cylinders", (c,v) -> c.setCylinders(v.asInt())),
-        Map.entry("gears", (c,v) -> c.setGears(v.asInt())),
-        Map.entry("horsepower", (c,v) -> c.setHorsepower(v.asInt())),
-        Map.entry("torque", (c,v) -> c.setTorque(v.asInt())),
-        Map.entry("seats", (c,v) -> c.setSeats(v.asInt())),
-        Map.entry("pricePerDay", (c,v) -> c.setPricePerDay(v.asDouble())),
-        Map.entry("mpg", (c,v) -> c.setMpg(v.asDouble())),
-        Map.entry("features", (c,v) -> c.setFeatures(mapper.convertValue(v, new TypeReference<ArrayList<String>>() {}))),
-        Map.entry("images", (c,v) -> c.setImages(mapper.convertValue(v, new TypeReference<ArrayList<String>>() {}))),
-        Map.entry("transmission", (c,v) -> c.setTransmission(TransmissionType.valueOf(v.asText()))),
-        Map.entry("drivetrain", (c,v) -> c.setDrivetrain(Drivetrain.valueOf(v.asText()))),
-        Map.entry("engineLayout", (c,v) -> c.setEngineLayout(EngineLayout.valueOf(v.asText()))),
-        Map.entry("fuel", (c,v) -> c.setFuel(FuelType.valueOf(v.asText()))),
-        Map.entry("bodyType", (c,v) -> c.setBodyType(BodyType.valueOf(v.asText()))),
-        Map.entry("roofType", (c,v) -> c.setRoofType(RoofType.valueOf(v.asText()))),
-        Map.entry("vehicleClass", (c,v) -> c.setVehicleClass(VehicleClass.valueOf(v.asText())))
+            Map.entry("vin", (c, v) -> c.setVin(v.asText())),
+            Map.entry("make", (c, v) -> c.setMake(v.asText())),
+            Map.entry("model", (c, v) -> c.setModel(v.asText())),
+            Map.entry("modelYear", (c, v) -> c.setModelYear(v.asInt())),
+            Map.entry("description", (c, v) -> c.setDescription(v.asText())),
+            Map.entry("cylinders", (c, v) -> c.setCylinders(v.asInt())),
+            Map.entry("gears", (c, v) -> c.setGears(v.asInt())),
+            Map.entry("horsepower", (c, v) -> c.setHorsepower(v.asInt())),
+            Map.entry("torque", (c, v) -> c.setTorque(v.asInt())),
+            Map.entry("seats", (c, v) -> c.setSeats(v.asInt())),
+            Map.entry("pricePerDay", (c, v) -> c.setPricePerDay(v.asDouble())),
+            Map.entry("mpg", (c, v) -> c.setMpg(v.asDouble())),
+            Map.entry("features", (c, v) -> c.setFeatures(mapper.convertValue(v, new TypeReference<ArrayList<String>>() {}))),
+            Map.entry("images", (c, v) -> c.setImages(mapper.convertValue(v, new TypeReference<ArrayList<String>>() {}))),
+            Map.entry("transmission", (c, v) -> c.setTransmission(TransmissionType.valueOf(v.asText()))),
+            Map.entry("drivetrain", (c, v) -> c.setDrivetrain(Drivetrain.valueOf(v.asText()))),
+            Map.entry("engineLayout", (c, v) -> c.setEngineLayout(EngineLayout.valueOf(v.asText()))),
+            Map.entry("fuel", (c, v) -> c.setFuel(FuelType.valueOf(v.asText()))),
+            Map.entry("bodyType", (c, v) -> c.setBodyType(BodyType.valueOf(v.asText()))),
+            Map.entry("roofType", (c, v) -> c.setRoofType(RoofType.valueOf(v.asText()))),
+            Map.entry("vehicleClass", (c, v) -> c.setVehicleClass(VehicleClass.valueOf(v.asText())))
     );
 
-    private String vin; 
+    @Id 
+    @Column(length = 17)
+    private String vin;
+
+    @Column(nullable = false)
     private String make;
+
+    @Column(nullable = false)
     private String model;
+
+    @Column(name = "model_year")
     private int modelYear;
+
+    @Column(columnDefinition = "TEXT")
     private String description;
+
+    @Column(name = "num_cylinders")
     private int cylinders;
+
     private int gears;
     private int horsepower;
     private int torque;
     private int seats;
+
+    @Column(name = "price_per_day")
     private double pricePerDay;
+
     private double mpg;
-    private ArrayList<String> features = new ArrayList<String>();
-    private ArrayList<String> images = new ArrayList<String>();
+
+    // --- JSON Columns using the Inner Class Converter ---
+    @Convert(converter = JsonListConverter.class)
+    @Column(columnDefinition = "json")
+    private ArrayList<String> features = new ArrayList<>();
+
+    @Convert(converter = JsonListConverter.class)
+    @Column(columnDefinition = "json")
+    private ArrayList<String> images = new ArrayList<>();
+
+    @Enumerated(EnumType.STRING)
     private TransmissionType transmission;
+
+    @Enumerated(EnumType.STRING)
     private Drivetrain drivetrain;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "engine_layout")
     private EngineLayout engineLayout;
+
+    @Enumerated(EnumType.STRING)
     private FuelType fuel;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "body_type")
     private BodyType bodyType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "roof_type")
     private RoofType roofType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "vehicle_class")
     private VehicleClass vehicleClass;
 
+    // --- CONSTRUCTORS ---
+
+    public Car() {}
+
     public Car(String vin, String make, String model, int modelYear, String description,
-               int cylinders, int gears, int horsepower, int torque, int seats, double pricePerDay, double mpg, ArrayList<String> features, ArrayList<String> images,
-               TransmissionType transmission, Drivetrain drivetrain, EngineLayout engineLayout, FuelType fuel,
-               BodyType bodyType, RoofType roofType, VehicleClass vehicleClass) throws ValidationException {
+            int cylinders, int gears, int horsepower, int torque, int seats, double pricePerDay, double mpg,
+            ArrayList<String> features, ArrayList<String> images,
+            TransmissionType transmission, Drivetrain drivetrain, EngineLayout engineLayout, FuelType fuel,
+            BodyType bodyType, RoofType roofType, VehicleClass vehicleClass) throws ValidationException {
 
         setVin(vin);
         setMake(make);
@@ -90,128 +168,69 @@ public class Car {
         setVehicleClass(vehicleClass);
     }
 
-    // Getters
-    public String getVin() {
-        return vin;
-    }
+    // --- GETTERS & SETTERS ---
+    public String getVin() { return vin; }
+    public void setVin(String vin) { this.vin = vin; }
 
-    public String getMake() {
-        return make;
-    }
+    public String getMake() { return make; }
+    public void setMake(String make) { this.make = make; }
 
-    public String getModel() {
-        return model;
-    }
+    public String getModel() { return model; }
+    public void setModel(String model) { this.model = model; }
 
-    public int getYear() {
-        return modelYear;
-    }
+    public int getModelYear() { return modelYear; }
 
-    public String getDescription() {
-        return description;
-    }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
 
-    public int getCylinders() {
-        return cylinders;
-    }
+    public int getCylinders() { return cylinders; }
 
-    public int getGears() {
-        return gears;
-    }
+    public int getGears() { return gears; }
 
-    public int getHorsepower() {
-        return horsepower;
-    }
+    public int getHorsepower() { return horsepower; }
 
-    public int getTorque() {
-        return torque;
-    }
+    public int getTorque() { return torque; }
 
-    public int getSeats() {
-        return seats;
-    }
+    public int getSeats() { return seats; }
 
-    public double getPricePerDay() {
-        return pricePerDay;
-    }
+    public double getPricePerDay() { return pricePerDay; }
 
-    public double getMpg() {
-        return mpg;
-    }
+    public double getMpg() { return mpg; }
 
-    public ArrayList<String> getFeatures() {
-        return features;
-    }
+    public ArrayList<String> getFeatures() { return features; }
+    public void setFeatures(ArrayList<String> features) { this.features = features; }
 
-    public ArrayList<String> getImages() {
-        return images;
-    }
+    public ArrayList<String> getImages() { return images; }
+    public void setImages(ArrayList<String> images) { this.images = images; }
 
-    public TransmissionType getTransmission() {
-        return transmission;
-    }
+    public TransmissionType getTransmission() { return transmission; }
+    public void setTransmission(TransmissionType transmission) { this.transmission = transmission; }
 
-    public FuelType getFuel() {
-        return fuel;
-    }
+    public FuelType getFuel() { return fuel; }
+    public void setFuel(FuelType fuel) { this.fuel = fuel; }
 
-    public Drivetrain getDrivetrain() {
-        return drivetrain;
-    }
+    public Drivetrain getDrivetrain() { return drivetrain; }
+    public void setDrivetrain(Drivetrain drivetrain) { this.drivetrain = drivetrain; }
 
-    public EngineLayout getEngineLayout() {
-        return engineLayout;
-    }
+    public EngineLayout getEngineLayout() { return engineLayout; }
+    public void setEngineLayout(EngineLayout engineLayout) { this.engineLayout = engineLayout; }
 
-    public BodyType getBodyType() {
-        return bodyType;
-    }
+    public BodyType getBodyType() { return bodyType; }
+    public void setBodyType(BodyType bodyType) { this.bodyType = bodyType; }
 
-    public RoofType getRoofType() {
-        return roofType;
-    }
+    public RoofType getRoofType() { return roofType; }
+    public void setRoofType(RoofType roofType) { this.roofType = roofType; }
 
-    public VehicleClass getVehicleClass() {
-        return vehicleClass;
-    }
+    public VehicleClass getVehicleClass() { return vehicleClass; }
+    public void setVehicleClass(VehicleClass vehicleClass) { this.vehicleClass = vehicleClass; }
 
-    // Setters
-    // NOTE: consider for String types: default null or ""?
-    //       should we data validate String types?
-    public void setVin(String vin) {
-        this.vin = vin;
-    }
-
-    public void setMake(String make) {
-        this.make = make;
-    }
-
-    public void setModel(String model) {
-        this.model = model;
-    }
-
-    public void setBodyType(BodyType bodyType) {
-        this.bodyType = bodyType;
-    }
-
-    public void setRoofType(RoofType roofType) {
-        this.roofType = roofType;
-    }
-
-    public void setVehicleClass(VehicleClass vehicleClass) {
-        this.vehicleClass = vehicleClass;
-    }
-
+    // Setters with Validation
     public void setModelYear(int modelYear) throws ValidationException {
         if (modelYear > 0 && modelYear < 10000) {
             this.modelYear = modelYear;
         } else {
             throw new ValidationException("Invalid year: " + modelYear);
         }
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
     }
 
     public void setCylinders(int cylinders) throws ValidationException {
@@ -270,40 +289,13 @@ public class Car {
         }
     }
 
-    public void setFeatures(ArrayList<String> features) {
-        this.features = features;
-    }
-
-    public void setImages(ArrayList<String> images) {
-        this.images = images;
-    }
-
-    public void setTransmission(TransmissionType transmission) {
-        this.transmission = transmission;
-    }
-
-    public void setFuel(FuelType fuel) {
-        this.fuel = fuel;
-    }
-
-    public void setDrivetrain(Drivetrain drivetrain) {
-        this.drivetrain = drivetrain;
-    }
-
-    public void setEngineLayout(EngineLayout engineLayout) {
-        this.engineLayout = engineLayout;
-    }
-
-    // methods
-
     @Override
     public String toString() {
         return "\n" +
                 modelYear + " " + make + " " + model + " | " + vin + "" +
-                "\n" + "Drivetrain: " + "" + engineLayout.toString().toLowerCase() + " " + cylinders + "-cylinder" + " " + fuel.toString().toLowerCase()
+                "\n" + "Drivetrain: " + "" + (engineLayout != null ? engineLayout.toString().toLowerCase() : "N/A")
+                + " " + cylinders + "-cylinder" + " " + (fuel != null ? fuel.toString().toLowerCase() : "N/A")
                 + "\nPerformance: " + horsepower + "HP, TQ: " + torque + "\nSeats: " + seats + "\nMPG: " + mpg +
-                "\nFeatures: " + features.toString()+"\n";
-
-
+                "\nFeatures: " + features.toString() + "\n";
     }
 }

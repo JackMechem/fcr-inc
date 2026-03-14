@@ -12,7 +12,7 @@ import com.inc.fcr.car.Car;
 
 import java.sql.*;
 import java.util.ArrayList;
-
+import java.util.List;
 import java.util.Map;
 
 public class CarController {
@@ -24,7 +24,7 @@ public class CarController {
 
             String[] columns = (paramsQuery != null) ? paramsQuery.split(",") : null;
             
-            ArrayList<Car> cars = DatabaseController.getCarDB(pageNum, pageSizeNum, columns);
+            List<Car> cars = DatabaseController.getCarDB(pageNum, pageSizeNum);
             ctx.json(cars);
 
         } catch (Exception e) {
@@ -109,7 +109,7 @@ public class CarController {
         try {
             DatabaseController.deleteCar(ctx.pathParam("id"));
             ctx.status(204);
-        } catch (SQLException e) {
+        } catch (Exception e) {
             carNotFound(ctx);
         }
     }

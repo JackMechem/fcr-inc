@@ -1,21 +1,17 @@
 package com.inc.fcr;
 
-import com.inc.fcr.car.Car;
 import com.inc.fcr.car.CarController;
-import com.inc.fcr.car.enums.Drivetrain;
-import com.inc.fcr.car.enums.EngineLayout;
-import com.inc.fcr.car.enums.FuelType;
-import com.inc.fcr.car.enums.TransmissionType;
-import com.inc.fcr.database.DatabaseController;
+import com.inc.fcr.utils.HibernateUtil;
+
 import io.javalin.Javalin;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 
 import static io.javalin.apibuilder.ApiBuilder.*;
 
 public class Main {
     public static void main(String[] args) throws Exception {
+
+        HibernateUtil.getSessionFactory();
 
         // Check for the "PORT" environment variable, default to 8080 if not found
         String portProperty = System.getenv("PORT");
@@ -45,7 +41,5 @@ public class Main {
                 });
             });
         }).start(port);
-
-        // System.out.println(DatabaseController.getCarDB());
     }
 }
