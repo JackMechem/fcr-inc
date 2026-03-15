@@ -5,8 +5,9 @@ import com.inc.fcr.utils.HibernateUtil;
 
 import io.javalin.Javalin;
 
-
 import static io.javalin.apibuilder.ApiBuilder.*;
+import io.javalin.openapi.plugin.OpenApiPlugin;
+import io.javalin.openapi.plugin.swagger.SwaggerPlugin;
 
 public class Main {
     public static void main(String[] args) throws Exception {
@@ -18,6 +19,22 @@ public class Main {
         int port = (portProperty != null) ? Integer.parseInt(portProperty) : 8080;
 
         Javalin app = Javalin.create(config -> {
+            // Automatically create documentation for API basses on annotations in code
+            config.registerPlugin(new OpenApiPlugin(openApiConfig -> {
+                openApiConfig.withRoles(Role.ANYONE);
+                openApiConfig.withDefinitionConfiguration((version, definition) -> definition
+                        .withInfo(info -> info
+                                .title("FCR Inc API")
+                                .description("Car rental API")
+                        ).withSecurity(security -> security.withBasicAuth()));
+            })
+
+            );
+            config.registerPlugin(new SwaggerPlugin(swaggerConfig -> {
+                swaggerConfig.setUiPath("/docs");
+                swaggerConfig.setDocumentationPath("/openapi");
+                swaggerConfig.setRoles(new Role[] { Role.WRITE, Role.ADMIN });
+            }));
             config.bundledPlugins.enableCors(cors -> {
                 cors.addRule(it -> {
                     it.reflectClientOrigin = true;

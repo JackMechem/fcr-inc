@@ -5,7 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.inc.fcr.ValidationException;
+import com.inc.fcr.errorHandling.*;
 import com.inc.fcr.car.enums.*;
 import java.util.ArrayList;
 import java.util.Map;

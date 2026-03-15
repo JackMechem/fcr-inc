@@ -1,4 +1,4 @@
-package com.inc.fcr;
+package com.inc.fcr.errorHandling;
 
 // Custom data validation exception to be used
 //   when validating data in setters, etc.
