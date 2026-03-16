@@ -47,25 +47,6 @@ public class CarController extends CarOpenApi {
         }
     }
 
-    @OpenApi(
-        path = "/cars/{id}",
-        methods = HttpMethod.GET,
-        summary = "Get car by VIN",
-        operationId = "getCar",
-        tags = {"Cars"},
-        pathParams = {
-            @OpenApiParam(name = "id", type = String.class, description = "Vehicle VIN")
-        },
-        queryParams = {
-            @OpenApiParam(name = "select", type = String.class, description = "Comma separated fields to return e.g. vin,make,model")
-        },
-        responses = {
-            @OpenApiResponse(status = "200", content = {@OpenApiContent(from = Car.class)}),
-            @OpenApiResponse(status = "400", content = {@OpenApiContent(from = ApiErrorResponse.class)}),
-            @OpenApiResponse(status = "404", content = {@OpenApiContent(from = ApiErrorResponse.class)}),
-            @OpenApiResponse(status = "500", content = {@OpenApiContent(from = ApiErrorResponse.class)})
-        }
-    )
     public static void getCar(Context ctx) {
         try {
             String vin = ctx.pathParam("id");
@@ -85,27 +66,6 @@ public class CarController extends CarOpenApi {
         }
     }
 
-    private static String upperOrNull(Context ctx, String param) {
-        String val = ctx.queryParam(param);
-        return val != null ? val.toUpperCase() : null;
-    }
-
-    @OpenApi(
-        path = "/cars",
-        methods = HttpMethod.POST,
-        summary = "Create a new car",
-        operationId = "createCar",
-        tags = {"Cars"},
-        requestBody = @OpenApiRequestBody(
-            required = true,
-            content = {@OpenApiContent(from = Car.class)}
-        ),
-        responses = {
-            @OpenApiResponse(status = "201", description = "Car created successfully"),
-            @OpenApiResponse(status = "400", content = {@OpenApiContent(from = ApiErrorResponse.class)}),
-            @OpenApiResponse(status = "500", content = {@OpenApiContent(from = ApiErrorResponse.class)})
-        }
-    )
     public static void createCar(Context ctx) {
         JsonNode body = ctx.bodyAsClass(JsonNode.class);
         try {
@@ -147,27 +107,6 @@ public class CarController extends CarOpenApi {
         }
     }
 
-    @OpenApi(
-        path = "/cars/{id}",
-        methods = HttpMethod.PATCH,
-        summary = "Update a car by VIN",
-        operationId = "updateCar",
-        tags = {"Cars"},
-        pathParams = {
-            @OpenApiParam(name = "id", type = String.class, description = "Vehicle VIN")
-        },
-        requestBody = @OpenApiRequestBody(
-            required = true,
-            description = "Fields to update — only include fields you want to change",
-            content = {@OpenApiContent(from = Car.class)}
-        ),
-        responses = {
-            @OpenApiResponse(status = "201", description = "Car updated successfully"),
-            @OpenApiResponse(status = "400", content = {@OpenApiContent(from = ApiErrorResponse.class)}),
-            @OpenApiResponse(status = "404", content = {@OpenApiContent(from = ApiErrorResponse.class)}),
-            @OpenApiResponse(status = "500", content = {@OpenApiContent(from = ApiErrorResponse.class)})
-        }
-    )
     public static void updateCar(Context ctx) {
         try {
             // Get car from database
@@ -195,20 +134,6 @@ public class CarController extends CarOpenApi {
 
     }
 
-    @OpenApi(
-        path = "/cars/{id}",
-        methods = HttpMethod.DELETE,
-        summary = "Delete a car by VIN",
-        operationId = "deleteCar",
-        tags = {"Cars"},
-        pathParams = {
-            @OpenApiParam(name = "id", type = String.class, description = "Vehicle VIN")
-        },
-        responses = {
-            @OpenApiResponse(status = "204", description = "Car deleted successfully"),
-            @OpenApiResponse(status = "404", content = {@OpenApiContent(from = ApiErrorResponse.class)})
-        }
-    )
     public static void deleteCar(Context ctx) {
         try {
             DatabaseController.deleteCar(ctx.pathParam("id"));
@@ -245,5 +170,10 @@ public class CarController extends CarOpenApi {
         StringWriter stack = new StringWriter();
         e.printStackTrace(new PrintWriter(stack));
         return stack.toString();
+    }
+
+    private static String upperOrNull(Context ctx, String param) {
+        String val = ctx.queryParam(param);
+        return val != null ? val.toUpperCase() : null;
     }
 }
