@@ -78,13 +78,14 @@ public class DatabaseController {
         Session session = HibernateUtil.getSessionFactory().openSession();
 
         // Base query strings
-        StringBuilder queryStr = new StringBuilder("FROM Car c WHERE 1=1");
-        StringBuilder countStr = new StringBuilder("SELECT count(c) FROM Car c WHERE 1=1");
+        StringBuilder queryStr = new StringBuilder("FROM Car c");
+        StringBuilder countStr = new StringBuilder("SELECT count(c) FROM Car c");
 
-        // Append filters and sort to query string; if all are null, don't filter and
-        // set sort to default
-        appendFilters(queryStr, countStr, transmission, drivetrain, engineLayout, fuel, bodyType, roofType,
-                vehicleClass);
+        // Append filters and sort to query string;
+        // if all are null, don't filter and set sort to default
+        String filters = buildFilters(transmission, drivetrain, engineLayout, fuel, bodyType, roofType, vehicleClass);
+        queryStr.append(filters);
+        countStr.append(filters);
         appendSort(queryStr, sortBy, sortDir);
 
         // Create queries
@@ -129,13 +130,14 @@ public class DatabaseController {
                 .collect(Collectors.joining(", "));
 
         // Base query strings
-        StringBuilder queryStr = new StringBuilder("SELECT " + selectClause + " FROM Car c WHERE 1=1");
-        StringBuilder countStr = new StringBuilder("SELECT count(c) FROM Car c WHERE 1=1");
+        StringBuilder queryStr = new StringBuilder("SELECT " + selectClause + " FROM Car c");
+        StringBuilder countStr = new StringBuilder("SELECT count(c) FROM Car c");
 
-        // Append filters and sort to query string; if all are null, don't filter and
-        // set sort to default
-        appendFilters(queryStr, countStr, transmission, drivetrain, engineLayout, fuel, bodyType, roofType,
-                vehicleClass);
+        // Append filters and sort to query string;
+        // if all are null, don't filter and set sort to default
+        String filters = buildFilters(transmission, drivetrain, engineLayout, fuel, bodyType, roofType, vehicleClass);
+        queryStr.append(filters);
+        countStr.append(filters);
         appendSort(queryStr, sortBy, sortDir);
 
         // Create queries
@@ -306,40 +308,22 @@ public class DatabaseController {
         }
     }
 
-    // Append filters to query string;
-    // do nothing if all filters are null
-    private static void appendFilters(StringBuilder queryStr, StringBuilder countStr,
+    // Build filters to append to query strings (if any)
+    private static String buildFilters(
             String transmission, String drivetrain, String engineLayout,
             String fuel, String bodyType, String roofType, String vehicleClass) {
 
-        if (transmission != null) {
-            queryStr.append(" AND c.transmission = :transmission");
-            countStr.append(" AND c.transmission = :transmission");
-        }
-        if (drivetrain != null) {
-            queryStr.append(" AND c.drivetrain = :drivetrain");
-            countStr.append(" AND c.drivetrain = :drivetrain");
-        }
-        if (engineLayout != null) {
-            queryStr.append(" AND c.engineLayout = :engineLayout");
-            countStr.append(" AND c.engineLayout = :engineLayout");
-        }
-        if (fuel != null) {
-            queryStr.append(" AND c.fuel = :fuel");
-            countStr.append(" AND c.fuel = :fuel");
-        }
-        if (bodyType != null) {
-            queryStr.append(" AND c.bodyType = :bodyType");
-            countStr.append(" AND c.bodyType = :bodyType");
-        }
-        if (roofType != null) {
-            queryStr.append(" AND c.roofType = :roofType");
-            countStr.append(" AND c.roofType = :roofType");
-        }
-        if (vehicleClass != null) {
-            queryStr.append(" AND c.vehicleClass = :vehicleClass");
-            countStr.append(" AND c.vehicleClass = :vehicleClass");
-        }
+        StringBuilder filters = new StringBuilder(" WHERE 1=1");
+
+        if (transmission != null) filters.append(" AND c.transmission = :transmission");
+        if (drivetrain != null) filters.append(" AND c.drivetrain = :drivetrain");
+        if (engineLayout != null) filters.append(" AND c.engineLayout = :engineLayout");
+        if (fuel != null) filters.append(" AND c.fuel = :fuel");
+        if (bodyType != null) filters.append(" AND c.bodyType = :bodyType");
+        if (roofType != null) filters.append(" AND c.roofType = :roofType");
+        if (vehicleClass != null) filters.append(" AND c.vehicleClass = :vehicleClass");
+
+        return filters.toString();
     }
 
     // Appends filters to query string;
