@@ -9,6 +9,7 @@ import io.javalin.http.Context;
 import io.javalin.openapi.*;
 
 import com.inc.fcr.database.DatabaseController;
+import org.hibernate.HibernateException;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -62,22 +63,13 @@ public class CarController {
             String roofType = upperOrNull(ctx, "roofType");
             String vehicleClass = upperOrNull(ctx, "vehicleClass");
 
-            if (select != null) {
-                ctx.json(DatabaseController.getCarsFilteredSelect(pageNum, pageSizeNum,
-                        transmission, drivetrain, engineLayout, fuel, bodyType, roofType, vehicleClass,
-                        select, sortBy, sortDir));
-            } else {
-                ctx.json(DatabaseController.getCarsFiltered(pageNum, pageSizeNum,
-                        transmission, drivetrain, engineLayout, fuel, bodyType, roofType, vehicleClass,
-                        sortBy, sortDir));
-            }
+            ctx.json(DatabaseController.getCarsFilteredSelect(pageNum, pageSizeNum, transmission, drivetrain,
+                    engineLayout, fuel, bodyType, roofType, vehicleClass, select, sortBy, sortDir));
 
         } catch (Exception e) {
-            if (e instanceof QueryParamException) {
-                queryParamValidationError(ctx, e);
-            } else {
-                databaseError(ctx, e);
-            }
+            if (e instanceof QueryParamException) queryParamError(ctx, e);
+            else if (e instanceof HibernateException) databaseError(ctx, e);
+            else serverError(ctx, e);
         }
     }
 
@@ -106,26 +98,16 @@ public class CarController {
             String selectParam = ctx.queryParam("select");
             String[] select = (selectParam != null) ? selectParam.split(",") : null;
 
-            if (select != null) {
-                Map<String, Object> car = DatabaseController.getCarFromVinSelect(vin, select);
-                if (car == null)
-                    carNotFound(ctx);
-                else
-                    ctx.json(car);
-            } else {
-                Car car = DatabaseController.getCarFromVin(vin);
-                if (car == null)
-                    carNotFound(ctx);
-                else
-                    ctx.json(car);
-            }
+            Object car;
+            if (select != null) car = DatabaseController.getCarFromVinSelect(vin, select);
+            else car = DatabaseController.getCarFromVin(vin);
+
+            if (car == null) carNotFound(ctx);
+            else ctx.json(car);
 
         } catch (Exception e) {
-            if (e instanceof QueryParamException) {
-                queryParamValidationError(ctx, e);
-            } else {
-                databaseError(ctx, e);
-            }
+            if (e instanceof QueryParamException) queryParamError(ctx, e);
+            else databaseError(ctx, e);
         }
     }
 
@@ -185,11 +167,9 @@ public class CarController {
             ctx.status(201);
 
         } catch (Exception e) {
-            if (e instanceof SQLException) {
-                databaseError(ctx, e);
-            } else {
-                validationError(ctx, e);
-            }
+            if (e instanceof ValidationException) validationError(ctx, e);
+            else if (e instanceof HibernateException) databaseError(ctx, e);
+            else serverError(ctx, e);
         }
     }
 
@@ -234,13 +214,9 @@ public class CarController {
             ctx.status(201);
 
         } catch (Exception e) {
-            if (e instanceof SQLException) {
-                databaseError(ctx, e);
-            } else if (e instanceof ValidationException) {
-                validationError(ctx, e);
-            } else {
-                ctx.status(500).result("Server error: " + e);
-            }
+            if (e instanceof ValidationException) validationError(ctx, e);
+            else if (e instanceof HibernateException) databaseError(ctx, e);
+            else serverError(ctx, e);
         }
 
     }
@@ -263,8 +239,10 @@ public class CarController {
         try {
             DatabaseController.deleteCar(ctx.pathParam("id"));
             ctx.status(204);
-        } catch (RuntimeException e) {
-            carNotFound(ctx);
+        } catch (Exception e) {
+            if (e instanceof ValidationException) carNotFound(ctx);
+            else if (e instanceof HibernateException) databaseError(ctx, e);
+            else serverError(ctx, e);
         }
     }
 
@@ -273,16 +251,20 @@ public class CarController {
         ctx.status(404).json(new ApiErrorResponse(404, "Car Not Found", null, null));
     }
 
-    private static void databaseError(Context ctx, Exception e) {
-        ctx.status(500).json(new ApiErrorResponse(500, "Database Error", ""+e, stackTraceString(e)));
-    }
-
     private static void validationError(Context ctx, Exception e) {
         ctx.status(400).json(new ApiErrorResponse(400, "Improper Car Format", ""+e, stackTraceString(e)));
     }
 
-    private static void queryParamValidationError(Context ctx, Exception e) {
+    private static void queryParamError(Context ctx, Exception e) {
         ctx.status(400).json(new ApiErrorResponse(400, "Invalid Query Parameters", ""+e, stackTraceString(e)));
+    }
+
+    private static void databaseError(Context ctx, Exception e) {
+        ctx.status(500).json(new ApiErrorResponse(500, "Database Error", ""+e, stackTraceString(e)));
+    }
+
+    private static void serverError(Context ctx, Exception e) {
+        ctx.status(500).json(new ApiErrorResponse(500, "Server Error", ""+e, stackTraceString(e)));
     }
 
     private static String stackTraceString(Exception e) {
