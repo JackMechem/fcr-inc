@@ -6,7 +6,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.inc.fcr.errorHandling.*;
 import com.inc.fcr.car.enums.*;
 import io.javalin.http.Context;
-import io.javalin.http.Context;
 import io.javalin.openapi.*;
 
 import com.inc.fcr.database.DatabaseController;
@@ -74,7 +73,7 @@ public class CarController {
             }
 
         } catch (Exception e) {
-            if (e instanceof QueryParamValidationException) {
+            if (e instanceof QueryParamException) {
                 queryParamValidationError(ctx, e);
             } else {
                 databaseError(ctx, e);
@@ -122,7 +121,7 @@ public class CarController {
             }
 
         } catch (Exception e) {
-            if (e instanceof QueryParamValidationException) {
+            if (e instanceof QueryParamException) {
                 queryParamValidationError(ctx, e);
             } else {
                 databaseError(ctx, e);

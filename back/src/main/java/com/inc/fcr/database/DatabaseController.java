@@ -117,7 +117,7 @@ public class DatabaseController {
                 .toList();
 
         if (validSelect.size() < 1)
-            throw new QueryParamValidationException(
+            throw new QueryParamException(
                     "Valid fields for parameter 'select': " + String.join(", ", FIELD_MAP.keySet()));
 
         // Format valid select into string for Hibernate
@@ -179,7 +179,7 @@ public class DatabaseController {
 
         // Create row object(s)
         if (validSelect.size() < 1) {
-            throw new QueryParamValidationException(
+            throw new QueryParamException(
                     "Valid fields for parameter 'select': " + String.join(", ", FIELD_MAP.keySet()));
         } else if (validSelect.size() == 1) {
             // Single queries don't return an array
