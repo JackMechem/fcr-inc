@@ -11,6 +11,8 @@ import io.javalin.openapi.*;
 
 import com.inc.fcr.database.DatabaseController;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.Map;
@@ -269,22 +271,24 @@ public class CarController {
 
     // Helper methods
     private static void carNotFound(Context ctx) {
-        // ctx.status(404).result("Car not found.");
         ctx.status(404).json(new ApiErrorResponse(404, "Car Not Found", null, null));
     }
 
     private static void databaseError(Context ctx, Exception e) {
-        // ctx.status(500).result("Database error: " + e);
-        ctx.status(500).json(new ApiErrorResponse(500, "Database Error", e.getMessage(), e.toString()));
+        ctx.status(500).json(new ApiErrorResponse(500, "Database Error", ""+e, stackTraceString(e)));
     }
 
     private static void validationError(Context ctx, Exception e) {
-        // ctx.status(400).result("Improper car format: " + e);
-        ctx.status(400).json(new ApiErrorResponse(400, "Improper Car Format", e.getMessage(), e.toString()));
+        ctx.status(400).json(new ApiErrorResponse(400, "Improper Car Format", ""+e, stackTraceString(e)));
     }
 
     private static void queryParamValidationError(Context ctx, Exception e) {
-        // ctx.status(400).result("Invalid query parameters: " + e);
-        ctx.status(400).json(new ApiErrorResponse(400, "Invalid Query Parameters", e.getMessage(), e.toString()));
+        ctx.status(400).json(new ApiErrorResponse(400, "Invalid Query Parameters", ""+e, stackTraceString(e)));
+    }
+
+    private static String stackTraceString(Exception e) {
+        StringWriter stack = new StringWriter();
+        e.printStackTrace(new PrintWriter(stack));
+        return stack.toString();
     }
 }
