@@ -12,6 +12,9 @@ import com.inc.fcr.errorHandling.QueryParamException;
 
 public class ParsedQueryParams {
 
+    private static final boolean STRICT_QUERY_PARAMS = Boolean
+            .parseBoolean(System.getenv().getOrDefault("STRICT_QUERY_PARAMS", "true"));
+
     private static final int DEFAULT_PAGE_SIZE = 10;
 
     private static final Map<String, String> FIELD_MAP;
@@ -27,14 +30,25 @@ public class ParsedQueryParams {
         FIELD_MAP = Collections.unmodifiableMap(map);
     }
 
-    private static final Map<String, Function<String, Object>> FILTER_PARSERS = Map.of(
-            "transmission", v -> TransmissionType.valueOf(v.toUpperCase()),
-            "drivetrain", v -> Drivetrain.valueOf(v.toUpperCase()),
-            "engineLayout", v -> EngineLayout.valueOf(v.toUpperCase()),
-            "fuel", v -> FuelType.valueOf(v.toUpperCase()),
-            "bodyType", v -> BodyType.valueOf(v.toUpperCase()),
-            "roofType", v -> RoofType.valueOf(v.toUpperCase()),
-            "vehicleClass", v -> VehicleClass.valueOf(v.toUpperCase()));
+    private static final Map<String, Function<String, Object>> FILTER_PARSERS = Map.ofEntries(
+            Map.entry("transmission", v -> TransmissionType.valueOf(v.toUpperCase())),
+            Map.entry("drivetrain", v -> Drivetrain.valueOf(v.toUpperCase())),
+            Map.entry("engineLayout", v -> EngineLayout.valueOf(v.toUpperCase())),
+            Map.entry("fuel", v -> FuelType.valueOf(v.toUpperCase())),
+            Map.entry("bodyType", v -> BodyType.valueOf(v.toUpperCase())),
+            Map.entry("roofType", v -> RoofType.valueOf(v.toUpperCase())),
+            Map.entry("vehicleClass", v -> VehicleClass.valueOf(v.toUpperCase())));
+
+    private static final Map<String, String> FILTER_VALID_VALUES = Map.ofEntries(
+            Map.entry("transmission",
+                    String.join(", ", Arrays.stream(TransmissionType.values()).map(Enum::name).toList())),
+            Map.entry("drivetrain", String.join(", ", Arrays.stream(Drivetrain.values()).map(Enum::name).toList())),
+            Map.entry("engineLayout", String.join(", ", Arrays.stream(EngineLayout.values()).map(Enum::name).toList())),
+            Map.entry("fuel", String.join(", ", Arrays.stream(FuelType.values()).map(Enum::name).toList())),
+            Map.entry("bodyType", String.join(", ", Arrays.stream(BodyType.values()).map(Enum::name).toList())),
+            Map.entry("roofType", String.join(", ", Arrays.stream(RoofType.values()).map(Enum::name).toList())),
+            Map.entry("vehicleClass",
+                    String.join(", ", Arrays.stream(VehicleClass.values()).map(Enum::name).toList())));
 
     private List<String> selectFields = null;
     private Map<String, String> filterFields = null;
@@ -65,9 +79,14 @@ public class ParsedQueryParams {
     }
 
     private void parseSelect(List<String> values) throws QueryParamException {
-        if (values.isEmpty())
-            throw new QueryParamException(
-                    "Valid fields for 'select': " + String.join(", ", FIELD_MAP.keySet()));
+        if (values.isEmpty()) {
+            if (STRICT_QUERY_PARAMS) {
+                throw new QueryParamException("Valid fields for 'select': " + String.join(", ", FIELD_MAP.keySet()));
+            } else {
+                selectFields = null;
+                return;
+            }
+        }
         if (selectFields == null)
             selectFields = new ArrayList<>();
         for (String val : values) {
@@ -75,8 +94,22 @@ public class ParsedQueryParams {
                 String mapped = FIELD_MAP.get(field.trim().toLowerCase());
                 if (mapped != null && !selectFields.contains(mapped))
                     selectFields.add(mapped);
+                else if (mapped == null) {
+                    if (STRICT_QUERY_PARAMS) {
+                        throw new QueryParamException("Invalid select field: '" + field.trim() + "'. Valid fields: "
+                                + String.join(", ", FIELD_MAP.keySet()));
+                    }
+
+                }
             }
         }
+        if (selectFields.isEmpty())
+            if (STRICT_QUERY_PARAMS) {
+                throw new QueryParamException("Valid fields for 'select': " + String.join(", ", FIELD_MAP.keySet()));
+            } else {
+                selectFields = null;
+                return;
+            }
     }
 
     private void parseFilter(String key, String val) {
@@ -85,23 +118,33 @@ public class ParsedQueryParams {
         filterFields.put(FIELD_MAP.get(key), val);
     }
 
-    public String getSelectClause() {
+    public String getSelectClause() throws QueryParamException {
         return selectFields.stream()
                 .map(f -> "c." + f)
                 .collect(Collectors.joining(", "));
     }
 
-    public String getFilterClause() {
+    public String getFilterClause() throws QueryParamException {
         StringBuilder sb = new StringBuilder(" WHERE 1=1");
         if (filterFields == null)
             return sb.toString();
         for (Map.Entry<String, String> entry : filterFields.entrySet()) {
             String field = entry.getKey(), value = entry.getValue();
-            sb.append(" AND c.").append(field).append(" = ");
-            if (FILTER_PARSERS.containsKey(field))
-                sb.append(FILTER_PARSERS.get(field).apply(value));
-            else
+            if (FILTER_PARSERS.containsKey(field)) {
+                if (FILTER_VALID_VALUES.get(field).contains(value.toUpperCase())) {
+                    sb.append(" AND c.").append(field).append(" = ");
+                    sb.append(FILTER_PARSERS.get(field).apply(value));
+                } else {
+                    if (STRICT_QUERY_PARAMS) {
+                        throw new QueryParamException(
+                                "Invalid value '" + value + "' for '" + field + "'. Valid options: "
+                                        + FILTER_VALID_VALUES.get(field));
+                    }
+                }
+            } else {
+                sb.append(" AND c.").append(field).append(" = ");
                 sb.append("'").append(value).append("'");
+            }
         }
         return sb.toString();
     }
