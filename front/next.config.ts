@@ -15,6 +15,12 @@ const nextConfig: NextConfig = {
 				port: "",
 				pathname: "/media/vehicle/images/**",
 			},
+			{
+				protocol: "https",
+				hostname: "api.auto.dev",
+				port: "",
+				pathname: "/photos/**",
+			},
 		],
 	},
 };
