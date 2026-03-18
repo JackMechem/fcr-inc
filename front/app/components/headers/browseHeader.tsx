@@ -40,7 +40,7 @@ const BrowseHeader = ({ white = true }: { white?: boolean }) => {
 	return (
 		<>
 			<div
-				className={`relative sticky z-1 float-top mb-[10px] top-0 flex items-center justify-between duration-[200ms] ${!isWhite ? "bg-primary/90 shadow-md shadow-third/10  border-third top-[0px] h-fit py-[8px] pl-[8px] pr-[20px] backdrop-blur-md" : "md:px-[100px] px-[40px] md:py-[20px] py-0 border border-transparent"}`}
+				className={`relative sticky z-1 float-top top-0 flex items-center justify-between duration-[200ms] ${!isWhite ? "bg-primary/90 shadow-md shadow-third/10  border-third top-[0px] h-[72px] py-[8px] pl-[8px] pr-[20px] backdrop-blur-md" : "md:px-[100px] px-[40px] md:py-[20px] py-0 border border-transparent"}`}
 			>
 				<Link ref={logoLinkRef} href={"/"}>
 					{isWhite ? (

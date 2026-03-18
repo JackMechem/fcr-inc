@@ -97,16 +97,16 @@ const BrowsePage = async ({
                         <Link
                             href={"/car/" + car.vin}
                             key={car.vin}
-                            className="bg-primary rounded-lg border border-third shadow-sm shadow-third/50 overflow-clip flex h-[200px]"
+                            className="bg-primary rounded-lg border border-third shadow-sm shadow-third/50 overflow-clip flex md:flex-row flex-col md:h-[200px] w-full"
                         >
                             <Image
                                 src={car.images[0]}
                                 alt={car.make}
                                 height={500}
                                 width={500}
-                                className="object-cover w-[40%]"
+                                className="object-cover md:w-[40%] w-full md:h-auto h-[200px]"
                             />
-                            <div className="w-[60%] px-[25px] py-[15px] flex flex-col justify-between">
+                            <div className="md:w-[60%] w-full px-[25px] py-[15px] flex flex-col justify-between">
                                 <div>
                                     <h1 className="text-[16pt] font-[500]">
                                         {car.make} {car.model}

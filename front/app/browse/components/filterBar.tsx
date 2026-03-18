@@ -6,8 +6,10 @@ import { BiRefresh } from "react-icons/bi";
 import FilterBarInput from "./filterBarInput";
 import FilterBarNumberRange from "./filterBarNumberRange";
 import FilterButton from "./filterButton";
+import ActiveFilters from "./activeFilters";
+import SortButtons from "./sortButtons";
 
-interface FilterAndSelectFields {
+export interface FilterAndSelectFields {
 	page?: string;
 	pageSize?: string;
 	select?: string;
@@ -56,42 +58,20 @@ const FilterBar = () => {
 	};
 
 	return (
-		<div className="w-full bg-primary border-y border-y-third shadow-sm shadow-third/30 p-[10px] text-foreground flex gap-[15px] items-stretch justify-start h-fit">
-				<button
-					onClick={() => router.push(pathname)}
-					className="bg-primary cursor-pointer rounded-full px-[5px] py-[5px] text-[14pt] text-foreground-light h-fit ml-[10px] self-center border border-third"
-				>
-					<BiRefresh />
-				</button>
+		<div className="w-full bg-primary border-y border-y-third shadow-sm shadow-third/30 p-[10px] text-foreground flex gap-[15px] items-stretch justify-start h-fit sticky float-top top-[72px] relative">
+			<button
+				onClick={() => router.push(pathname)}
+				className="bg-primary cursor-pointer rounded-full px-[5px] py-[5px] text-[14pt] text-foreground-light h-fit ml-[10px] self-center border border-third"
+			>
+				<BiRefresh />
+			</button>
+
+            <div>
+                <ActiveFilters className="self-center h-full" />
+            </div>
+
 			<div className="flex gap-[10px] ml-auto h-full items-center">
-				<FilterBarDropdown
-					label="Sort Direction"
-					showAll={false}
-					options={[
-						{ paramId: "ASC", displayText: "Ascending" },
-						{ paramId: "DESC", displayText: "Descending" },
-					]}
-					defaultValue={get("sortDir") ?? "ASC"}
-					onChange={(v) => applyParam("sortDir", v)}
-				/>
-				<FilterBarDropdown
-					label="Sort By"
-					showAll={false}
-					options={[
-						{ paramId: "make", displayText: "Make" },
-						{ paramId: "model", displayText: "Model" },
-						{ paramId: "modelYear", displayText: "Model Year" },
-						{ paramId: "pricePerDay", displayText: "Price/Day" },
-						{ paramId: "cylinders", displayText: "Cylinders" },
-						{ paramId: "gears", displayText: "Gears" },
-						{ paramId: "horsepower", displayText: "Horsepower" },
-						{ paramId: "seats", displayText: "Seats" },
-						{ paramId: "torque", displayText: "Torque" },
-						{ paramId: "mpg", displayText: "MPG" },
-					]}
-					defaultValue={get("sortBy") ?? "make"}
-					onChange={(v) => applyParam("sortBy", v)}
-				/>
+                <SortButtons />
 				<FilterButton />
 			</div>
 		</div>
