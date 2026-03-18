@@ -17,18 +17,31 @@ public class ParsedQueryParams {
 
     private static final int DEFAULT_PAGE_SIZE = 10;
 
+    private static final Set<String> NUMERIC_FIELDS;
     private static final Map<String, String> FIELD_MAP;
+    private static final Map<String, String> ALPHA_FIELD_MAP; // strings only
 
     static {
-        Map<String, String> map = new LinkedHashMap<>();
+        Set<String> numericSet = new LinkedHashSet<>();
+        Map<String, String> fieldMap = new LinkedHashMap<>();
+        Map<String, String> alphaFieldMap = new LinkedHashMap<>();
         for (Field field : Car.class.getDeclaredFields()) {
             if (java.lang.reflect.Modifier.isStatic(field.getModifiers()))
                 continue;
             if (field.isAnnotationPresent(Transient.class))
                 continue;
-            map.put(field.getName().toLowerCase(), field.getName());
+            Class<?> type = field.getType();
+            fieldMap.put(field.getName().toLowerCase(), field.getName());
+            if (type == int.class || type == long.class || type == double.class || type == float.class ||
+                    type == Integer.class || type == Long.class || type == Double.class || type == Float.class) {
+                numericSet.add(field.getName());
+            } else {
+                alphaFieldMap.put(field.getName().toLowerCase(), field.getName());
+            }
         }
-        FIELD_MAP = Collections.unmodifiableMap(map);
+        NUMERIC_FIELDS = Collections.unmodifiableSet(numericSet);
+        FIELD_MAP = Collections.unmodifiableMap(fieldMap);
+        ALPHA_FIELD_MAP = Collections.unmodifiableMap(alphaFieldMap);
     }
 
     private static final Map<String, Function<String, Object>> FILTER_PARSERS = Map.ofEntries(
@@ -72,8 +85,21 @@ public class ParsedQueryParams {
                 case "page" -> page = Math.max(1, Integer.parseInt(val));
                 case "pagesize" -> pageSize = Integer.parseInt(val) < 1 ? DEFAULT_PAGE_SIZE : Integer.parseInt(val);
                 default -> {
-                    if (FIELD_MAP.containsKey(key))
-                        parseFilter(key, val);
+                    if (key.startsWith("min") || key.startsWith("max")) {
+                        String field = FIELD_MAP.get(key.substring(3).toLowerCase());
+                        if (field != null && NUMERIC_FIELDS.contains(field)) {
+                            if (filterFields != null)
+                                filterFields.remove("exact_" + field);
+                            parseFilter(key.substring(3).toLowerCase(), val, key.startsWith("min") ? "min" : "max");
+                        }
+                    } else if (FIELD_MAP.containsKey(key) && NUMERIC_FIELDS.contains(FIELD_MAP.get(key))) {
+                        String field = FIELD_MAP.get(key);
+                        if (filterFields == null || (!filterFields.containsKey("min_" + field)
+                                && !filterFields.containsKey("max_" + field)))
+                            parseFilter(key, val, "exact");
+                    } else if (FIELD_MAP.containsKey(key)) {
+                        parseFilter(key, val, null);
+                    }
                 }
             }
         }
@@ -113,10 +139,14 @@ public class ParsedQueryParams {
             }
     }
 
-    private void parseFilter(String key, String val) {
+    private void parseFilter(String key, String val, String rangeType) {
         if (filterFields == null)
             filterFields = new LinkedHashMap<>();
-        filterFields.put(FIELD_MAP.get(key), val);
+        String properKey = FIELD_MAP.get(key);
+        if (rangeType != null)
+            filterFields.put(rangeType + "_" + properKey, val);
+        else
+            filterFields.put(properKey, val);
     }
 
     public String getSelectClause() throws QueryParamException {
@@ -131,20 +161,23 @@ public class ParsedQueryParams {
             return sb.toString();
         for (Map.Entry<String, String> entry : filterFields.entrySet()) {
             String field = entry.getKey(), value = entry.getValue();
-            if (FILTER_PARSERS.containsKey(field)) {
+            if (field.startsWith("min_")) {
+                sb.append(" AND c.").append(field.substring(4)).append(" >= ").append(value);
+            } else if (field.startsWith("max_")) {
+                sb.append(" AND c.").append(field.substring(4)).append(" <= ").append(value);
+            } else if (field.startsWith("exact_")) {
+                sb.append(" AND c.").append(field.substring(6)).append(" = ").append(value);
+            } else if (FILTER_PARSERS.containsKey(field)) {
                 if (FILTER_VALID_VALUES.get(field).contains(value.toUpperCase())) {
                     sb.append(" AND c.").append(field).append(" = ");
                     sb.append(FILTER_PARSERS.get(field).apply(value));
-                } else {
-                    if (STRICT_QUERY_PARAMS) {
-                        throw new QueryParamException(
-                                "Invalid value '" + value + "' for '" + field + "'. Valid options: "
-                                        + FILTER_VALID_VALUES.get(field));
-                    }
+                } else if (STRICT_QUERY_PARAMS) {
+                    throw new QueryParamException(
+                            "Invalid value '" + value + "' for '" + field + "'. Valid options: "
+                                    + FILTER_VALID_VALUES.get(field));
                 }
             } else {
-                sb.append(" AND c.").append(field).append(" = ");
-                sb.append("'").append(value).append("'");
+                sb.append(" AND c.").append(field).append(" = '").append(value).append("'");
             }
         }
         return sb.toString();
