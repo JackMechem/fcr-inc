@@ -1,6 +1,8 @@
 package com.inc.fcr.utils;
 
 import com.inc.fcr.car.Car;
+import com.inc.fcr.reservation.Reservation;
+import com.inc.fcr.user.User;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.cfg.Environment;
@@ -31,6 +33,8 @@ public class HibernateUtil {
 
             // 5. Register your Entity
             configuration.addAnnotatedClass(Car.class);
+            configuration.addAnnotatedClass(User.class);
+            configuration.addAnnotatedClass(Reservation.class);
 
             return configuration.buildSessionFactory();
         } catch (Throwable ex) {
