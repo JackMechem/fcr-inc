@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { BiSearch } from "react-icons/bi";
 
 const LandingSearchBar = () => {
@@ -19,9 +20,9 @@ const LandingSearchBar = () => {
 					<p className="text-[10pt]">Until</p>
 					<input placeholder="Add date" className="outline-none" />
 				</div>
-				<button className="cursor-pointer flex justify-center items-center text-center md:h-fill md:py-0 md:mt-0 mt-[10px] py-[10px] px-[10px] text-[18pt] bg-accent text-primary rounded-full">
+				<Link href={"/browse"} className="cursor-pointer flex justify-center items-center text-center md:h-fill md:py-0 md:mt-0 mt-[10px] py-[10px] px-[10px] text-[18pt] bg-accent text-primary rounded-full">
 					<BiSearch />
-				</button>
+				</Link>
 			</div>
 		</div>
 	);
