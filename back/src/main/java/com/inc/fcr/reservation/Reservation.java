@@ -1,6 +1,7 @@
 package com.inc.fcr.reservation;
 
 import com.inc.fcr.car.Car;
+import com.inc.fcr.payment.Payment;
 import com.inc.fcr.user.User;
 import jakarta.persistence.*;
 
@@ -16,14 +17,18 @@ public class Reservation {
     @ManyToOne
     @JoinColumn(name = "userId", nullable = false)
     private User user;
+    @ManyToOne
+    @JoinColumn(name = "paymentId", nullable = false)
+    private Payment payment;
     @Column(nullable = false)
     private long pickupTime;
     @Column(nullable = false)
     private long dropOffTime;
 
-    public Reservation(Car car, User user, long pickupTime, long dropOffTime) {
+    public Reservation(Car car, User user, Payment payment, long pickupTime, long dropOffTime) {
         this.car = car;
         this.user = user;
+        this.payment = payment;
         this.pickupTime = pickupTime;
         this.dropOffTime = dropOffTime;
     }
@@ -43,8 +48,8 @@ public class Reservation {
         return reservationId;
     }
 
-    public void setPickupTime(long pickupTime) {
-        this.pickupTime = pickupTime;
+    public Payment getPayment() {
+        return payment;
     }
 
     public long getDropOffTime() {
@@ -53,6 +58,10 @@ public class Reservation {
 
     public Car getCar() {
         return car;
+    }
+
+    public void setPickupTime(long pickupTime) {
+        this.pickupTime = pickupTime;
     }
 
     public void setDropOffTime(long dropOffTime) {
