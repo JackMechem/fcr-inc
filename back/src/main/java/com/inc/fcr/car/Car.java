@@ -1,6 +1,7 @@
 package com.inc.fcr.car;
 
 import com.inc.fcr.database.Converters;
+import com.inc.fcr.reservation.Reservation;
 import jakarta.persistence.*;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -8,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.inc.fcr.errorHandling.*;
 import com.inc.fcr.car.enums.*;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @Entity
@@ -108,6 +110,10 @@ public class Car {
     @Enumerated(EnumType.STRING)
     @Column(name = "vehicleClass")
     private VehicleClass vehicleClass;
+
+    // TODO: Implement this? (note: do not include in constructor)
+//    @OneToMany(mappedBy = "car")
+//    private List<Reservation> reservations = new ArrayList<>();
 
     // --- CONSTRUCTORS ---
 

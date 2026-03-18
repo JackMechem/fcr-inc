@@ -2,6 +2,7 @@ package com.inc.fcr;
 
 import com.inc.fcr.car.CarController;
 import com.inc.fcr.car.enums.EnumController;
+import com.inc.fcr.reservation.ReservationController;
 import com.inc.fcr.utils.HibernateUtil;
 
 import io.javalin.Javalin;
@@ -63,6 +64,15 @@ public class Main {
                     get(EnumController::getAllEnums, Role.ANYONE);
                     path("{enum}", () -> {
                         get(EnumController::getEnum, Role.ANYONE);
+                    });
+                });
+                path("reservations", () -> {
+                    get(ReservationController::getAllReservations, Role.ANYONE);
+                    post(ReservationController::createReservation, Role.WRITE);
+                    path("{id}", () -> {
+                        get(ReservationController::getReservation, Role.ANYONE);
+                        patch(ReservationController::updateReservation, Role.WRITE);
+                        delete(ReservationController::deleteReservation, Role.WRITE);
                     });
                 });
             });

@@ -36,6 +36,19 @@ public class Reservation {
     public Reservation() {
     }
 
+    public int getDuration() {
+        return (int) (dropOffTime - pickupTime);
+    }
+    public int getDurationHours() {
+        // 1h = 30m+
+        return (getDuration()+1800) / 3600;
+    }
+    public int getDurationDays() {
+        // 1 day = 6h+
+        return (getDurationHours()+18) / 24;
+    }
+
+    // Getters & Setters
     public User getUser() {
         return user;
     }
@@ -58,6 +71,10 @@ public class Reservation {
 
     public Car getCar() {
         return car;
+    }
+
+    public void setCar(Car car) {
+        this.car = car;
     }
 
     public void setPickupTime(long pickupTime) {

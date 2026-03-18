@@ -5,5 +5,6 @@ public enum PaymentType {
     CREDIT,
     DEBIT,
     CHECK,
-    SERVICE
+    SERVICE,
+    INVOICE
 }

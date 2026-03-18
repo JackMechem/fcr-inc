@@ -34,7 +34,7 @@ public class DatabaseController {
         String queryString  = (params.getSelectFields() != null ? "SELECT " + params.getSelectClause() + " " : "") + "FROM Car c" + filterClause + params.getSortClause();
         String countString  = "SELECT count(c) FROM Car c" + filterClause;
 
-        // Hibername session
+        // Hibernate session
         Session session = HibernateUtil.getSessionFactory().openSession();
 
         // Get total items in database and calculate total pages

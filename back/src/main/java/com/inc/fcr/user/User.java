@@ -1,7 +1,11 @@
 package com.inc.fcr.user;
 
 import com.inc.fcr.database.Converters;
+import com.inc.fcr.reservation.Reservation;
 import jakarta.persistence.*;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -23,6 +27,8 @@ public class User {
     @Convert(converter = Converters.JsonDriversLicenseConverter.class)
     @Column(columnDefinition = "json", nullable = false)
     private DriversLicense driversLicense;
+    @OneToMany(mappedBy = "user")
+    private List<Reservation> reservations = new ArrayList<>();
 
     public User(String firstName, String lastName, String email, String phoneNumber, Address address, DriversLicense driversLicense) {
         this.firstName = firstName;

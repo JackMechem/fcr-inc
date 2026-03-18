@@ -5,6 +5,7 @@ import com.inc.fcr.reservation.Reservation;
 import com.inc.fcr.user.User;
 import jakarta.persistence.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -15,7 +16,7 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long paymentId;
     @OneToMany(mappedBy = "payment")
-    private List<Reservation> reservations;
+    private List<Reservation> reservations = new ArrayList<>();
     @Column(nullable = false)
     private double totalAmount;
     @Column(nullable = false)
@@ -25,8 +26,7 @@ public class Payment {
     @Enumerated(EnumType.STRING)
     private PaymentType paymentType;
 
-    public Payment(List<Reservation> reservations, double totalAmount, double amountPaid, long date, PaymentType paymentType) {
-        this.reservations = reservations;
+    public Payment(double totalAmount, double amountPaid, long date, PaymentType paymentType) {
         this.totalAmount = totalAmount;
         this.amountPaid = amountPaid;
         this.date = date;
