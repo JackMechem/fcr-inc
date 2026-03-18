@@ -125,14 +125,14 @@ const FilterBarNumberRange = ({
     const displayValue = min === MIN && max === MAX ? "All" : `${min} — ${max}`;
 
     return (
-        <div className="flex flex-col" ref={containerRef}>
+        <div className="flex flex-col h-full" ref={containerRef}>
             <label className="text-[8pt] font-[500] ml-[2px] text-foreground-light leading-[100%]">
                 {label}
             </label>
-            <div className="relative">
+            <div className="relative h-full">
                 <button
                     onClick={() => setOpen((prev) => !prev)}
-                    className="bg-primary border border-third rounded-lg px-[10px] py-[5px] w-[140px] text-[11pt] flex items-center gap-[10px] text-nowrap cursor-pointer"
+                    className="bg-primary border h-full border-third rounded-lg px-[10px] py-[5px] w-[140px] text-[11pt] flex items-center gap-[10px] text-nowrap cursor-pointer"
                 >
                     {displayValue}
                     <span className="text-foreground-light text-[8pt] ml-auto">▾</span>

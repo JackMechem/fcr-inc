@@ -14,14 +14,33 @@ const PageButtons = ({ carsPages }: { carsPages: CarPages }) => {
 		router.push(`${pathname}?${params.toString()}`);
 	};
 
-    console.log(carsPages.currentPage);
+	console.log(carsPages.currentPage);
 	return (
-		<div>
-            <button onClick={carsPages.totalPages > carsPages.currentPage ? () => setPage(carsPages.currentPage + 1) : () => {}}>{"->"}</button>
-			<h3>
-				Page {carsPages.currentPage} / {carsPages.totalPages}
+		<div className="flex items-center justify-center gap-[20px] mt-[20px]">
+			<button
+				className="bg-accent text-primary-dark rounded-full flex justify-center items-center w-[26px] h-[26px] cursor-pointer"
+				onClick={
+					carsPages.currentPage != 1
+						? () => setPage(carsPages.currentPage - 1)
+						: () => {}
+				}
+			>
+				{"<-"}
+			</button>
+			<h3 className="text-[11pt]">
+				{carsPages.currentPage} / {carsPages.totalPages}
 			</h3>
-            <button onClick={carsPages.currentPage != 1 ? () => setPage(carsPages.currentPage - 1) : () => {}}>{"<-"}</button>
+
+			<button
+				className="bg-accent text-primary-dark rounded-full flex justify-center items-center w-[26px] h-[26px] cursor-pointer"
+				onClick={
+					carsPages.totalPages > carsPages.currentPage
+						? () => setPage(carsPages.currentPage + 1)
+						: () => {}
+				}
+			>
+				{"->"}
+			</button>
 		</div>
 	);
 };

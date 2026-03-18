@@ -18,14 +18,14 @@ const FilterBarInput = ({ label, defaultValue, placeholder, onChange }: FilterBa
     };
 
     return (
-        <div className="flex flex-col">
-            <label className="text-[8pt] ml-[2px] font-[500] text-foreground-light leading-[100%]">{label}</label>
+        <div className="flex flex-col h-full">
+            <label className="text-[8pt] h-full ml-[2px] font-[500] text-foreground-light leading-[100%]">{label}</label>
             <input
                 type="text"
                 value={value}
                 placeholder={placeholder ?? label}
                 onChange={handleChange}
-                className="bg-primary border border-third rounded-lg px-[10px] py-[5px] w-fit text-[11pt]"
+                className="bg-primary border border-third outline-none rounded-lg px-[10px] py-[5px] w-fit text-[11pt]"
             />
         </div>
     );

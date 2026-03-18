@@ -5,6 +5,7 @@ import FilterBarYearRange from "./filterBarYearSelect";
 import { BiRefresh } from "react-icons/bi";
 import FilterBarInput from "./filterBarInput";
 import FilterBarNumberRange from "./filterBarNumberRange";
+import FilterButton from "./filterButton";
 
 interface FilterAndSelectFields {
 	page?: string;
@@ -24,8 +25,8 @@ interface FilterAndSelectFields {
 	bodyType?: string;
 	roofType?: string;
 	vehicleClass?: string;
-    minHorsepower?: number;
-    maxHorsepower?: number;
+	minHorsepower?: number;
+	maxHorsepower?: number;
 }
 
 const FilterBar = () => {
@@ -55,71 +56,13 @@ const FilterBar = () => {
 	};
 
 	return (
-		<div className="w-full bg-primary border-y border-y-third shadow-sm shadow-third/30 p-[10px] text-foreground flex gap-[15px] items-center justify-start">
-			<FilterBarInput
-				label="Make"
-				paramId="make"
-				defaultValue={get("make")}
-				onChange={(v) => applyParam("make", v)}
-			/>
-			<FilterBarInput
-				label="Model"
-				paramId="model"
-				defaultValue={get("model")}
-				onChange={(v) => applyParam("model", v)}
-			/>
-			<FilterBarYearRange
-				defaultMin={get("minModelYear")}
-				defaultMax={get("maxModelYear")}
-				onApply={(min, max) =>
-					applyMultiple({
-						minModelYear: min || undefined,
-						maxModelYear: max || undefined,
-					})
-				}
-			/>
-			<FilterBarDropdown
-				label="Transmission"
-				options={[
-					{ paramId: "MANUAL", displayText: "Manual" },
-					{ paramId: "AUTOMATIC", displayText: "Automatic" },
-				]}
-				defaultValue={get("transmission")}
-				onChange={(v) => applyParam("transmission", v)}
-			/>
-			<FilterBarDropdown
-				label="Engine Layout"
-				options={[
-					{ paramId: "V", displayText: "V" },
-					{ paramId: "INLINE", displayText: "Inline" },
-					{ paramId: "FLAT", displayText: "Flat" },
-					{ paramId: "SINGLE_MOTOR", displayText: "Single Motor" },
-					{ paramId: "DUAL_MOTOR", displayText: "Dual Motor" },
-				]}
-				defaultValue={get("engineLayout")}
-				onChange={(v) => applyParam("engineLayout", v)}
-			/>
-			<FilterBarDropdown
-				label="Drivetrain"
-				options={[
-					{ paramId: "FWD", displayText: "Front Wheel Drive" },
-					{ paramId: "RWD", displayText: "Rear Wheel Drive" },
-					{ paramId: "AWD", displayText: "All Wheel Drive" },
-				]}
-				defaultValue={get("drivetrain")}
-				onChange={(v) => applyParam("drivetrain", v)}
-			/>
-			<FilterBarNumberRange
-				label="Horsepower"
-				paramId="horsepower"
-				defaultMin={get("minHorsepower")}
-				defaultMax={get("maxHorsepower")}
-				min={0}
-				max={1000}
-				onApply={(min, max) =>
-					applyMultiple({ minHorsepower: Number.parseInt(min), maxHorsepower: Number.parseInt(max) })
-				}
-			/>
+		<div className="w-full bg-primary border-y border-y-third shadow-sm shadow-third/30 p-[10px] text-foreground flex gap-[15px] items-stretch justify-start h-fit">
+				<button
+					onClick={() => router.push(pathname)}
+					className="bg-primary cursor-pointer rounded-full px-[5px] py-[5px] text-[14pt] text-foreground-light h-fit ml-[10px] self-center border border-third"
+				>
+					<BiRefresh />
+				</button>
 			<div className="flex gap-[10px] ml-auto h-full items-center">
 				<FilterBarDropdown
 					label="Sort Direction"
@@ -149,12 +92,7 @@ const FilterBar = () => {
 					defaultValue={get("sortBy") ?? "make"}
 					onChange={(v) => applyParam("sortBy", v)}
 				/>
-				<button
-					onClick={() => router.push(pathname)}
-					className="bg-accent/80 rounded-full px-[10px] py-[5px] text-primary-dark ml-[20px]"
-				>
-					<BiRefresh />
-				</button>
+				<FilterButton />
 			</div>
 		</div>
 	);
