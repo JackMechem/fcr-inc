@@ -1,6 +1,7 @@
 package com.inc.fcr;
 
 import com.inc.fcr.car.CarController;
+import com.inc.fcr.car.enums.EnumController;
 import com.inc.fcr.utils.HibernateUtil;
 
 import io.javalin.Javalin;
@@ -54,6 +55,14 @@ public class Main {
                         get(CarController::getCar, Role.ANYONE);
                         patch(CarController::updateCar, Role.WRITE);
                         delete(CarController::deleteCar, Role.ADMIN);
+                    });
+                });
+
+                // redirect to enums (/enums) and (/enums{enum})
+                path("enums", () -> { // /enums or enums?
+                    get(EnumController::getAllEnums, Role.ANYONE);
+                    path("{enum}", () -> {
+                        get(EnumController::getEnum, Role.ANYONE);
                     });
                 });
             });
