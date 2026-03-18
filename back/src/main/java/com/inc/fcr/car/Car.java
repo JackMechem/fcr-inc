@@ -1,7 +1,7 @@
 package com.inc.fcr.car;
 
+import com.inc.fcr.database.Converters;
 import jakarta.persistence.*;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,30 +13,6 @@ import java.util.Map;
 @Entity
 @Table(name = "cars")
 public class Car {
-
-    @Converter
-    public static class JsonListConverter implements AttributeConverter<ArrayList<String>, String> {
-        private static final ObjectMapper converterMapper = new ObjectMapper();
-
-        @Override
-        public String convertToDatabaseColumn(ArrayList<String> attribute) {
-            try {
-                return (attribute == null) ? "[]" : converterMapper.writeValueAsString(attribute);
-            } catch (JsonProcessingException e) {
-                return "[]";
-            }
-        }
-
-        @Override
-        public ArrayList<String> convertToEntityAttribute(String dbData) {
-            try {
-                return (dbData == null || dbData.isEmpty()) ? new ArrayList<>() : 
-                    converterMapper.readValue(dbData, new TypeReference<ArrayList<String>>() {});
-            } catch (JsonProcessingException e) {
-                return new ArrayList<>();
-            }
-        }
-    }
 
     @FunctionalInterface
     public interface ThrowingBiConsumer<T, U> {
@@ -100,11 +76,11 @@ public class Car {
 
     private double mpg;
 
-    @Convert(converter = JsonListConverter.class)
+    @Convert(converter = Converters.JsonListConverter.class)
     @Column(columnDefinition = "json")
     private ArrayList<String> features = new ArrayList<>();
 
-    @Convert(converter = JsonListConverter.class)
+    @Convert(converter = Converters.JsonListConverter.class)
     @Column(columnDefinition = "json")
     private ArrayList<String> images = new ArrayList<>();
 

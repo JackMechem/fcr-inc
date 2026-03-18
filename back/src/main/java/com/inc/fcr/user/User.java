@@ -1,5 +1,6 @@
 package com.inc.fcr.user;
 
+import com.inc.fcr.database.Converters;
 import jakarta.persistence.*;
 
 @Entity
@@ -16,11 +17,11 @@ public class User {
     private String email;
     @Column(nullable = false)
     private String phoneNumber;
-    @Column(nullable = false)
-    @Embedded
+    @Convert(converter = Converters.JsonAddressConverter.class)
+    @Column(columnDefinition = "json", nullable = false)
     private Address address;
-    @Column(nullable = false)
-    @Embedded
+    @Convert(converter = Converters.JsonDriversLicenseConverter.class)
+    @Column(columnDefinition = "json", nullable = false)
     private DriversLicense driversLicense;
 
     public User(String firstName, String lastName, String email, String phoneNumber, Address address, DriversLicense driversLicense) {
