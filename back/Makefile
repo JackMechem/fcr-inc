@@ -25,6 +25,16 @@ build:
 run: build
 	mvn exec:java
 
+## -- Production --
+
+docker-build-prod:
+	@echo -e "$(BLUE)$(BOLD)Building...$(RESET)"
+	docker build -t $(IMAGE_NAME) .
+
+docker-run-prod: docker-build
+	@echo -e "$(GREEN)$(BOLD)Starting on port $(PORT)...$(RESET)"
+	docker run -d --env-file ./.env -p $(PORT):$(PORT) $(IMAGE_NAME)
+
 ## -- Non Sudo --
 
 docker-build:
