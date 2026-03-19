@@ -10,11 +10,9 @@ public class EnumOpenApi {
         methods = HttpMethod.GET,
         summary = "Get all enums",
         operationId = "getAllEnums",
-        tags = {"enums"},
+        tags = {"Enums"},
         responses = {
-                @OpenApiResponse(status = "200", content = {@OpenApiContent(from = EnumController.class)}),
-                @OpenApiResponse(status = "400", content = {@OpenApiContent(from = ApiErrorResponse.class)}),
-                @OpenApiResponse(status = "500", content = {@OpenApiContent(from = ApiErrorResponse.class)})
+                @OpenApiResponse(status = "200", content = {@OpenApiContent(from = EnumController.class)})
         }
     )
     public static void getAllEnums(Context ctx) {}
@@ -24,15 +22,13 @@ public class EnumOpenApi {
         methods = HttpMethod.GET,
         summary = "Get an enum",
         operationId = "getEnum",
-        tags = {"enums"},
+        tags = {"Enums"},
         pathParams = {
-            @OpenApiParam(name = "enum", type = String.class, description = "Enum Type")
+            @OpenApiParam(name = "enum", type = String.class, description = "Enum Type (case insensitive)")
         },
         responses = {
             @OpenApiResponse(status = "200", content = {@OpenApiContent(from = EnumController.class)}),
-            @OpenApiResponse(status = "400", content = {@OpenApiContent(from = ApiErrorResponse.class)}),
-            @OpenApiResponse(status = "404", content = {@OpenApiContent(from = ApiErrorResponse.class)}),
-            @OpenApiResponse(status = "500", content = {@OpenApiContent(from = ApiErrorResponse.class)})
+            @OpenApiResponse(status = "404", content = {@OpenApiContent(from = ApiErrorResponse.class)})
         }
     )
     public static void getEnum(Context ctx) {}
