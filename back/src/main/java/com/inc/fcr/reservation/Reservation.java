@@ -5,6 +5,9 @@ import com.inc.fcr.payment.Payment;
 import com.inc.fcr.user.User;
 import jakarta.persistence.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "reservations")
 public class Reservation {
@@ -17,18 +20,20 @@ public class Reservation {
     @ManyToOne
     @JoinColumn(name = "userId", nullable = false)
     private User user;
-    @ManyToOne
-    @JoinColumn(name = "paymentId", nullable = false)
-    private Payment payment;
+    @ManyToMany
+    @JoinTable(name = "reservationPayments",
+        joinColumns = @JoinColumn(name = "reservationId"),
+        inverseJoinColumns = @JoinColumn(name = "paymentId")
+    ) private List<Payment> payments = new ArrayList<>();
     @Column(nullable = false)
     private long pickupTime;
     @Column(nullable = false)
     private long dropOffTime;
 
-    public Reservation(Car car, User user, Payment payment, long pickupTime, long dropOffTime) {
+    public Reservation(Car car, User user, List<Payment> payments, long pickupTime, long dropOffTime) {
         this.car = car;
         this.user = user;
-        this.payment = payment;
+        this.payments = payments;
         this.pickupTime = pickupTime;
         this.dropOffTime = dropOffTime;
     }
@@ -48,6 +53,10 @@ public class Reservation {
         return (getDurationHours()+18) / 24;
     }
 
+    public Payment getPayment(long paymentId) {
+        return payments.stream().filter(p -> p.getPaymentId() == paymentId).findFirst().orElse(null);
+    }
+
     // Getters & Setters
     public User getUser() {
         return user;
@@ -61,8 +70,8 @@ public class Reservation {
         return reservationId;
     }
 
-    public Payment getPayment() {
-        return payment;
+    public List<Payment> getPayments() {
+        return payments;
     }
 
     public long getDropOffTime() {
@@ -75,6 +84,10 @@ public class Reservation {
 
     public void setCar(Car car) {
         this.car = car;
+    }
+
+    public void addPayment(Payment p) {
+        payments.add(p);
     }
 
     public void setPickupTime(long pickupTime) {

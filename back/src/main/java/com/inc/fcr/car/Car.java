@@ -111,9 +111,9 @@ public class Car {
     @Column(name = "vehicleClass")
     private VehicleClass vehicleClass;
 
-    // TODO: Implement this? (note: do not include in constructor)
-//    @OneToMany(mappedBy = "car")
-//    private List<Reservation> reservations = new ArrayList<>();
+    // TODO: Implement this..? (note: do not include in constructor or try to set it)
+    @OneToMany(mappedBy = "car")
+    private List<Reservation> reservations = new ArrayList<>();
 
     // --- CONSTRUCTORS ---
 
@@ -203,6 +203,8 @@ public class Car {
 
     public VehicleClass getVehicleClass() { return vehicleClass; }
     public void setVehicleClass(VehicleClass vehicleClass) { this.vehicleClass = vehicleClass; }
+
+    public List<Reservation> getReservations() { return reservations; }
 
     // Setters with Validation
     public void setModelYear(int modelYear) throws ValidationException {

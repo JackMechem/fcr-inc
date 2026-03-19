@@ -15,7 +15,7 @@ public class Payment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long paymentId;
-    @OneToMany(mappedBy = "payment")
+    @ManyToMany(mappedBy = "payments")
     private List<Reservation> reservations = new ArrayList<>();
     @Column(nullable = false)
     private double totalAmount;
