@@ -28,7 +28,7 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en">
-			<body className={`${inter.variable} ${titillium.variable} antialiased overflow-x-hidden bg-primary`}>
+			<body className={`${inter.variable} ${titillium.variable} antialiased overflow-x-hidden bg-primary h-full`}>
                 {children}
 			</body>
 		</html>
