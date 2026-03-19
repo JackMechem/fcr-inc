@@ -101,13 +101,13 @@ const FilterButton = () => {
 		<div ref={ref} className="relative h-fill self-stretch">
 			<button
 				onClick={() => setOpen((prev) => !prev)}
-				className="text-[20pt] text-foreground-light/80 border border-transparent cursor-pointer hover:border-third/70 rounded-2xl flex justify-center items-center text-center px-[20px] h-full self-stretch"
+				className="text-[20pt] text-accent/80  border-transparent cursor-pointer hover:bg-primary-dark hover:border-third/70 rounded-2xl flex justify-center items-center text-center px-[15px] h-full self-stretch"
 			>
 				<VscSettings />
 			</button>
 			{open && (
-				<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 top-[72px] px-[10px]">
-					<div className="bg-primary rounded-2xl w-full max-w-[620px] max-h-[90vh] flex flex-col shadow-2xl z-50">
+				<div className="fixed left-0 right-0 bottom-0 top-0 pt-[72px] h-full w-full z-[100] flex items-center justify-center bg-black/40 px-[10px]">
+					<div className="bg-primary rounded-2xl w-full max-w-[620px] max-h-[80vh] flex flex-col shadow-2xl z-50">
 						{/* Header */}
 						<div className="flex items-center justify-between px-[24px] py-[16px] border-b border-third/50">
 							<div className="w-[32px]" />
@@ -123,7 +123,7 @@ const FilterButton = () => {
 						</div>
 
 						{/* Scrollable content */}
-						<div className="overflow-y-auto flex flex-col gap-[28px] px-[24px] py-[24px]">
+						<div className="overflow-y-auto flex flex-col gap-[28px] px-[24px] py-[24px] w-full h-auto">
 							{/* Search */}
 							<div className="flex flex-col gap-[16px]">
 								<SectionTitle>Search</SectionTitle>

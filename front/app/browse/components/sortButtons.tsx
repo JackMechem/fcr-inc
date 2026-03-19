@@ -36,12 +36,12 @@ const SortButtons = () => {
 	};
 
 	return (
-		<div className="flex gap-[0px] border border-third/50 rounded-xl p-[5px] items-stretch">
+		<div className="flex gap-[0px]  border-transparent hover:border-third/50 hover:bg-primary-dark rounded-xl p-[5px] items-stretch">
 			<button
 				onClick={handleSortDirChange}
-				className="text-foreground-light flex items-center justify-center w-auto px-[6px] h-auto rounded-xl hover:bg-primary-dark text-[18pt] border border-transparent cursor-pointer"
+				className="text-foreground flex items-center justify-center w-auto px-[6px] mr-[-10px] z-1 h-auto rounded-xl hover:bg-accent/10 text-[18pt] border border-transparent cursor-pointer duration-[200ms]"
 			>
-				{sortDirAsc == true ? <PiSortAscending /> : <PiSortDescending />}
+				{sortDirAsc == true ? <PiSortDescending /> : <PiSortAscending />}
 			</button>
 			<FilterBarDropdown
 				label=""

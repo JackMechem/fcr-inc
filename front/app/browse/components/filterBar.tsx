@@ -59,18 +59,9 @@ const FilterBar = () => {
 
 	return (
 		<div className="w-full bg-primary border-y border-y-third shadow-sm shadow-third/30 p-[10px] text-foreground flex gap-[15px] items-stretch justify-start h-fit sticky float-top top-[72px] relative">
-			<button
-				onClick={() => router.push(pathname)}
-				className="bg-primary cursor-pointer rounded-full px-[5px] py-[5px] text-[14pt] text-foreground-light h-fit ml-[10px] self-center border border-third"
-			>
-				<BiRefresh />
-			</button>
-
-            <div>
                 <ActiveFilters className="self-center h-full" />
-            </div>
 
-			<div className="flex gap-[10px] ml-auto h-full items-center">
+			<div className="flex gap-[10px] ml-auto w-full h-full items-center justify-end">
                 <SortButtons />
 				<FilterButton />
 			</div>
