@@ -3,8 +3,6 @@ package com.inc.fcr.car.enums;
 import com.inc.fcr.errorHandling.*;
 import io.javalin.http.Context;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
