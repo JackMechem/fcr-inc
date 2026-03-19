@@ -1,39 +1,6 @@
 "use client";
-import { usePathname, useSearchParams, useRouter } from "next/navigation";
-
-interface FilterAndSelectFields {
-	page?: string;
-	pageSize?: string;
-	select?: string;
-	sortBy?: string;
-	sortDir?: string;
-	make?: string;
-	model?: string;
-	modelYear?: string;
-	minModelYear?: string;
-	maxModelYear?: string;
-	transmission?: string;
-	drivetrain?: string;
-	engineLayout?: string;
-	fuel?: string;
-	bodyType?: string;
-	roofType?: string;
-	vehicleClass?: string;
-	minHorsepower?: string;
-	maxHorsepower?: string;
-	minTorque?: string;
-	maxTorque?: string;
-	minSeats?: string;
-	maxSeats?: string;
-	minMpg?: string;
-	maxMpg?: string;
-	minCylinders?: string;
-	maxCylinders?: string;
-	minGears?: string;
-	maxGears?: string;
-	minPricePerDay?: string;
-	maxPricePerDay?: string;
-}
+import { useFilterParams } from "./useFilterParams";
+import { CarApiParams } from "@/app/types/CarTypes";
 
 const LABELS: Record<string, string> = {
 	make: "Make",
@@ -67,28 +34,20 @@ const LABELS: Record<string, string> = {
 const SKIP = new Set(["page", "pageSize", "sortBy", "sortDir", "select"]);
 
 const ActiveFilters = ({ className }: { className: string }) => {
-	const router = useRouter();
-	const pathname = usePathname();
-	const searchParams = useSearchParams();
+	const { params, remove } = useFilterParams();
 
-	const entries = Array.from(searchParams.entries()).filter(
-		([key]) => !SKIP.has(key),
-	);
+	const entries = Object.entries(params).filter(([key]) => !SKIP.has(key));
 
 	if (entries.length === 0) return null;
 
-	const removeParam = (key: string) => {
-		const params = new URLSearchParams(searchParams.toString());
-		params.delete(key);
-		router.push(`${pathname}?${params.toString()}`);
-	};
-
 	return (
-		<div className={"md:flex hidden flex-wrap gap-[6px] items-center " + className}>
+		<div
+			className={"md:flex hidden flex-wrap gap-[6px] items-center " + className}
+		>
 			{entries.map(([key, value]) => (
 				<button
 					key={key}
-					onClick={() => removeParam(key)}
+					onClick={() => remove(key as keyof CarApiParams)}
 					className="flex items-center gap-[4px] bg-accent/80 text-primary text-[9pt] rounded-full px-[10px] py-[4px] hover:bg-accent/100 transition-colors font-[500]"
 				>
 					<span className="text-primary">{LABELS[key] ?? key}:</span>
