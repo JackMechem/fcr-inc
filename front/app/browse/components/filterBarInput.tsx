@@ -18,7 +18,6 @@ const FilterBarInput = ({
 	const [value, setValue] = useState<string>(defaultValue ?? "");
 
 	const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-		setValue(e.target.value);
 		onChange(e.target.value === "" ? null : e.target.value);
 	};
 
@@ -29,7 +28,8 @@ const FilterBarInput = ({
 				type="text"
 				value={value}
 				placeholder={placeholder ?? label}
-				onChange={handleChange}
+				onBlur={handleChange}
+				onChange={(e) => setValue(e.target.value)}
 				className="bg-primary-dark/20 outline-none border border-third rounded-xl px-[12px] py-[8px] w-full text-[11pt]"
 			/>
 		</div>

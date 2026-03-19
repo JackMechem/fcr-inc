@@ -1,44 +1,11 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { VscSettings } from "react-icons/vsc";
-import { usePathname, useSearchParams, useRouter } from "next/navigation";
 import FilterBarDropdown from "./filterBarDropdown";
 import FilterBarNumberRangeInline from "./filterBarNumberRangeInline";
 import FilterBarInput from "./filterBarInput";
 import PillSelect from "./pillSelect";
-
-interface FilterAndSelectFields {
-	page?: string;
-	pageSize?: string;
-	select?: string;
-	sortBy?: string;
-	sortDir?: string;
-	make?: string;
-	model?: string;
-	minModelYear?: string;
-	maxModelYear?: string;
-	transmission?: string;
-	drivetrain?: string;
-	engineLayout?: string;
-	fuel?: string;
-	bodyType?: string;
-	roofType?: string;
-	vehicleClass?: string;
-	minHorsepower?: string;
-	maxHorsepower?: string;
-	minTorque?: string;
-	maxTorque?: string;
-	minSeats?: string;
-	maxSeats?: string;
-	minMpg?: string;
-	maxMpg?: string;
-	minCylinders?: string;
-	maxCylinders?: string;
-	minGears?: string;
-	maxGears?: string;
-	minPricePerDay?: string;
-	maxPricePerDay?: string;
-}
+import { useFilterParams } from "./useFilterParams";
 
 const Divider = () => <div className="w-full h-[1px] bg-third/50" />;
 const SectionTitle = ({ children }: { children: React.ReactNode }) => (
@@ -47,46 +14,8 @@ const SectionTitle = ({ children }: { children: React.ReactNode }) => (
 
 const FilterButton = () => {
 	const [open, setOpen] = useState(false);
-	const [localParams, setLocalParams] = useState<
-		Partial<FilterAndSelectFields>
-	>({});
 	const ref = useRef<HTMLDivElement>(null);
-	const router = useRouter();
-	const pathname = usePathname();
-	const searchParams = useSearchParams();
-
-	useEffect(() => {
-		const initial: Partial<FilterAndSelectFields> = {};
-		searchParams.forEach((value, key) => {
-			initial[key as keyof FilterAndSelectFields] = value;
-		});
-		setLocalParams(initial);
-	}, [searchParams]);
-
-	const get = (key: keyof FilterAndSelectFields) =>
-		searchParams.get(key) ?? undefined;
-	const getLocal = (key: keyof FilterAndSelectFields) =>
-		localParams[key] ?? get(key);
-
-	const applyParam = (
-		param: keyof FilterAndSelectFields,
-		value: string | null,
-	) => {
-		setLocalParams((prev) => ({ ...prev, [param]: value ?? undefined }));
-		const params = new URLSearchParams(searchParams.toString());
-		if (value) params.set(param, value);
-		else params.delete(param);
-		router.push(`${pathname}?${params.toString()}`);
-	};
-
-	const applyMultiple = (updates: Partial<FilterAndSelectFields>) => {
-		const params = new URLSearchParams(searchParams.toString());
-		for (const [key, value] of Object.entries(updates)) {
-			if (value) params.set(key, value);
-			else params.delete(key);
-		}
-		router.push(`${pathname}?${params.toString()}`);
-	};
+	const { get, set, clear } = useFilterParams();
 
 	useEffect(() => {
 		const handleClickOutside = (e: MouseEvent) => {
@@ -101,7 +30,7 @@ const FilterButton = () => {
 		<div ref={ref} className="relative h-fill self-stretch">
 			<button
 				onClick={() => setOpen((prev) => !prev)}
-				className="text-[20pt] text-accent/80  border-transparent cursor-pointer hover:bg-primary-dark hover:border-third/70 rounded-2xl flex justify-center items-center text-center px-[15px] h-full self-stretch"
+				className="text-[20pt] text-accent/80 border-transparent cursor-pointer hover:bg-primary-dark hover:border-third/70 rounded-2xl flex justify-center items-center text-center px-[15px] h-full self-stretch"
 			>
 				<VscSettings />
 			</button>
@@ -124,7 +53,6 @@ const FilterButton = () => {
 
 						{/* Scrollable content */}
 						<div className="overflow-y-auto flex flex-col gap-[28px] px-[24px] py-[24px] w-full h-auto">
-							{/* Search */}
 							<div className="flex flex-col gap-[16px]">
 								<SectionTitle>Search</SectionTitle>
 								<div className="flex gap-[12px]">
@@ -132,20 +60,19 @@ const FilterButton = () => {
 										label="Make"
 										paramId="make"
 										defaultValue={get("make")}
-										onChange={(v) => applyParam("make", v)}
+										onChange={(v) => set({ make: v ?? undefined })}
 									/>
 									<FilterBarInput
 										label="Model"
 										paramId="model"
 										defaultValue={get("model")}
-										onChange={(v) => applyParam("model", v)}
+										onChange={(v) => set({ model: v ?? undefined })}
 									/>
 								</div>
 							</div>
 
 							<Divider />
 
-							{/* Price */}
 							<FilterBarNumberRangeInline
 								label="Price per day"
 								defaultMin={get("minPricePerDay")}
@@ -153,13 +80,15 @@ const FilterButton = () => {
 								min={0}
 								max={2000}
 								onChange={(min, max) =>
-									applyMultiple({ minPricePerDay: min, maxPricePerDay: max })
+									set({
+										minPricePerDay: parseInt(min),
+										maxPricePerDay: parseInt(max),
+									})
 								}
 							/>
 
 							<Divider />
 
-							{/* Model Year */}
 							<FilterBarNumberRangeInline
 								label="Model year"
 								defaultMin={get("minModelYear")}
@@ -167,18 +96,20 @@ const FilterButton = () => {
 								min={1900}
 								max={new Date().getFullYear()}
 								onChange={(min, max) =>
-									applyMultiple({ minModelYear: min, maxModelYear: max })
+									set({
+										minModelYear: parseInt(min),
+										maxModelYear: parseInt(max),
+									})
 								}
 							/>
 
 							<Divider />
 
-							{/* Body Type */}
 							<div className="flex flex-col gap-[16px]">
 								<SectionTitle>Body type</SectionTitle>
 								<PillSelect
-									selected={getLocal("bodyType")}
-									onChange={(v) => applyParam("bodyType", v)}
+									selected={get("bodyType")}
+									onChange={(v) => set({ bodyType: v ?? undefined })}
 									options={[
 										{ paramId: "SEDAN", displayText: "Sedan" },
 										{ paramId: "SUV", displayText: "SUV" },
@@ -196,12 +127,11 @@ const FilterButton = () => {
 
 							<Divider />
 
-							{/* Vehicle Class */}
 							<div className="flex flex-col gap-[16px]">
 								<SectionTitle>Vehicle class</SectionTitle>
 								<PillSelect
-									selected={getLocal("vehicleClass")}
-									onChange={(v) => applyParam("vehicleClass", v)}
+									selected={get("vehicleClass")}
+									onChange={(v) => set({ vehicleClass: v ?? undefined })}
 									options={[
 										{ paramId: "ECONOMY", displayText: "Economy" },
 										{ paramId: "LUXURY", displayText: "Luxury" },
@@ -215,12 +145,11 @@ const FilterButton = () => {
 
 							<Divider />
 
-							{/* Roof Type */}
 							<div className="flex flex-col gap-[16px]">
 								<SectionTitle>Roof type</SectionTitle>
 								<PillSelect
-									selected={getLocal("roofType")}
-									onChange={(v) => applyParam("roofType", v)}
+									selected={get("roofType")}
+									onChange={(v) => set({ roofType: v ?? undefined })}
 									options={[
 										{ paramId: "SOFTTOP", displayText: "Soft Top" },
 										{ paramId: "HARDTOP", displayText: "Hard Top" },
@@ -234,31 +163,32 @@ const FilterButton = () => {
 
 							<Divider />
 
-							{/* Drivetrain */}
 							<div className="flex flex-col gap-[16px]">
 								<SectionTitle>Drivetrain</SectionTitle>
 								<div className="grid grid-cols-2 gap-[12px]">
 									<FilterBarDropdown
 										label="Transmission"
+										defaultValue={get("transmission")}
+										onChange={(v) => set({ transmission: v ?? undefined })}
 										options={[
 											{ paramId: "AUTOMATIC", displayText: "Automatic" },
 											{ paramId: "MANUAL", displayText: "Manual" },
 										]}
-										defaultValue={getLocal("transmission")}
-										onChange={(v) => applyParam("transmission", v)}
 									/>
 									<FilterBarDropdown
 										label="Drivetrain"
+										defaultValue={get("drivetrain")}
+										onChange={(v) => set({ drivetrain: v ?? undefined })}
 										options={[
 											{ paramId: "FWD", displayText: "FWD" },
 											{ paramId: "RWD", displayText: "RWD" },
 											{ paramId: "AWD", displayText: "AWD" },
 										]}
-										defaultValue={getLocal("drivetrain")}
-										onChange={(v) => applyParam("drivetrain", v)}
 									/>
 									<FilterBarDropdown
 										label="Engine Layout"
+										defaultValue={get("engineLayout")}
+										onChange={(v) => set({ engineLayout: v ?? undefined })}
 										options={[
 											{ paramId: "V", displayText: "V" },
 											{ paramId: "INLINE", displayText: "Inline" },
@@ -266,26 +196,23 @@ const FilterButton = () => {
 											{ paramId: "SINGLE_MOTOR", displayText: "Single Motor" },
 											{ paramId: "DUAL_MOTOR", displayText: "Dual Motor" },
 										]}
-										defaultValue={getLocal("engineLayout")}
-										onChange={(v) => applyParam("engineLayout", v)}
 									/>
 									<FilterBarDropdown
 										label="Fuel"
+										defaultValue={get("fuel")}
+										onChange={(v) => set({ fuel: v ?? undefined })}
 										options={[
 											{ paramId: "GASOLINE", displayText: "Gasoline" },
 											{ paramId: "DIESEL", displayText: "Diesel" },
 											{ paramId: "ELECTRIC", displayText: "Electric" },
 											{ paramId: "HYBRID", displayText: "Hybrid" },
 										]}
-										defaultValue={getLocal("fuel")}
-										onChange={(v) => applyParam("fuel", v)}
 									/>
 								</div>
 							</div>
 
 							<Divider />
 
-							{/* Performance */}
 							<div className="flex flex-col gap-[28px]">
 								<SectionTitle>Performance</SectionTitle>
 								<FilterBarNumberRangeInline
@@ -295,7 +222,10 @@ const FilterButton = () => {
 									min={0}
 									max={2000}
 									onChange={(min, max) =>
-										applyMultiple({ minHorsepower: min, maxHorsepower: max })
+										set({
+											minHorsepower: parseInt(min),
+											maxHorsepower: parseInt(max),
+										})
 									}
 								/>
 								<Divider />
@@ -306,7 +236,7 @@ const FilterButton = () => {
 									min={0}
 									max={2000}
 									onChange={(min, max) =>
-										applyMultiple({ minTorque: min, maxTorque: max })
+										set({ minTorque: parseInt(min), maxTorque: parseInt(max) })
 									}
 								/>
 								<Divider />
@@ -317,7 +247,7 @@ const FilterButton = () => {
 									min={0}
 									max={200}
 									onChange={(min, max) =>
-										applyMultiple({ minMpg: min, maxMpg: max })
+										set({ minMpg: parseInt(min), maxMpg: parseInt(max) })
 									}
 								/>
 								<Divider />
@@ -328,7 +258,7 @@ const FilterButton = () => {
 									min={1}
 									max={12}
 									onChange={(min, max) =>
-										applyMultiple({ minSeats: min, maxSeats: max })
+										set({ minSeats: parseInt(min), maxSeats: parseInt(max) })
 									}
 								/>
 								<Divider />
@@ -339,7 +269,10 @@ const FilterButton = () => {
 									min={0}
 									max={16}
 									onChange={(min, max) =>
-										applyMultiple({ minCylinders: min, maxCylinders: max })
+										set({
+											minCylinders: parseInt(min),
+											maxCylinders: parseInt(max),
+										})
 									}
 								/>
 								<Divider />
@@ -350,7 +283,7 @@ const FilterButton = () => {
 									min={1}
 									max={12}
 									onChange={(min, max) =>
-										applyMultiple({ minGears: min, maxGears: max })
+										set({ minGears: parseInt(min), maxGears: parseInt(max) })
 									}
 								/>
 							</div>
@@ -360,7 +293,7 @@ const FilterButton = () => {
 						<div className="flex items-center justify-between px-[24px] py-[16px] border-t border-third/50">
 							<button
 								onClick={() => {
-									router.push(pathname);
+									clear();
 									setOpen(false);
 								}}
 								className="text-foreground text-[11pt] font-[500] underline underline-offset-2"

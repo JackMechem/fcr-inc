@@ -63,3 +63,37 @@ export interface CarApiParams {
     minPricePerDay?: number;
     maxPricePerDay?: number;
 }
+
+
+export interface FilterAndSelectFields {
+	page?: string;
+	pageSize?: string;
+	select?: string;
+	sortBy?: string;
+	sortDir?: string;
+	make?: string;
+	model?: string;
+	minModelYear?: string;
+	maxModelYear?: string;
+	transmission?: string;
+	drivetrain?: string;
+	engineLayout?: string;
+	fuel?: string;
+	bodyType?: string;
+	roofType?: string;
+	vehicleClass?: string;
+	minHorsepower?: string;
+	maxHorsepower?: string;
+	minTorque?: string;
+	maxTorque?: string;
+	minSeats?: string;
+	maxSeats?: string;
+	minMpg?: string;
+	maxMpg?: string;
+	minCylinders?: string;
+	maxCylinders?: string;
+	minGears?: string;
+	maxGears?: string;
+	minPricePerDay?: string;
+	maxPricePerDay?: string;
+}
