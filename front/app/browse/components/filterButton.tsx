@@ -6,13 +6,25 @@ import FilterBarNumberRangeInline from "./filterBarNumberRangeInline";
 import FilterBarInput from "./filterBarInput";
 import PillSelect from "./pillSelect";
 import { useFilterParams } from "./useFilterParams";
+import { CarEnums } from "@/app/types/CarEnums";
 
 const Divider = () => <div className="w-full h-[1px] bg-third/50" />;
 const SectionTitle = ({ children }: { children: React.ReactNode }) => (
 	<p className="text-foreground text-[13pt] font-[600]">{children}</p>
 );
 
-const FilterButton = () => {
+const toOptions = (values: string[] = []) =>
+	values.map((v) => ({
+		paramId: v,
+		displayText:
+			v.charAt(0).toUpperCase() + v.slice(1).toLowerCase().replace(/_/g, " "),
+	}));
+
+interface FilterButtonProps {
+	enums: CarEnums;
+}
+
+const FilterButton = ({ enums }: FilterButtonProps) => {
 	const [open, setOpen] = useState(false);
 	const ref = useRef<HTMLDivElement>(null);
 	const { get, set, clear } = useFilterParams();
@@ -110,18 +122,7 @@ const FilterButton = () => {
 								<PillSelect
 									selected={get("bodyType")}
 									onChange={(v) => set({ bodyType: v ?? undefined })}
-									options={[
-										{ paramId: "SEDAN", displayText: "Sedan" },
-										{ paramId: "SUV", displayText: "SUV" },
-										{ paramId: "TRUCK", displayText: "Truck" },
-										{ paramId: "CONVERTIBLE", displayText: "Convertible" },
-										{ paramId: "HATCHBACK", displayText: "Hatchback" },
-										{ paramId: "FULL_SIZE", displayText: "Full Size" },
-										{ paramId: "COMPACT", displayText: "Compact" },
-										{ paramId: "WAGON", displayText: "Wagon" },
-										{ paramId: "ELECTRIC", displayText: "Electric" },
-										{ paramId: "COUPE", displayText: "Coupe" },
-									]}
+									options={toOptions(enums.bodyType)}
 								/>
 							</div>
 
@@ -132,14 +133,7 @@ const FilterButton = () => {
 								<PillSelect
 									selected={get("vehicleClass")}
 									onChange={(v) => set({ vehicleClass: v ?? undefined })}
-									options={[
-										{ paramId: "ECONOMY", displayText: "Economy" },
-										{ paramId: "LUXURY", displayText: "Luxury" },
-										{ paramId: "PERFORMANCE", displayText: "Performance" },
-										{ paramId: "OFFROAD", displayText: "Off Road" },
-										{ paramId: "FULL_SIZE", displayText: "Full Size" },
-										{ paramId: "ELECTRIC", displayText: "Electric" },
-									]}
+									options={toOptions(enums.vehicleClass)}
 								/>
 							</div>
 
@@ -150,14 +144,7 @@ const FilterButton = () => {
 								<PillSelect
 									selected={get("roofType")}
 									onChange={(v) => set({ roofType: v ?? undefined })}
-									options={[
-										{ paramId: "SOFTTOP", displayText: "Soft Top" },
-										{ paramId: "HARDTOP", displayText: "Hard Top" },
-										{ paramId: "TARGA", displayText: "Targa" },
-										{ paramId: "SLICKTOP", displayText: "Slick Top" },
-										{ paramId: "SUNROOF", displayText: "Sunroof" },
-										{ paramId: "PANORAMIC", displayText: "Panoramic" },
-									]}
+									options={toOptions(enums.roofType)}
 								/>
 							</div>
 
@@ -170,43 +157,25 @@ const FilterButton = () => {
 										label="Transmission"
 										defaultValue={get("transmission")}
 										onChange={(v) => set({ transmission: v ?? undefined })}
-										options={[
-											{ paramId: "AUTOMATIC", displayText: "Automatic" },
-											{ paramId: "MANUAL", displayText: "Manual" },
-										]}
+										options={toOptions(enums.transmissionType)}
 									/>
 									<FilterBarDropdown
 										label="Drivetrain"
 										defaultValue={get("drivetrain")}
 										onChange={(v) => set({ drivetrain: v ?? undefined })}
-										options={[
-											{ paramId: "FWD", displayText: "FWD" },
-											{ paramId: "RWD", displayText: "RWD" },
-											{ paramId: "AWD", displayText: "AWD" },
-										]}
+										options={toOptions(enums.drivetrain)}
 									/>
 									<FilterBarDropdown
 										label="Engine Layout"
 										defaultValue={get("engineLayout")}
 										onChange={(v) => set({ engineLayout: v ?? undefined })}
-										options={[
-											{ paramId: "V", displayText: "V" },
-											{ paramId: "INLINE", displayText: "Inline" },
-											{ paramId: "FLAT", displayText: "Flat" },
-											{ paramId: "SINGLE_MOTOR", displayText: "Single Motor" },
-											{ paramId: "DUAL_MOTOR", displayText: "Dual Motor" },
-										]}
+										options={toOptions(enums.engineLayout)}
 									/>
 									<FilterBarDropdown
 										label="Fuel"
 										defaultValue={get("fuel")}
 										onChange={(v) => set({ fuel: v ?? undefined })}
-										options={[
-											{ paramId: "GASOLINE", displayText: "Gasoline" },
-											{ paramId: "DIESEL", displayText: "Diesel" },
-											{ paramId: "ELECTRIC", displayText: "Electric" },
-											{ paramId: "HYBRID", displayText: "Hybrid" },
-										]}
+										options={toOptions(enums.fuelType)}
 									/>
 								</div>
 							</div>

@@ -85,3 +85,5 @@ export const getCar = async (vin: string): Promise<Car> => {
     if (!res.ok) throw new Error(`Failed to fetch data from ${res.url}`);
     return res.json();
 };
+
+
