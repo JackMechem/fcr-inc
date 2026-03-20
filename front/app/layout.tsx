@@ -27,9 +27,11 @@ export default function RootLayout({
 	children: React.ReactNode;
 }>) {
 	return (
-		<html lang="en">
-			<body className={`${inter.variable} ${titillium.variable} antialiased overflow-x-hidden bg-primary h-full`}>
-                {children}
+		<html lang="en" className="h-full">
+			<body
+				className={`${inter.variable} ${titillium.variable} antialiased overflow-x-hidden bg-primary h-full`}
+			>
+				{children}
 			</body>
 		</html>
 	);

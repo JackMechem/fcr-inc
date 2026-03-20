@@ -11,7 +11,7 @@ const CarCard = ({ car }: CarCardProps) => {
 	return (
 		<Link
 			href={`car/${car.vin}`}
-			className="text-left min-w-[250px] max-w-[250px] rounded-lg overflow-hidden cursor-pointer hover:scale-[103%] duration-150 text-foreground font-inter text-[20pt] bg-primary shadow-md"
+			className="text-left min-w-[250px] md:w-[250px] w-full rounded-lg overflow-hidden cursor-pointer hover:scale-[103%] duration-150 text-foreground font-inter text-[20pt] bg-primary shadow-md"
 		>
 			<Image
 				width={300}
