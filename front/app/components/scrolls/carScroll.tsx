@@ -24,7 +24,7 @@ const CarScroll = ({ cars }: CarScrollProps) => {
 			ref={scrollRef}
 			onMouseEnter={() => setControllerVisible(true)}
 			onMouseLeave={() => setControllerVisible(false)}
-			className="w-full h-fit flex flex-wrap justify-start gap-[20px] px-[10px] py-[10px]"
+			className="w-full h-fit grid 2xl:grid-cols-5 xl:grid-cols-4 lg:grid-cols-3 sm:grid-cols-2 grid-cols-1 items-start gap-x-[10px] gap-y-[20px] px-[10px] py-[10px]"
 		>
 			{cars.map((car: Car) => (
 				<CarCard key={car.vin} car={car} />
