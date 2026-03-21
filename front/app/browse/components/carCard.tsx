@@ -16,16 +16,16 @@ const CarCard = ({ car }: CarCardProps) => {
 		<Link
 			href={"/car/" + car.vin}
 			key={car.vin}
-			className="bg-primary hover:scale-[102%] z-[0] duration-[100ms] rounded-xl  border-third shadow-md shadow-third/50 overflow-clip flex md:flex-row flex-col md:h-[200px] w-full"
+			className="hover:scale-[102%] z-[0] duration-[100ms] border-third shadow-third/50 overflow-visible flex md:flex-row flex-col md:h-[200px] w-full gap-[10px]"
 		>
 			<Image
 				src={car.images[0]}
 				alt={car.make}
 				height={500}
 				width={500}
-				className="object-cover md:w-[40%] w-full md:h-auto h-[200px]"
+				className="object-cover md:w-[40%] w-full md:h-auto h-[200px] rounded-xl shadow-[0px_1px_8px_-3px] shadow-accent/30"
 			/>
-			<div className="md:w-[60%] w-full px-[20px] py-[15px] flex flex-col justify-between md:gap-0 gap-[10px]">
+			<div className="md:w-[60%] w-full px-[20px] py-[15px] flex flex-col justify-between md:gap-0 gap-[10px] shadow-[0px_1px_8px_-3px] shadow-accent/30 bg-accent/3 rounded-xl">
 				<div>
 					<div className="flex justify-between items-center">
 						<h1 className="text-[16pt] font-[500] leading-[110%] text-foreground/90">
