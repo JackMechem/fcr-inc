@@ -10,7 +10,7 @@ import com.inc.fcr.car.enums.*;
 
 public final class ApiErrors {
 
-    public static void reDirectError(Context ctx, Exception e) { // 300
+    public static void reDirectError(Context ctx) { // 300
         ctx.status(302).header("Location", "/new-location");
     }
 
