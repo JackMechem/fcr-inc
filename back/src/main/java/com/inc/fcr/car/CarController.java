@@ -107,7 +107,11 @@ public class CarController extends CarOpenApi {
             var fields = ctx.bodyAsClass(JsonNode.class).fields();
             while (fields.hasNext()) {
                 Map.Entry<String, JsonNode> entry = fields.next();
-                Car.setterKeyMap.get(entry.getKey()).accept(car, entry.getValue());
+                var setter = Car.setterKeyMap.get(entry.getKey());
+                if (setter == null) {
+                    throw new ValidationException("Unknown field: " + entry.getKey());
+                }
+                setter.accept(car, entry.getValue());
             }
 
             DatabaseController.updateCar(car);
@@ -131,6 +135,8 @@ public class CarController extends CarOpenApi {
             else serverError(ctx, e);
         }
     }
+
+
 
     // Helper methods
     private static void carNotFound(Context ctx) {

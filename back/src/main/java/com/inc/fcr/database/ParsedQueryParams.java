@@ -1,206 +1,281 @@
 package com.inc.fcr.database;
 
-import java.beans.Transient;
-import java.lang.reflect.Field;
-import java.util.*;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import com.inc.fcr.car.Car;
 import com.inc.fcr.car.enums.*;
 import com.inc.fcr.errorHandling.QueryParamException;
 
+import java.util.*;
+import java.util.stream.Collectors;
+
 public class ParsedQueryParams {
 
-    private static final boolean STRICT_QUERY_PARAMS = Boolean
-            .parseBoolean(System.getenv().getOrDefault("STRICT_QUERY_PARAMS", "true"));
+    private static final Set<String> ALLOWED_SELECT_FIELDS = Set.of(
+            "vin",
+            "make",
+            "model",
+            "modelYear",
+            "cylinders",
+            "gears",
+            "horsepower",
+            "torque",
+            "seats",
+            "pricePerDay",
+            "mpg",
+            "transmission",
+            "drivetrain",
+            "engineLayout",
+            "fuel",
+            "bodyType",
+            "roofType",
+            "vehicleClass"
+    );
 
-    private static final int DEFAULT_PAGE_SIZE = 10;
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
+            "vin",
+            "make",
+            "model",
+            "modelYear",
+            "horsepower",
+            "torque",
+            "seats",
+            "pricePerDay",
+            "mpg",
+            "cylinders",
+            "gears"
+    );
 
-    private static final Set<String> NUMERIC_FIELDS;
-    private static final Map<String, String> FIELD_MAP;
-    private static final Map<String, String> ALPHA_FIELD_MAP; // strings only
+    private int page;
+    private int pageSize;
 
-    static {
-        Set<String> numericSet = new LinkedHashSet<>();
-        Map<String, String> fieldMap = new LinkedHashMap<>();
-        Map<String, String> alphaFieldMap = new LinkedHashMap<>();
-        for (Field field : Car.class.getDeclaredFields()) {
-            if (java.lang.reflect.Modifier.isStatic(field.getModifiers()))
-                continue;
-            if (field.isAnnotationPresent(Transient.class))
-                continue;
-            Class<?> type = field.getType();
-            fieldMap.put(field.getName().toLowerCase(), field.getName());
-            if (type == int.class || type == long.class || type == double.class || type == float.class ||
-                    type == Integer.class || type == Long.class || type == Double.class || type == Float.class) {
-                numericSet.add(field.getName());
-            } else {
-                alphaFieldMap.put(field.getName().toLowerCase(), field.getName());
+    private List<String> selectFields;
+    private String sortBy;
+    private String sortDir;
+
+    // generic search
+    private String q;
+
+    // partial text filters
+    private String make;
+    private String model;
+    private String description;
+
+    // exact filters
+    private String vinFilter;
+    private Integer modelYear;
+    private TransmissionType transmission;
+    private Drivetrain drivetrain;
+    private EngineLayout engineLayout;
+    private FuelType fuel;
+    private BodyType bodyType;
+    private RoofType roofType;
+    private VehicleClass vehicleClass;
+
+    // numeric ranges
+    private Double minPricePerDay;
+    private Double maxPricePerDay;
+    private Integer minHorsepower;
+    private Integer maxHorsepower;
+    private Integer minSeats;
+    private Integer maxSeats;
+    private Double minMpg;
+    private Double maxMpg;
+    private Integer minModelYear;
+    private Integer maxModelYear;
+
+    public ParsedQueryParams(Map<String, List<String>> queryParamMap) throws QueryParamException {
+        this.page = parseInt(queryParamMap, "page", 1);
+        this.pageSize = parseInt(queryParamMap, "pageSize", 10);
+
+        if (page < 1) {
+            throw new QueryParamException("page must be >= 1");
+        }
+        if (pageSize < 1) {
+            throw new QueryParamException("pageSize must be >= 1");
+        }
+
+        this.selectFields = parseSelectFields(queryParamMap);
+        this.sortBy = parseOptionalString(queryParamMap, "sortBy");
+        this.sortDir = parseOptionalString(queryParamMap, "sortDir");
+
+        validateSort();
+
+        this.q = parseOptionalString(queryParamMap, "q");
+
+        this.make = parseOptionalString(queryParamMap, "make");
+        this.model = parseOptionalString(queryParamMap, "model");
+        this.description = parseOptionalString(queryParamMap, "description");
+
+        this.modelYear = parseOptionalInteger(queryParamMap, "modelYear");
+
+        this.transmission = parseOptionalEnum(queryParamMap, "transmission", TransmissionType.class);
+        this.drivetrain = parseOptionalEnum(queryParamMap, "drivetrain", Drivetrain.class);
+        this.engineLayout = parseOptionalEnum(queryParamMap, "engineLayout", EngineLayout.class);
+        this.fuel = parseOptionalEnum(queryParamMap, "fuel", FuelType.class);
+        this.bodyType = parseOptionalEnum(queryParamMap, "bodyType", BodyType.class);
+        this.roofType = parseOptionalEnum(queryParamMap, "roofType", RoofType.class);
+        this.vehicleClass = parseOptionalEnum(queryParamMap, "vehicleClass", VehicleClass.class);
+
+        this.minPricePerDay = parseOptionalDouble(queryParamMap, "minPricePerDay");
+        this.maxPricePerDay = parseOptionalDouble(queryParamMap, "maxPricePerDay");
+
+        this.minHorsepower = parseOptionalInteger(queryParamMap, "minHorsepower");
+        this.maxHorsepower = parseOptionalInteger(queryParamMap, "maxHorsepower");
+
+        this.minSeats = parseOptionalInteger(queryParamMap, "minSeats");
+        this.maxSeats = parseOptionalInteger(queryParamMap, "maxSeats");
+
+        this.minMpg = parseOptionalDouble(queryParamMap, "minMpg");
+        this.maxMpg = parseOptionalDouble(queryParamMap, "maxMpg");
+
+        this.minModelYear = parseOptionalInteger(queryParamMap, "minModelYear");
+        this.maxModelYear = parseOptionalInteger(queryParamMap, "maxModelYear");
+
+        validateRanges();
+    }
+
+    private void validateSort() throws QueryParamException {
+        if (sortBy != null && !ALLOWED_SORT_FIELDS.contains(sortBy)) {
+            throw new QueryParamException("Invalid sortBy field: " + sortBy);
+        }
+
+        if (sortDir == null) {
+            sortDir = "asc";
+        } else if (!sortDir.equalsIgnoreCase("asc") && !sortDir.equalsIgnoreCase("desc")) {
+            throw new QueryParamException("sortDir must be 'asc' or 'desc'");
+        }
+    }
+
+    private void validateRanges() throws QueryParamException {
+        validateMinMax(minPricePerDay, maxPricePerDay, "pricePerDay");
+        validateMinMax(minHorsepower, maxHorsepower, "horsepower");
+        validateMinMax(minSeats, maxSeats, "seats");
+        validateMinMax(minMpg, maxMpg, "mpg");
+        validateMinMax(minModelYear, maxModelYear, "modelYear");
+
+        if (modelYear != null && (minModelYear != null || maxModelYear != null)) {
+            throw new QueryParamException("Use either modelYear or minModelYear/maxModelYear, not both");
+        }
+    }
+
+    private <T extends Number & Comparable<T>> void validateMinMax(T min, T max, String field) throws QueryParamException {
+        if (min != null && max != null && min.compareTo(max) > 0) {
+            throw new QueryParamException("min" + capitalize(field) + " cannot be greater than max" + capitalize(field));
+        }
+    }
+
+    private String capitalize(String value) {
+        if (value == null || value.isEmpty()) return value;
+        return Character.toUpperCase(value.charAt(0)) + value.substring(1);
+    }
+
+    private List<String> parseSelectFields(Map<String, List<String>> queryParamMap) throws QueryParamException {
+        String raw = parseOptionalString(queryParamMap, "select");
+        if (raw == null) return null;
+
+        List<String> fields = Arrays.stream(raw.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .collect(Collectors.toList());
+
+        if (fields.isEmpty()) {
+            throw new QueryParamException("select cannot be empty");
+        }
+
+        for (String field : fields) {
+            if (!ALLOWED_SELECT_FIELDS.contains(field)) {
+                throw new QueryParamException("Invalid select field: " + field);
             }
         }
-        NUMERIC_FIELDS = Collections.unmodifiableSet(numericSet);
-        FIELD_MAP = Collections.unmodifiableMap(fieldMap);
-        ALPHA_FIELD_MAP = Collections.unmodifiableMap(alphaFieldMap);
+
+        return fields;
     }
 
-    private static final Map<String, Function<String, Object>> FILTER_PARSERS = Map.ofEntries(
-            Map.entry("transmission", v -> TransmissionType.valueOf(v.toUpperCase())),
-            Map.entry("drivetrain", v -> Drivetrain.valueOf(v.toUpperCase())),
-            Map.entry("engineLayout", v -> EngineLayout.valueOf(v.toUpperCase())),
-            Map.entry("fuel", v -> FuelType.valueOf(v.toUpperCase())),
-            Map.entry("bodyType", v -> BodyType.valueOf(v.toUpperCase())),
-            Map.entry("roofType", v -> RoofType.valueOf(v.toUpperCase())),
-            Map.entry("vehicleClass", v -> VehicleClass.valueOf(v.toUpperCase())));
+    private String parseOptionalString(Map<String, List<String>> queryParamMap, String key) {
+        List<String> values = queryParamMap.get(key);
+        if (values == null || values.isEmpty()) return null;
 
-    private static final Map<String, String> FILTER_VALID_VALUES = Map.ofEntries(
-            Map.entry("transmission",
-                    String.join(", ", Arrays.stream(TransmissionType.values()).map(Enum::name).toList())),
-            Map.entry("drivetrain", String.join(", ", Arrays.stream(Drivetrain.values()).map(Enum::name).toList())),
-            Map.entry("engineLayout", String.join(", ", Arrays.stream(EngineLayout.values()).map(Enum::name).toList())),
-            Map.entry("fuel", String.join(", ", Arrays.stream(FuelType.values()).map(Enum::name).toList())),
-            Map.entry("bodyType", String.join(", ", Arrays.stream(BodyType.values()).map(Enum::name).toList())),
-            Map.entry("roofType", String.join(", ", Arrays.stream(RoofType.values()).map(Enum::name).toList())),
-            Map.entry("vehicleClass",
-                    String.join(", ", Arrays.stream(VehicleClass.values()).map(Enum::name).toList())));
+        String value = values.get(0);
+        if (value == null) return null;
 
-    private List<String> selectFields = null;
-    private Map<String, String> filterFields = null;
-    private SortStyle sortDir = SortStyle.ASCENDING;
-    private String sortBy = "make";
-    private int page = 1;
-    private int pageSize = DEFAULT_PAGE_SIZE;
+        value = value.trim();
+        return value.isEmpty() ? null : value;
+    }
 
-    public ParsedQueryParams(Map<String, List<String>> queryParams) throws QueryParamException {
-        for (Map.Entry<String, List<String>> entry : queryParams.entrySet()) {
-            String key = entry.getKey().trim().toLowerCase();
-            String val = entry.getValue().getFirst().trim();
-            switch (key) {
-                case "select" -> parseSelect(entry.getValue());
-                case "sortby" -> {
-                    if (FIELD_MAP.containsKey(val.toLowerCase()))
-                        sortBy = FIELD_MAP.get(val.toLowerCase());
-                }
-                case "sortdir" -> sortDir = val.equalsIgnoreCase("desc") ? SortStyle.DESCENDING : SortStyle.ASCENDING;
-                case "page" -> page = Math.max(1, Integer.parseInt(val));
-                case "pagesize" -> pageSize = Integer.parseInt(val) < 1 ? DEFAULT_PAGE_SIZE : Integer.parseInt(val);
-                default -> {
-                    if (key.startsWith("min") || key.startsWith("max")) {
-                        String field = FIELD_MAP.get(key.substring(3).toLowerCase());
-                        if (field != null && NUMERIC_FIELDS.contains(field)) {
-                            if (filterFields != null)
-                                filterFields.remove("exact_" + field);
-                            parseFilter(key.substring(3).toLowerCase(), val, key.startsWith("min") ? "min" : "max");
-                        }
-                    } else if (FIELD_MAP.containsKey(key) && NUMERIC_FIELDS.contains(FIELD_MAP.get(key))) {
-                        String field = FIELD_MAP.get(key);
-                        if (filterFields == null || (!filterFields.containsKey("min_" + field)
-                                && !filterFields.containsKey("max_" + field)))
-                            parseFilter(key, val, "exact");
-                    } else if (FIELD_MAP.containsKey(key)) {
-                        parseFilter(key, val, null);
-                    }
-                }
-            }
+    private int parseInt(Map<String, List<String>> queryParamMap, String key, int defaultValue) throws QueryParamException {
+        String value = parseOptionalString(queryParamMap, key);
+        if (value == null) return defaultValue;
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            throw new QueryParamException("Invalid integer for " + key + ": " + value);
         }
     }
 
-    private void parseSelect(List<String> values) throws QueryParamException {
-        if (values.isEmpty()) {
-            if (STRICT_QUERY_PARAMS) {
-                throw new QueryParamException("Valid fields for 'select': " + String.join(", ", FIELD_MAP.keySet()));
-            } else {
-                selectFields = null;
-                return;
-            }
+    private Integer parseOptionalInteger(Map<String, List<String>> queryParamMap, String key) throws QueryParamException {
+        String value = parseOptionalString(queryParamMap, key);
+        if (value == null) return null;
+        try {
+            return Integer.valueOf(value);
+        } catch (NumberFormatException e) {
+            throw new QueryParamException("Invalid integer for " + key + ": " + value);
         }
-        if (selectFields == null)
-            selectFields = new ArrayList<>();
-        for (String val : values) {
-            for (String field : val.split(",")) {
-                String mapped = FIELD_MAP.get(field.trim().toLowerCase());
-                if (mapped != null && !selectFields.contains(mapped))
-                    selectFields.add(mapped);
-                else if (mapped == null) {
-                    if (STRICT_QUERY_PARAMS) {
-                        throw new QueryParamException("Invalid select field: '" + field.trim() + "'. Valid fields: "
-                                + String.join(", ", FIELD_MAP.keySet()));
-                    }
+    }
 
-                }
-            }
+    private Double parseOptionalDouble(Map<String, List<String>> queryParamMap, String key) throws QueryParamException {
+        String value = parseOptionalString(queryParamMap, key);
+        if (value == null) return null;
+        try {
+            return Double.valueOf(value);
+        } catch (NumberFormatException e) {
+            throw new QueryParamException("Invalid decimal for " + key + ": " + value);
         }
-        if (selectFields.isEmpty())
-            if (STRICT_QUERY_PARAMS) {
-                throw new QueryParamException("Valid fields for 'select': " + String.join(", ", FIELD_MAP.keySet()));
-            } else {
-                selectFields = null;
-                return;
-            }
     }
 
-    private void parseFilter(String key, String val, String rangeType) {
-        if (filterFields == null)
-            filterFields = new LinkedHashMap<>();
-        String properKey = FIELD_MAP.get(key);
-        if (rangeType != null)
-            filterFields.put(rangeType + "_" + properKey, val);
-        else
-            filterFields.put(properKey, val);
-    }
+    private <E extends Enum<E>> E parseOptionalEnum(
+            Map<String, List<String>> queryParamMap,
+            String key,
+            Class<E> enumClass
+    ) throws QueryParamException {
+        String value = parseOptionalString(queryParamMap, key);
+        if (value == null) return null;
 
-    public String getSelectClause() throws QueryParamException {
-        return selectFields.stream()
-                .map(f -> "c." + f)
-                .collect(Collectors.joining(", "));
-    }
-
-    public String getFilterClause() throws QueryParamException {
-        StringBuilder sb = new StringBuilder(" WHERE 1=1");
-        if (filterFields == null)
-            return sb.toString();
-        for (Map.Entry<String, String> entry : filterFields.entrySet()) {
-            String field = entry.getKey(), value = entry.getValue();
-            if (field.startsWith("min_")) {
-                sb.append(" AND c.").append(field.substring(4)).append(" >= ").append(value);
-            } else if (field.startsWith("max_")) {
-                sb.append(" AND c.").append(field.substring(4)).append(" <= ").append(value);
-            } else if (field.startsWith("exact_")) {
-                sb.append(" AND c.").append(field.substring(6)).append(" = ").append(value);
-            } else if (FILTER_PARSERS.containsKey(field)) {
-                if (FILTER_VALID_VALUES.get(field).contains(value.toUpperCase())) {
-                    sb.append(" AND c.").append(field).append(" = ");
-                    sb.append(FILTER_PARSERS.get(field).apply(value));
-                } else if (STRICT_QUERY_PARAMS) {
-                    throw new QueryParamException(
-                            "Invalid value '" + value + "' for '" + field + "'. Valid options: "
-                                    + FILTER_VALID_VALUES.get(field));
-                }
-            } else {
-                sb.append(" AND c.").append(field).append(" = '").append(value).append("'");
-            }
+        try {
+            return Enum.valueOf(enumClass, value.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new QueryParamException("Invalid value for " + key + ": " + value);
         }
-        return sb.toString();
     }
 
-    public String getSortClause() {
-        return " ORDER BY c." + sortBy + (sortDir == SortStyle.DESCENDING ? " DESC" : " ASC");
-    }
-
-    public List<String> getSelectFields() {
-        return selectFields;
-    }
-
-    public Map<String, String> getFilterFields() {
-        return filterFields;
-    }
-
-    public SortStyle getSortDir() {
-        return sortDir;
-    }
-
-    public String getSortBy() {
-        return sortBy;
+    public void printParams() {
+        System.out.println("ParsedQueryParams {");
+        System.out.println("  page=" + page);
+        System.out.println("  pageSize=" + pageSize);
+        System.out.println("  selectFields=" + selectFields);
+        System.out.println("  sortBy=" + sortBy);
+        System.out.println("  sortDir=" + sortDir);
+        System.out.println("  q=" + q);
+        System.out.println("  make=" + make);
+        System.out.println("  model=" + model);
+        System.out.println("  description=" + description);
+        System.out.println("  vinFilter=" + vinFilter);
+        System.out.println("  modelYear=" + modelYear);
+        System.out.println("  minModelYear=" + minModelYear);
+        System.out.println("  maxModelYear=" + maxModelYear);
+        System.out.println("  transmission=" + transmission);
+        System.out.println("  drivetrain=" + drivetrain);
+        System.out.println("  engineLayout=" + engineLayout);
+        System.out.println("  fuel=" + fuel);
+        System.out.println("  bodyType=" + bodyType);
+        System.out.println("  roofType=" + roofType);
+        System.out.println("  vehicleClass=" + vehicleClass);
+        System.out.println("  minPricePerDay=" + minPricePerDay);
+        System.out.println("  maxPricePerDay=" + maxPricePerDay);
+        System.out.println("  minHorsepower=" + minHorsepower);
+        System.out.println("  maxHorsepower=" + maxHorsepower);
+        System.out.println("  minSeats=" + minSeats);
+        System.out.println("  maxSeats=" + maxSeats);
+        System.out.println("  minMpg=" + minMpg);
+        System.out.println("  maxMpg=" + maxMpg);
+        System.out.println("}");
     }
 
     public int getPage() {
@@ -211,18 +286,111 @@ public class ParsedQueryParams {
         return pageSize;
     }
 
-    public void setVinFilter(String vin) {
-        if (filterFields == null)
-            filterFields = new LinkedHashMap<>();
-        filterFields.put("vin", vin);
+    public List<String> getSelectFields() {
+        return selectFields;
     }
 
-    public void printParams() {
-        System.out.println("selectFields: " + selectFields);
-        System.out.println("filterFields: " + filterFields);
-        System.out.println("sortDir:      " + sortDir);
-        System.out.println("sortBy:       " + sortBy);
-        System.out.println("page:         " + page);
-        System.out.println("pageSize:     " + pageSize);
+    public String getSortBy() {
+        return sortBy;
+    }
+
+    public String getSortDir() {
+        return sortDir;
+    }
+
+    public String getQ() {
+        return q;
+    }
+
+    public String getMake() {
+        return make;
+    }
+
+    public String getModel() {
+        return model;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public String getVinFilter() {
+        return vinFilter;
+    }
+
+    public void setVinFilter(String vinFilter) {
+        this.vinFilter = vinFilter;
+    }
+
+    public Integer getModelYear() {
+        return modelYear;
+    }
+
+    public TransmissionType getTransmission() {
+        return transmission;
+    }
+
+    public Drivetrain getDrivetrain() {
+        return drivetrain;
+    }
+
+    public EngineLayout getEngineLayout() {
+        return engineLayout;
+    }
+
+    public FuelType getFuel() {
+        return fuel;
+    }
+
+    public BodyType getBodyType() {
+        return bodyType;
+    }
+
+    public RoofType getRoofType() {
+        return roofType;
+    }
+
+    public VehicleClass getVehicleClass() {
+        return vehicleClass;
+    }
+
+    public Double getMinPricePerDay() {
+        return minPricePerDay;
+    }
+
+    public Double getMaxPricePerDay() {
+        return maxPricePerDay;
+    }
+
+    public Integer getMinHorsepower() {
+        return minHorsepower;
+    }
+
+    public Integer getMaxHorsepower() {
+        return maxHorsepower;
+    }
+
+    public Integer getMinSeats() {
+        return minSeats;
+    }
+
+    public Integer getMaxSeats() {
+        return maxSeats;
+    }
+
+    public Double getMinMpg() {
+        return minMpg;
+    }
+
+    public Double getMaxMpg() {
+        return maxMpg;
+    }
+
+    public Integer getMinModelYear() {
+        return minModelYear;
+    }
+
+    public Integer getMaxModelYear() {
+        return maxModelYear;
     }
 }
