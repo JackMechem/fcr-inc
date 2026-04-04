@@ -6,6 +6,7 @@ import com.inc.fcr.utils.DatabaseController;
 import com.inc.fcr.utils.EntityController;
 import jakarta.persistence.*;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,14 +32,17 @@ public class User {
     private DriversLicense driversLicense;
     @OneToMany(mappedBy = "user")
     private List<Reservation> reservations = new ArrayList<>();
+    @Column(nullable = false)
+    private Instant dateCreated;
 
-    public User(String firstName, String lastName, String email, String phoneNumber, Address address, DriversLicense driversLicense) {
+    public User(String firstName, String lastName, String email, String phoneNumber, Address address, DriversLicense driversLicense, Instant dateCreated) {
         this.firstName = firstName;
         this.lastName = lastName;
         this.email = email;
         this.phoneNumber = phoneNumber;
         this.address = address;
         this.driversLicense = driversLicense;
+        this.dateCreated = dateCreated;
     }
 
     public User(long id) throws IllegalAccessException {
@@ -99,6 +103,14 @@ public class User {
 
     public void setDriversLicense(DriversLicense driversLicense) {
         this.driversLicense = driversLicense;
+    }
+
+    public Instant getDateCreated() {
+        return dateCreated;
+    }
+
+    public List<Reservation> getReservations() {
+        return reservations;
     }
 }
 

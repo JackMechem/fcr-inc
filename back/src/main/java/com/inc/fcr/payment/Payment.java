@@ -7,6 +7,7 @@ import com.inc.fcr.utils.DatabaseController;
 import com.inc.fcr.utils.EntityController;
 import jakarta.persistence.*;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,11 +25,11 @@ public class Payment {
     @Column(nullable = false)
     private double amountPaid;
     @Column(nullable = false)
-    private long date;
+    private Instant date;
     @Enumerated(EnumType.STRING)
     private PaymentType paymentType;
 
-    public Payment(double totalAmount, double amountPaid, long date, PaymentType paymentType) {
+    public Payment(double totalAmount, double amountPaid, Instant date, PaymentType paymentType) {
         this.totalAmount = totalAmount;
         this.amountPaid = amountPaid;
         this.date = date;
@@ -71,7 +72,7 @@ public class Payment {
         return amountPaid;
     }
 
-    public long getDate() {
+    public Instant getDate() {
         return date;
     }
 
