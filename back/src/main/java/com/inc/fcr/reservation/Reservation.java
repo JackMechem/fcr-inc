@@ -7,9 +7,8 @@ import com.inc.fcr.user.User;
 import com.inc.fcr.utils.DatabaseController;
 import jakarta.persistence.*;
 
-import java.sql.Time;
-import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,45 +26,41 @@ public class Reservation {
     private User user;
     @ManyToMany
     @JoinTable(name = "reservationPayments",
-        joinColumns = @JoinColumn(name = "reservationId"),
-        inverseJoinColumns = @JoinColumn(name = "paymentId")
+            joinColumns = @JoinColumn(name = "reservationId"),
+            inverseJoinColumns = @JoinColumn(name = "paymentId")
     ) private List<Payment> payments = new ArrayList<>();
     @Column(nullable = false)
-    private LocalDateTime pickupTime;
+    private Instant pickUpTime;
     @Column(nullable = false)
-    private LocalDateTime dropOffTime;
+    private Instant dropOffTime;
     @Column(nullable = false)
-    private LocalDateTime duration;
+    private Instant dateBooked;
 
-    public Reservation(Car car, User user, List<Payment> payments, LocalDateTime pickupTime, LocalDateTime dropOffTime) {
+    public Reservation(Car car, User user, List<Payment> payments, Instant pickUpTime, Instant dropOffTime, Instant dateBooked) {
         this.car = car;
         this.user = user;
         this.payments = payments;
-        this.pickupTime = pickupTime;
+        this.pickUpTime = pickUpTime;
         this.dropOffTime = dropOffTime;
+        this.dateBooked = dateBooked;
     }
 
     // Seems not to work/be used by the parsers or hibernate?
-    public Reservation(String vin, Long id, List<Long> payments, LocalDateTime pickupTime, LocalDateTime dropOffTime) {
+    public Reservation(String vin, Long id, List<Long> payments, Instant pickUpTime, Instant dropOffTime, Instant dateBooked) {
         this.car = (Car) DatabaseController.getOne(Car.class, vin);
         this.user = (User) DatabaseController.getOne(User.class, id);
         this.payments = payments.stream().map(p -> (Payment)
                 DatabaseController.getOne(Payment.class, p)).toList();
-        this.pickupTime = pickupTime;
+        this.pickUpTime = pickUpTime;
         this.dropOffTime = dropOffTime;
+        this.dateBooked = dateBooked;
     }
 
-    public Reservation() {
+    public Reservation() {}
+
+    public int getDuration() {
+        return (int) ChronoUnit.SECONDS.between(pickUpTime,dropOffTime);
     }
-
-    public Duration getDuration(LocalDateTime pickupTime, LocalDateTime dropOffTime) {
-
-        Duration duration = Duration.between(pickupTime, dropOffTime);
-
-        return duration;
-    }
-
-    /**
     public int getDurationHours() {
         // 1h = 30m+
         return (getDuration()+1800) / 3600;
@@ -74,20 +69,34 @@ public class Reservation {
         // 1 day = 6h+
         return (getDurationHours()+18) / 24;
     }
-    **/
 
     public Payment getPayment(long paymentId) {
         return payments.stream().filter(p -> p.getPaymentId() == paymentId).findFirst().orElse(null);
     }
 
     // Getters & Setters
+    public User getUser() {
+        return user;
+    }
 
     public Long getReservationId() {
         return reservationId;
     }
 
-    public void setReservationId(Long reservationId) {
-        this.reservationId = reservationId;
+    public List<Payment> getPayments() {
+        return payments;
+    }
+
+    public Instant getPickUpTime() {
+        return pickUpTime;
+    }
+
+    public Instant getDropOffTime() {
+        return dropOffTime;
+    }
+
+    public Instant getDateBooked() {
+        return dateBooked;
     }
 
     public Car getCar() {
@@ -98,43 +107,29 @@ public class Reservation {
         this.car = car;
     }
 
-    public User getUser() {
-        return user;
+    public void addPayment(Payment p) {
+        payments.add(p);
     }
 
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public List<Payment> getPayments() {
-        return payments;
-    }
-
-    public void setPayments(List<Payment> payments) {
-        this.payments = payments;
-    }
-
-    public LocalDateTime getPickupTime() {
-        return pickupTime;
-    }
-
-    public void setPickupTime(LocalDateTime pickupTime) throws ValidationException {
-
-        if(pickupTime.isBefore(LocalDateTime.now()) || pickupTime.isAfter(dropOffTime)) {
-
-            throw new ValidationException("You Cannot Pickup At This Time" + LocalDateTime.now());
-
+    public void setPickUpTime(Instant pickUpTime) throws ValidationException {
+        if (pickUpTime.isAfter(dropOffTime)) {
+            throw new ValidationException("Invalid pick up time: after drop off time");
         }
-
-        this.pickupTime = pickupTime;
-
+        this.pickUpTime = pickUpTime;
     }
 
-    public LocalDateTime getDropOffTime() {
-        return dropOffTime;
+    public void setDropOffTime(Instant dropOffTime) throws ValidationException {
+        if (dropOffTime.isBefore(pickUpTime)) {
+            throw new ValidationException("Invalid drop off time: before pick up time");
+        }
+        this.dropOffTime = dropOffTime;
     }
 
-    public void setDropOffTime(LocalDateTime dropOffTime) {
+    public void setTimeRange(Instant pickUpTime, Instant dropOffTime) throws ValidationException {
+        if (pickUpTime.isAfter(dropOffTime)) {
+            throw new ValidationException("Invalid time range: pick up after drop off");
+        }
+        this.pickUpTime = pickUpTime;
         this.dropOffTime = dropOffTime;
     }
 }

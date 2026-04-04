@@ -1,9 +1,7 @@
 package com.inc.fcr.reservation;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.inc.fcr.car.Car;
 import com.inc.fcr.database.DatabaseController;
-import com.inc.fcr.database.ParsedQueryParams;
 import com.inc.fcr.errorHandling.ApiErrorResponse;
 import com.inc.fcr.errorHandling.QueryParamException;
 import com.inc.fcr.errorHandling.ValidationException;
@@ -12,6 +10,7 @@ import org.hibernate.HibernateException;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.time.Instant;
 
 public class ReservationController {
 
@@ -64,8 +63,12 @@ public class ReservationController {
             // TODO: how to handle cost updates from time changes (increases)?
             JsonNode body = ctx.bodyAsClass(JsonNode.class);
             if (body.has("car")) res.setCar(DatabaseController.getCarFromVin(body.get("car").asText()));
-            if (body.has("pickupTime")) res.setPickupTime(body.get("pickupTime").asLong());
-            if (body.has("dropOffTime")) res.setDropOffTime(body.get("dropOffTime").asLong());
+            if (body.has("pickUpTime") && body.has("dropOffTime")) {
+                res.setTimeRange(Instant.parse(body.get("pickUpTime").asText()), Instant.parse(body.get("dropOffTime").asText()));
+            } else {
+                if (body.has("pickUpTime")) res.setPickUpTime(Instant.parse(body.get("pickUpTime").asText()));
+                if (body.has("dropOffTime")) res.setDropOffTime(Instant.parse(body.get("dropOffTime").asText()));
+            }
 
             ReservationDataController.updateReservation(res);
             ctx.status(201);
