@@ -1,5 +1,6 @@
 package com.inc.fcr.user;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.inc.fcr.database.Converters;
 import com.inc.fcr.reservation.Reservation;
 import com.inc.fcr.utils.DatabaseController;
@@ -30,7 +31,7 @@ public class User {
     @Convert(converter = Converters.JsonDriversLicenseConverter.class)
     @Column(columnDefinition = "json", nullable = false)
     private DriversLicense driversLicense;
-    @OneToMany(mappedBy = "user")
+    @OneToMany(mappedBy = "user") @JsonManagedReference
     private List<Reservation> reservations = new ArrayList<>();
     @Column(nullable = false)
     private Instant dateCreated;

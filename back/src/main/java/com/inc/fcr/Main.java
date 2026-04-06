@@ -4,6 +4,7 @@ import com.inc.fcr.car.Car;
 import com.inc.fcr.car.CarController;
 import com.inc.fcr.reservation.Reservation;
 import com.inc.fcr.reservation.ReservationController;
+import com.inc.fcr.user.User;
 import com.inc.fcr.utils.APIController;
 import com.inc.fcr.car.enums.EnumController;
 import com.inc.fcr.utils.HibernateUtil;
@@ -50,6 +51,7 @@ public class Main {
             // Create controllers
             APIController cars = new APIController(Car.class, String.class);
             APIController reservations = new APIController(Reservation.class, Long.class);
+            APIController users = new APIController(User.class, Long.class);
 
             // Initialize endpoints
             config.router.mount(router -> {
@@ -75,6 +77,16 @@ public class Main {
                         get(reservations::getOne, Role.ANYONE);
                         patch(reservations::update, Role.WRITE);
                         delete(reservations::delete, Role.ADMIN);
+                    });
+                });
+
+                path("users", () -> {
+                    get(users::getAll, Role.ANYONE);
+                    post(users::create, Role.WRITE);
+                    path("{id}", () -> {
+                        get(users::getOne, Role.ANYONE);
+                        patch(users::update, Role.WRITE);
+                        delete(users::delete, Role.ADMIN);
                     });
                 });
 

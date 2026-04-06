@@ -20,6 +20,7 @@ public class APIController {
     protected final Class<?> clazz;
     protected final Class<?> idClazz;
 
+    // Creates an API Controller from a class and the class of its ID
     public APIController(Class<?> clazz, Class<?> idClazz) {
         this.clazz = clazz;
         this.idClazz = idClazz;
@@ -34,8 +35,8 @@ public class APIController {
     // Abstract methods
     // ----------------
     public void getAll(Context ctx) {
-        try { // TODO: Query Params differ by endpoint, db controller too
-            var parsedQueryParams = new ParsedQueryParams(ctx.queryParamMap());
+        try {
+            var parsedQueryParams = new ParsedQueryParams(clazz, ctx.queryParamMap());
             ctx.json(DatabaseController.getAll(clazz, parsedQueryParams));
         } catch (Exception e) {
             if (e instanceof QueryParamException) queryParamError(ctx, e);
@@ -47,8 +48,7 @@ public class APIController {
     public void getOne(Context ctx) {
         try {
             Object id = ctx.pathParamAsClass("id", idClazz).get();
-            // TODO: Query Params differ by endpoint, db controller too
-            var parsedQueryParams = new ParsedQueryParams(ctx.queryParamMap());
+            var parsedQueryParams = new ParsedQueryParams(clazz, ctx.queryParamMap());
             Object obj = DatabaseController.getOne(clazz, id, parsedQueryParams);
 
             if (obj == null) notFound(ctx);

@@ -6,9 +6,9 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import com.inc.fcr.car.Car;
 import com.inc.fcr.car.enums.*;
 import com.inc.fcr.errorHandling.QueryParamException;
+import jakarta.persistence.Id;
 
 public class ParsedQueryParams {
 
@@ -20,26 +20,25 @@ public class ParsedQueryParams {
 
     private static final int DEFAULT_PAGE_SIZE = 10;
 
-    private static final Set<String> NUMERIC_FIELDS;
-    private static final Map<String, String> FIELD_MAP;
-    private static final Map<String, String> ALPHA_FIELD_MAP; // strings only
-    private static final Map<String, Function<String, Object>> FILTER_PARSERS;
-    private static final Map<String, String> FILTER_VALID_VALUES;
+    // Initialize Field Maps
+    // ---------------------
 
-    static {
+    private void mapClassFields() {
         Set<String> numericSet = new LinkedHashSet<>();
         Map<String, String> fieldMap = new LinkedHashMap<>();
         Map<String, String> alphaFieldMap = new LinkedHashMap<>();
         Map<String, Function<String, Object>> filterParsers = new HashMap<>();
         Map<String, String> filterValidValues = new HashMap<>();
 
-        for (Field field : Car.class.getDeclaredFields()) {
+        for (Field field : clazz.getDeclaredFields()) {
             // Filter unwanted fields
             if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) continue;
             if (field.isAnnotationPresent(Transient.class)) continue;
             // Build field maps
             final String name = field.getName();
             final Class<?> type = field.getType();
+
+            if (field.isAnnotationPresent(Id.class)) sortBy = name;
 
             fieldMap.put(name.toLowerCase(), name);
             if (isNumericClass(type)) numericSet.add(name);
@@ -74,14 +73,30 @@ public class ParsedQueryParams {
     private List<String> selectFields = null;
     private Map<String, String> filterFields = null;
     private SortStyle sortDir = SortStyle.ASCENDING;
-    private String sortBy = "make";
+    private String sortBy;
     private int page = 1;
     private int pageSize = DEFAULT_PAGE_SIZE;
+
+    private final Class<?> clazz;
+    private Set<String> NUMERIC_FIELDS; // numeric only
+    private Map<String, String> FIELD_MAP; // contains alpha & numeric
+    private Map<String, String> ALPHA_FIELD_MAP; // strings only
+    private Map<String, Function<String, Object>> FILTER_PARSERS;
+    private Map<String, String> FILTER_VALID_VALUES;
 
     // Params Constructor
     // ------------------
 
-    public ParsedQueryParams(Map<String, List<String>> queryParams) throws QueryParamException {
+    public ParsedQueryParams(Class<?> clazz, Map<String,List<String>> queryParams) throws QueryParamException {
+        this.clazz = clazz;
+        mapClassFields();
+        parseQueryParams(queryParams);
+    }
+
+    // Data Processing
+    // ---------------
+
+    private void parseQueryParams(Map<String,List<String>> queryParams) throws  QueryParamException {
         for (Map.Entry<String, List<String>> entry : queryParams.entrySet()) {
             String key = entry.getKey().trim().toLowerCase();
             String val = entry.getValue().getFirst().trim();
@@ -113,10 +128,8 @@ public class ParsedQueryParams {
                 }
             }
         }
-    }
 
-    // Data Processing
-    // ---------------
+    }
 
     private void parseSelect(List<String> values) throws QueryParamException {
         if (values.isEmpty()) {

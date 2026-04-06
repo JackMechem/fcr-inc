@@ -1,5 +1,6 @@
 package com.inc.fcr.reservation;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.inc.fcr.car.Car;
 import com.inc.fcr.errorHandling.ValidationException;
 import com.inc.fcr.payment.Payment;
@@ -21,7 +22,7 @@ public class Reservation {
     @ManyToOne
     @JoinColumn(name = "vin", nullable = false)
     private Car car;
-    @ManyToOne
+    @ManyToOne @JsonBackReference
     @JoinColumn(name = "userId", nullable = false)
     private User user;
     @ManyToMany
