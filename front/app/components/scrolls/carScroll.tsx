@@ -24,29 +24,11 @@ const CarScroll = ({ cars }: CarScrollProps) => {
 			ref={scrollRef}
 			onMouseEnter={() => setControllerVisible(true)}
 			onMouseLeave={() => setControllerVisible(false)}
-			className="w-full h-fit flex gap-[20px] overflow-x-scroll px-[10px] py-[10px]"
+			className="w-full h-fit flex flex-wrap justify-start gap-[20px] px-[10px] py-[10px]"
 		>
 			{cars.map((car: Car) => (
 				<CarCard key={car.vin} car={car} />
 			))}
-			<div className="sticky float-right top-0 inset-0 right-0 w-0 h-0 pointer-events-none">
-				<div
-					className={`sticky mr-0 pointer-events-auto float-right mt-[10px] mr-[0px] w-fit h-fit duration-[200ms] text-[20px] text-secondary bg-primary shadow-md flex gap-[10px] p-[6px] rounded-full ${controllerVisible ? "opacity-[1]" : "sm:opacity-[0] opacity-[1]"} `}
-				>
-					<div
-						onClick={() => scroll(-1)}
-						className="w-[32px] h-[32px] flex items-center justify-center rounded-full hover:bg-third duration-[200ms] cursor-pointer"
-					>
-						<FaAngleLeft />
-					</div>
-					<div
-						onClick={() => scroll(1)}
-						className="w-[32px] h-[32px] flex items-center justify-center rounded-full hover:bg-third duration-[200ms] cursor-pointer"
-					>
-						<FaAngleRight />
-					</div>
-				</div>
-			</div>
 		</div>
 	);
 };

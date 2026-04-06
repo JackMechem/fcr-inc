@@ -18,32 +18,44 @@ NORMAL := \e[0m
 IMAGE_NAME := fcr-backend
 PORT := 8080
 
-
-## -- Non Sudo --
-
+## -- Local --
 build:
+	mvn package
+
+run: build
+	mvn exec:java
+
+## -- Production --
+
+docker-build-prod:
 	@echo -e "$(BLUE)$(BOLD)Building...$(RESET)"
 	docker build -t $(IMAGE_NAME) .
 
-rundev:
+docker-run-prod: docker-build
+	@echo -e "$(GREEN)$(BOLD)Starting on port $(PORT)...$(RESET)"
+	docker run -d --env-file ./.env -p $(PORT):$(PORT) $(IMAGE_NAME)
+
+## -- Non Sudo --
+
+docker-build:
+	@echo -e "$(BLUE)$(BOLD)Building...$(RESET)"
+	docker build -t $(IMAGE_NAME) .
+
+docker-run: docker-build
 	@echo -e "$(GREEN)$(BOLD)Starting on port $(PORT)...$(RESET)"
 	docker run --env-file ./.env -p $(PORT):$(PORT) $(IMAGE_NAME)
 
-dev: build rundev
-
 # -- Sudo --
 
-sudobuild:
+sudo-docker-build:
 	@echo -e "$(RED)$(BOLD)Running docker as sudo!$(RESET)"
 	@echo -e "$(BLUE)$(BOLD)Building...$(RESET)"
 	sudo docker build -t $(IMAGE_NAME) .
 
-sudorundev:
+sudo-docker-run: sudo-docker-build
 	@echo -e "$(RED)$(BOLD)Running docker as sudo!$(RESET)"
 	@echo -e "$(GREEN)$(BOLD)Starting on port $(PORT)...$(RESET)"
 	sudo docker run --env-file ./.env -p $(PORT):$(PORT) $(IMAGE_NAME)
-
-sudodev: sudobuild sudorundev
 
 # -- All --
 

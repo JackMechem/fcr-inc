@@ -14,7 +14,7 @@ const CarBrandCard = ({
 	startingPrice,
 	logoImage,
 	carImage,
-    searchURL = "/browse?make=" + title
+    searchURL = "/browse?make=" + title.toLowerCase()
 }: CarBrandCardProps) => {
 	return (
 		<div className="flex flex-col gap-[40px] md:min-w-[500px] md:w-[500px] min-w-full bg-primary-dark rounded-lg px-[30px] py-[25px] shadow-md">
