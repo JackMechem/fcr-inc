@@ -59,8 +59,8 @@ export default function AdminPage() {
 	const handleFetchData = async () => {
 		setIsLoading(true);
 		try {
-			const data = await getAllCars({ pageSize: 100 });
-			setCars(data.cars);
+			const carData = await getAllCars({ pageSize: 100 });
+			setCars(carData.data);
 			setHasFetched(true);
 		} catch (error) {
 			alert("Fetch failed: " + error);

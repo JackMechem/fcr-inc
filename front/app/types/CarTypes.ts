@@ -24,7 +24,7 @@ export interface Car {
 }
 
 export interface CarPages {
-    cars: Car[];
+    data: Car[];
     currentPage: number;
     totalPages: number;
     totalItems: number;

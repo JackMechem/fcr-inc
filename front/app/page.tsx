@@ -25,18 +25,18 @@ const Home = async () => {
 	const carPagesLuxuryData: CarPages = await getFilteredCars({
 		vehicleClass: "LUXURY",
 	});
-	const carsDataLuxury: Car[] = carPagesLuxuryData.cars;
+	const carsDataLuxury: Car[] = carPagesLuxuryData.data;
 
 	const carPagesDataManual: CarPages = await getFilteredCars({
 		transmission: "MANUAL",
 	});
-	const carsDataManual: Car[] = carPagesDataManual.cars;
+	const carsDataManual: Car[] = carPagesDataManual.data;
 
 	const carPagesDataCheap: CarPages = await getFilteredCars({
 		minPricePerDay: 0,
 		maxPricePerDay: 100,
 	});
-	const carsDataCheap: Car[] = carPagesDataCheap.cars;
+	const carsDataCheap: Car[] = carPagesDataCheap.data;
 
 	const mercedesLowestPricePages: CarPages = await getFilteredCars({
 		pageSize: 1,
@@ -46,7 +46,7 @@ const Home = async () => {
 		sortDir: "asc",
         select: "pricePerDay"
 	});
-    const mercedesLowestPrice: number = mercedesLowestPricePages.cars[0].pricePerDay;
+    const mercedesLowestPrice: number = mercedesLowestPricePages.data[0].pricePerDay;
 
 	const bmwLowestPricePages: CarPages = await getFilteredCars({
 		pageSize: 1,
@@ -56,7 +56,7 @@ const Home = async () => {
 		sortDir: "asc",
         select: "pricePerDay"
 	});
-    const bmwLowestPrice: number = bmwLowestPricePages.cars[0].pricePerDay;
+    const bmwLowestPrice: number = bmwLowestPricePages.data[0].pricePerDay;
 
 	const porscheLowestPricePages: CarPages = await getFilteredCars({
 		pageSize: 1,
@@ -66,7 +66,7 @@ const Home = async () => {
 		sortDir: "asc",
         select: "pricePerDay"
 	});
-    const porscheLowestPrice: number = porscheLowestPricePages.cars[0].pricePerDay;
+    const porscheLowestPrice: number = porscheLowestPricePages.data[0].pricePerDay;
 
 	const audiLowestPricePages: CarPages = await getFilteredCars({
 		pageSize: 1,
@@ -76,7 +76,7 @@ const Home = async () => {
 		sortDir: "asc",
         select: "pricePerDay"
 	});
-    const audiLowestPrice: number = audiLowestPricePages.cars[0].pricePerDay;
+    const audiLowestPrice: number = audiLowestPricePages.data[0].pricePerDay;
 
 	const volkswagenLowestPricePages: CarPages = await getFilteredCars({
 		pageSize: 1,
@@ -86,7 +86,7 @@ const Home = async () => {
 		sortDir: "asc",
         select: "pricePerDay"
 	});
-    const volkswagenLowestPrice: number = volkswagenLowestPricePages.cars[0].pricePerDay;
+    const volkswagenLowestPrice: number = volkswagenLowestPricePages.data[0].pricePerDay;
 
 
 	return (
