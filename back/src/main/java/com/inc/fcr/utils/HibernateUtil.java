@@ -1,6 +1,9 @@
 package com.inc.fcr.utils;
 
 import com.inc.fcr.car.Car;
+import com.inc.fcr.payment.Payment;
+import com.inc.fcr.reservation.Reservation;
+import com.inc.fcr.user.User;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 import org.hibernate.cfg.Environment;
@@ -22,7 +25,7 @@ public class HibernateUtil {
             configuration.setProperty(Environment.DIALECT, "org.hibernate.dialect.MySQLDialect");
 
             // 3. THE KEY PROPERTY: Automatically create/update the table
-            // Set this to "update" so it creates 'carstest' if it doesn't exist
+            // Set this to "update" so it creates the table if it doesn't exist
             configuration.setProperty(Environment.HBM2DDL_AUTO, "update");
 
             // 4. Optional: Show SQL in console so you can see the CREATE TABLE command
@@ -31,6 +34,9 @@ public class HibernateUtil {
 
             // 5. Register your Entity
             configuration.addAnnotatedClass(Car.class);
+            configuration.addAnnotatedClass(User.class);
+            configuration.addAnnotatedClass(Reservation.class);
+            configuration.addAnnotatedClass(Payment.class);
 
             return configuration.buildSessionFactory();
         } catch (Throwable ex) {

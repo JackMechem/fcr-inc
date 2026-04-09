@@ -24,7 +24,7 @@ public class CarController extends CarOpenApi {
 
     public static void getAllCars(Context ctx) {
         try {
-            ParsedQueryParams parsedQueryParams = new ParsedQueryParams(ctx.queryParamMap());
+            ParsedQueryParams parsedQueryParams = new ParsedQueryParams(Car.class, ctx.queryParamMap());
             ctx.json(DatabaseController.getCars(parsedQueryParams));
         } catch (Exception e) {
             if (e instanceof QueryParamException) queryParamError(ctx, e);
@@ -36,11 +36,11 @@ public class CarController extends CarOpenApi {
     public static void getCar(Context ctx) {
         try {
             String vin = ctx.pathParam("id");
-            ParsedQueryParams parsedQueryParams = new ParsedQueryParams(ctx.queryParamMap());
-            String[] select = parsedQueryParams.getSelectFields() != null ? parsedQueryParams.getSelectFields().toArray(new String[parsedQueryParams.getSelectFields().size()]) : null;
+            ParsedQueryParams parsedQueryParams = new ParsedQueryParams(Car.class, ctx.queryParamMap());
+            boolean select = parsedQueryParams.getSelectFields() != null && !parsedQueryParams.getSelectFields().isEmpty();
 
             Object car;
-            if (select != null) car = DatabaseController.getCarFromVinSelect(vin, parsedQueryParams);
+            if (select) car = DatabaseController.getCarFromVinSelect(vin, parsedQueryParams);
             else car = DatabaseController.getCarFromVin(vin);
 
             if (car == null) carNotFound(ctx);

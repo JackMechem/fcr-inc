@@ -6,59 +6,103 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import com.inc.fcr.car.Car;
 import com.inc.fcr.car.enums.*;
 import com.inc.fcr.errorHandling.QueryParamException;
+import jakarta.persistence.Id;
+import joptsimple.internal.Strings;
 
 public class ParsedQueryParams {
+
+    // Static Variables
+    // ----------------
 
     private static final boolean STRICT_QUERY_PARAMS = Boolean
             .parseBoolean(System.getenv().getOrDefault("STRICT_QUERY_PARAMS", "true"));
 
     private static final int DEFAULT_PAGE_SIZE = 10;
 
-    private static final Map<String, String> FIELD_MAP;
+    // Initialize Field Maps
+    // ---------------------
 
-    static {
-        Map<String, String> map = new LinkedHashMap<>();
-        for (Field field : Car.class.getDeclaredFields()) {
-            if (java.lang.reflect.Modifier.isStatic(field.getModifiers()))
-                continue;
-            if (field.isAnnotationPresent(Transient.class))
-                continue;
-            map.put(field.getName().toLowerCase(), field.getName());
+    private void mapClassFields() {
+        Set<String> searchFields = new LinkedHashSet<>();
+        Set<String> numericSet = new LinkedHashSet<>();
+        Map<String, String> fieldMap = new LinkedHashMap<>();
+        Map<String, String> alphaFieldMap = new LinkedHashMap<>();
+        Map<String, Function<String, Object>> filterParsers = new HashMap<>();
+        Map<String, String> filterValidValues = new HashMap<>();
+
+        for (Field field : clazz.getDeclaredFields()) {
+            // Filter unwanted fields
+            if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) continue;
+            if (field.isAnnotationPresent(Transient.class)) continue;
+            // Build field maps
+            final String name = field.getName();
+            final Class<?> type = field.getType();
+
+            if (field.isAnnotationPresent(Id.class)) sortBy = name;
+            if (field.isAnnotationPresent(SearchField.class)) searchFields.add(name);
+
+            fieldMap.put(name.toLowerCase(), name);
+            if (isNumericClass(type)) numericSet.add(name);
+            else alphaFieldMap.put(name.toLowerCase(), name);
+
+            if (type.isEnum()) {
+                Class<? extends Enum> eType = (Class<? extends Enum>) type;
+                filterParsers.put(name, val -> Enum.valueOf(eType, val.toUpperCase()));
+                filterValidValues.put(name, String.join(",", Arrays.stream(eType.getEnumConstants()).map(Enum::name).toList()));
+            }
         }
-        FIELD_MAP = Collections.unmodifiableMap(map);
+        SEARCH_FIELDS = Collections.unmodifiableSet(searchFields);
+        NUMERIC_FIELDS = Collections.unmodifiableSet(numericSet);
+        FIELD_MAP = Collections.unmodifiableMap(fieldMap);
+        ALPHA_FIELD_MAP = Collections.unmodifiableMap(alphaFieldMap);
+        FILTER_PARSERS = Collections.unmodifiableMap(filterParsers);
+        FILTER_VALID_VALUES = Collections.unmodifiableMap(filterValidValues);
     }
 
-    private static final Map<String, Function<String, Object>> FILTER_PARSERS = Map.ofEntries(
-            Map.entry("transmission", v -> TransmissionType.valueOf(v.toUpperCase())),
-            Map.entry("drivetrain", v -> Drivetrain.valueOf(v.toUpperCase())),
-            Map.entry("engineLayout", v -> EngineLayout.valueOf(v.toUpperCase())),
-            Map.entry("fuel", v -> FuelType.valueOf(v.toUpperCase())),
-            Map.entry("bodyType", v -> BodyType.valueOf(v.toUpperCase())),
-            Map.entry("roofType", v -> RoofType.valueOf(v.toUpperCase())),
-            Map.entry("vehicleClass", v -> VehicleClass.valueOf(v.toUpperCase())));
+    private static boolean isNumericClass(Class<?> clazz) {
+        return Number.class.isAssignableFrom(clazz) // handles object versions
+                || clazz == int.class
+                || clazz == long.class
+                || clazz == double.class
+                || clazz == float.class
+                || clazz == short.class
+                || clazz == byte.class;
+    }
 
-    private static final Map<String, String> FILTER_VALID_VALUES = Map.ofEntries(
-            Map.entry("transmission",
-                    String.join(", ", Arrays.stream(TransmissionType.values()).map(Enum::name).toList())),
-            Map.entry("drivetrain", String.join(", ", Arrays.stream(Drivetrain.values()).map(Enum::name).toList())),
-            Map.entry("engineLayout", String.join(", ", Arrays.stream(EngineLayout.values()).map(Enum::name).toList())),
-            Map.entry("fuel", String.join(", ", Arrays.stream(FuelType.values()).map(Enum::name).toList())),
-            Map.entry("bodyType", String.join(", ", Arrays.stream(BodyType.values()).map(Enum::name).toList())),
-            Map.entry("roofType", String.join(", ", Arrays.stream(RoofType.values()).map(Enum::name).toList())),
-            Map.entry("vehicleClass",
-                    String.join(", ", Arrays.stream(VehicleClass.values()).map(Enum::name).toList())));
+    // Instance Variables
+    // ------------------
 
     private List<String> selectFields = null;
     private Map<String, String> filterFields = null;
     private SortStyle sortDir = SortStyle.ASCENDING;
-    private String sortBy = "make";
+    private String sortBy;
     private int page = 1;
     private int pageSize = DEFAULT_PAGE_SIZE;
+    private String searchText;
 
-    public ParsedQueryParams(Map<String, List<String>> queryParams) throws QueryParamException {
+    private final Class<?> clazz;
+    private Set<String> SEARCH_FIELDS;
+    private Set<String> NUMERIC_FIELDS; // numeric only
+    private Map<String, String> FIELD_MAP; // contains alpha & numeric
+    private Map<String, String> ALPHA_FIELD_MAP; // strings only
+    private Map<String, Function<String, Object>> FILTER_PARSERS;
+    private Map<String, String> FILTER_VALID_VALUES;
+
+    // Params Constructor
+    // ------------------
+
+    public ParsedQueryParams(Class<?> clazz, Map<String,List<String>> queryParams) throws QueryParamException {
+        this.clazz = clazz;
+        mapClassFields();
+        parseQueryParams(queryParams);
+    }
+
+    // Data Processing
+    // ---------------
+
+    private void parseQueryParams(Map<String,List<String>> queryParams) throws  QueryParamException {
         for (Map.Entry<String, List<String>> entry : queryParams.entrySet()) {
             String key = entry.getKey().trim().toLowerCase();
             String val = entry.getValue().getFirst().trim();
@@ -71,12 +115,27 @@ public class ParsedQueryParams {
                 case "sortdir" -> sortDir = val.equalsIgnoreCase("desc") ? SortStyle.DESCENDING : SortStyle.ASCENDING;
                 case "page" -> page = Math.max(1, Integer.parseInt(val));
                 case "pagesize" -> pageSize = Integer.parseInt(val) < 1 ? DEFAULT_PAGE_SIZE : Integer.parseInt(val);
+                case "search" -> searchText = parseSearchText(val);
                 default -> {
-                    if (FIELD_MAP.containsKey(key))
-                        parseFilter(key, val);
+                    if (key.startsWith("min") || key.startsWith("max")) {
+                        String field = FIELD_MAP.get(key.substring(3).toLowerCase());
+                        if (field != null && NUMERIC_FIELDS.contains(field)) {
+                            if (filterFields != null)
+                                filterFields.remove("exact_" + field);
+                            parseFilter(key.substring(3).toLowerCase(), val, key.startsWith("min") ? "min" : "max");
+                        }
+                    } else if (FIELD_MAP.containsKey(key) && NUMERIC_FIELDS.contains(FIELD_MAP.get(key))) {
+                        String field = FIELD_MAP.get(key);
+                        if (filterFields == null || (!filterFields.containsKey("min_" + field)
+                                && !filterFields.containsKey("max_" + field)))
+                            parseFilter(key, val, "exact");
+                    } else if (FIELD_MAP.containsKey(key)) {
+                        parseFilter(key, val, null);
+                    }
                 }
             }
         }
+
     }
 
     private void parseSelect(List<String> values) throws QueryParamException {
@@ -113,11 +172,25 @@ public class ParsedQueryParams {
             }
     }
 
-    private void parseFilter(String key, String val) {
+    private void parseFilter(String key, String val, String rangeType) {
         if (filterFields == null)
             filterFields = new LinkedHashMap<>();
-        filterFields.put(FIELD_MAP.get(key), val);
+        String properKey = FIELD_MAP.get(key);
+        if (rangeType != null)
+            filterFields.put(rangeType + "_" + properKey, val);
+        else
+            filterFields.put(properKey, val);
     }
+
+    private String parseSearchText(String rawSearchText) {
+        rawSearchText = rawSearchText.trim().toLowerCase();
+        if (rawSearchText.contains(";"))
+            rawSearchText = rawSearchText.substring(0, rawSearchText.indexOf(";"));
+        return rawSearchText;
+    }
+
+    // Getters
+    // -------
 
     public String getSelectClause() throws QueryParamException {
         return selectFields.stream()
@@ -127,31 +200,57 @@ public class ParsedQueryParams {
 
     public String getFilterClause() throws QueryParamException {
         StringBuilder sb = new StringBuilder(" WHERE 1=1");
-        if (filterFields == null)
-            return sb.toString();
-        for (Map.Entry<String, String> entry : filterFields.entrySet()) {
-            String field = entry.getKey(), value = entry.getValue();
-            if (FILTER_PARSERS.containsKey(field)) {
-                if (FILTER_VALID_VALUES.get(field).contains(value.toUpperCase())) {
-                    sb.append(" AND c.").append(field).append(" = ");
-                    sb.append(FILTER_PARSERS.get(field).apply(value));
-                } else {
-                    if (STRICT_QUERY_PARAMS) {
+        if (filterFields != null) {
+            for (Map.Entry<String, String> entry : filterFields.entrySet()) {
+                String field = entry.getKey(), value = entry.getValue();
+                if (field.startsWith("min_")) {
+                    sb.append(" AND c.").append(field.substring(4)).append(" >= ").append(value);
+                } else if (field.startsWith("max_")) {
+                    sb.append(" AND c.").append(field.substring(4)).append(" <= ").append(value);
+                } else if (field.startsWith("exact_")) {
+                    sb.append(" AND c.").append(field.substring(6)).append(" = ").append(value);
+                } else if (FILTER_PARSERS.containsKey(field)) {
+                    if (FILTER_VALID_VALUES.get(field).contains(value.toUpperCase())) {
+                        sb.append(" AND c.").append(field).append(" = ");
+                        sb.append(FILTER_PARSERS.get(field).apply(value));
+                    } else if (STRICT_QUERY_PARAMS) {
                         throw new QueryParamException(
                                 "Invalid value '" + value + "' for '" + field + "'. Valid options: "
                                         + FILTER_VALID_VALUES.get(field));
                     }
+                } else {
+                    sb.append(" AND c.").append(field).append(" = '").append(value).append("'");
                 }
-            } else {
-                sb.append(" AND c.").append(field).append(" = ");
-                sb.append("'").append(value).append("'");
             }
         }
+        if (searchText != null) sb.append(" AND " + getSearchClause() + " > 0");
         return sb.toString();
     }
 
+    private String getSearchClause() {
+        if (searchText == null) return "";
+        return Strings.join(Arrays.stream(searchText.split(" ")).map(e ->
+                " CAST( REGEXP_LIKE(CONCAT_WS(' ', "+searchFieldsToStr()+"), '"+e+"', 'i') AS int) ").toList(), " + ");
+//                "+ MATCH ("+searchFieldsToStr()+") AGAINST ('"+searchText+"' IN BOOLEAN MODE) ";
+    }
+
+    // Helper function for search field processing
+    private String searchFieldsToStr() {
+        return Strings.join(SEARCH_FIELDS.stream().map(e -> "c."+e).toList(), ", ");
+    }
+
     public String getSortClause() {
-        return " ORDER BY c." + sortBy + (sortDir == SortStyle.DESCENDING ? " DESC" : " ASC");
+        return (searchText == null) ?
+                " ORDER BY c." + sortBy + getSortDirClause()
+                : " ORDER BY "+getSearchClause()+" DESC";
+    }
+
+    private String getSortDirClause() {
+        return (sortDir == SortStyle.DESCENDING) ? " DESC" : " ASC";
+    }
+
+    public boolean isSelecting() {
+        return (selectFields != null) && (!selectFields.isEmpty());
     }
 
     public List<String> getSelectFields() {
@@ -187,6 +286,7 @@ public class ParsedQueryParams {
     public void printParams() {
         System.out.println("selectFields: " + selectFields);
         System.out.println("filterFields: " + filterFields);
+        System.out.println("searchClause: " + getSearchClause());
         System.out.println("sortDir:      " + sortDir);
         System.out.println("sortBy:       " + sortBy);
         System.out.println("page:         " + page);

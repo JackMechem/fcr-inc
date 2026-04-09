@@ -1,42 +1,23 @@
 package com.inc.fcr.car;
 
+import com.inc.fcr.database.Converters;
+import com.inc.fcr.database.SearchField;
+import com.inc.fcr.reservation.Reservation;
+import com.inc.fcr.utils.DatabaseController;
+import com.inc.fcr.utils.EntityController;
 import jakarta.persistence.*;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.inc.fcr.errorHandling.*;
 import com.inc.fcr.car.enums.*;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @Entity
 @Table(name = "cars")
 public class Car {
-
-    @Converter
-    public static class JsonListConverter implements AttributeConverter<ArrayList<String>, String> {
-        private static final ObjectMapper converterMapper = new ObjectMapper();
-
-        @Override
-        public String convertToDatabaseColumn(ArrayList<String> attribute) {
-            try {
-                return (attribute == null) ? "[]" : converterMapper.writeValueAsString(attribute);
-            } catch (JsonProcessingException e) {
-                return "[]";
-            }
-        }
-
-        @Override
-        public ArrayList<String> convertToEntityAttribute(String dbData) {
-            try {
-                return (dbData == null || dbData.isEmpty()) ? new ArrayList<>() : 
-                    converterMapper.readValue(dbData, new TypeReference<ArrayList<String>>() {});
-            } catch (JsonProcessingException e) {
-                return new ArrayList<>();
-            }
-        }
-    }
 
     @FunctionalInterface
     public interface ThrowingBiConsumer<T, U> {
@@ -75,9 +56,11 @@ public class Car {
     @Column(length = 17)
     private String vin;
 
+    @SearchField
     @Column(nullable = false)
     private String make;
 
+    @SearchField
     @Column(nullable = false)
     private String model;
 
@@ -100,11 +83,11 @@ public class Car {
 
     private double mpg;
 
-    @Convert(converter = JsonListConverter.class)
+    @Convert(converter = Converters.JsonListConverter.class)
     @Column(columnDefinition = "json")
     private ArrayList<String> features = new ArrayList<>();
 
-    @Convert(converter = JsonListConverter.class)
+    @Convert(converter = Converters.JsonListConverter.class)
     @Column(columnDefinition = "json")
     private ArrayList<String> images = new ArrayList<>();
 
@@ -133,9 +116,18 @@ public class Car {
     @Column(name = "vehicleClass")
     private VehicleClass vehicleClass;
 
+    // TODO: Implement this..? (note: do not include in constructor or try to set it)
+//    @OneToMany(mappedBy = "car")
+//    private List<Reservation> reservations = new ArrayList<>();
+
     // --- CONSTRUCTORS ---
 
     public Car() {}
+
+    public Car(String vin) throws IllegalAccessException {
+        Car c = (Car) DatabaseController.getOne(Car.class, vin);
+        EntityController.copyFields(c, this);
+    }
 
     public Car(String vin, String make, String model, int modelYear, String description,
             int cylinders, int gears, int horsepower, int torque, int seats, double pricePerDay, double mpg,
@@ -221,6 +213,8 @@ public class Car {
 
     public VehicleClass getVehicleClass() { return vehicleClass; }
     public void setVehicleClass(VehicleClass vehicleClass) { this.vehicleClass = vehicleClass; }
+
+//    public List<Reservation> getReservations() { return reservations; }
 
     // Setters with Validation
     public void setModelYear(int modelYear) throws ValidationException {

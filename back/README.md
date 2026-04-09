@@ -39,3 +39,12 @@ docker run -p 8080:8080 fcr-backend
 # API Structure
 api/cars/{vin}
 
+WIP
+
+## Query Param Notes
+
+When adding searchable fields in entities:
+
+1. @SearchField annotation on String attributes
+2. Manually run: `ALTER TABLE <table> ADD FULLTEXT INDEX ft_index(<columns>);`
+3. If you want to include a JSON column, you must create a hidden internal generated column converting JSON to plaintext to index it

@@ -6,7 +6,9 @@
 		"dev": "next dev",
 		"build": "next build",
 		"start": "next start",
-		"lint": "eslint"
+		"lint": "eslint",
+		"generate:enums": "npx tsx scripts/generateEnumTypes.ts",
+		"prebuild": "npm run generate:enums"
 	},
 	"dependencies": {
 		"@tanstack/react-table": "^8.21.3",

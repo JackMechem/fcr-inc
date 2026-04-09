@@ -22,7 +22,7 @@ const HeaderMenu = ({ ref }: { ref: Ref<HTMLDivElement> }) => {
 	return (
 		<div
 			ref={ref}
-			className="absolute z-100 md:right-[20px] right-[10px] md:left-auto left-[10px] w-auto mx-0 top-[100%] mt-[10px] border border-third/80 bg-primary shadow-md text-foreground md:w-[400px]  rounded-xl overflow-hidden"
+			className="absolute z-[2] md:right-[20px] right-[10px] md:left-auto left-[10px] w-auto mx-0 top-[100%] mt-[10px] border border-third/80 bg-primary shadow-md text-foreground md:w-[400px] rounded-xl overflow-hidden"
 		>
 			<div className="flex w-full flex-col justify-center items-center bg-primary-dark py-[10px] px-[15px]">
 				<div className="flex relative flex-col gap-[10px] items-center justify-center py-[15px] md:px-[40px] w-full">
