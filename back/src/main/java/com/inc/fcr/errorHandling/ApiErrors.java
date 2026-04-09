@@ -7,6 +7,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 
 import com.inc.fcr.car.enums.*;
+import org.apache.commons.lang3.StringUtils;
 
 public final class ApiErrors {
 
@@ -15,7 +16,8 @@ public final class ApiErrors {
     }
 
     public static void formatError(Context ctx, Exception e) { // 400
-        ctx.status(400).json(new ApiErrorResponse(400, "Improper Object Format", "" + e, stackTraceString(e)));
+        getObjectName(ctx);
+        ctx.status(400).json(new ApiErrorResponse(400, "Improper "+getObjectName(ctx)+" Format", "" + e, stackTraceString(e)));
     }
 
     public static void queryParamError(Context ctx, Exception e) { // 400
@@ -23,7 +25,7 @@ public final class ApiErrors {
     }
 
     public static void notFound(Context ctx) { // 404
-        ctx.status(404).json(new ApiErrorResponse(404, "Object Not Found", null, null));
+        ctx.status(404).json(new ApiErrorResponse(404, getObjectName(ctx)+" Not Found", null, null));
     }
 
     public static void serverError(Context ctx, Exception e) { // 500
@@ -34,10 +36,19 @@ public final class ApiErrors {
         ctx.status(500).json(new ApiErrorResponse(500, "Database Error", "" + e, stackTraceString(e)));
     }
 
+    // Helper functions
+    // ----------------
+
     private static String stackTraceString(Exception e) {
         StringWriter stack = new StringWriter();
         e.printStackTrace(new PrintWriter(stack));
         return stack.toString();
     }
 
+    private static String getObjectName(Context ctx) {
+        if (ctx.path().isEmpty() || !ctx.path().contains("/")) return "Object";
+        // return path stem capitalized and depluralized
+        String pathStem = ctx.path().split("/")[1];
+        return StringUtils.capitalize(pathStem.substring(0,pathStem.length()-1));
+    }
 }
