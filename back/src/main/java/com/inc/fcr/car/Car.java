@@ -84,7 +84,7 @@ public class Car {
     private double mpg;
 
     @Convert(converter = Converters.JsonListConverter.class)
-    @Column(columnDefinition = "json")
+    @Column(columnDefinition = "json") @SearchField
     private ArrayList<String> features = new ArrayList<>();
 
     @Convert(converter = Converters.JsonListConverter.class)
