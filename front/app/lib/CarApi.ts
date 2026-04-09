@@ -53,7 +53,7 @@ export const getFilteredCars = async (p: CarApiParams): Promise<CarPages> => {
     set("search", p.search);
 
     const res = await fetch(
-        `${process.env.API_BASE_URL}/cars?${params.toString()}`,
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/cars?${params.toString()}`,
         { ...defaultNext, headers: defaultHeaders },
     );
     if (!res.ok) throw new Error(await res.text());
@@ -79,7 +79,7 @@ export const getAllCars = async ({
 };
 
 export const getCar = async (vin: string): Promise<Car> => {
-    const res = await fetch(`${process.env.API_BASE_URL}/cars/${vin}`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/cars/${vin}`, {
         ...defaultNext,
         headers: defaultHeaders,
     });
