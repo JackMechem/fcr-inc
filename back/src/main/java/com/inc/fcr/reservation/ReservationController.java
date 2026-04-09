@@ -7,6 +7,7 @@ import com.inc.fcr.errorHandling.QueryParamException;
 import com.inc.fcr.errorHandling.ValidationException;
 import io.javalin.http.Context;
 import org.hibernate.HibernateException;
+import static com.inc.fcr.errorHandling.ApiErrors.*;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -28,7 +29,7 @@ public class ReservationController {
         try {
             long id = Long.parseLong(ctx.pathParam("id"));
             Reservation res = ReservationDataController.getReservation(id);
-            if (res == null) reservationNotFound(ctx);
+            if (res == null) notFound(ctx);
             else ctx.json(res);
         } catch (Exception e) {
             if (e instanceof HibernateException) databaseError(ctx, e);
@@ -43,7 +44,7 @@ public class ReservationController {
             ReservationDataController.insertReservation(res);
             ctx.status(201);
         } catch (Exception e) {
-            if (e instanceof ValidationException) validationError(ctx, e);
+            if (e instanceof ValidationException) formatError(ctx, e);
             else if (e instanceof HibernateException) databaseError(ctx, e);
             else serverError(ctx, e);
         }
@@ -55,7 +56,7 @@ public class ReservationController {
             long id = Long.parseLong(ctx.pathParam("id"));
             Reservation res = ReservationDataController.getReservation(id);
             if (res == null) {
-                reservationNotFound(ctx);
+                notFound(ctx);
                 return;
             }
 
@@ -74,7 +75,7 @@ public class ReservationController {
             ctx.status(201);
 
         } catch (Exception e) {
-            if (e instanceof ValidationException) validationError(ctx, e);
+            if (e instanceof ValidationException) formatError(ctx, e);
             else if (e instanceof HibernateException) databaseError(ctx, e);
             else serverError(ctx, e);
         }
@@ -86,36 +87,9 @@ public class ReservationController {
             ReservationDataController.deleteReservation(id);
             ctx.status(204);
         } catch (Exception e) {
-            if (e instanceof ValidationException) reservationNotFound(ctx);
+            if (e instanceof ValidationException) notFound(ctx);
             else if (e instanceof HibernateException) databaseError(ctx, e);
             else serverError(ctx, e);
         }
-    }
-
-    // Helper methods
-    private static void reservationNotFound(Context ctx) {
-        ctx.status(404).json(new ApiErrorResponse(404, "Reservation Not Found", null, null));
-    }
-
-    private static void validationError(Context ctx, Exception e) {
-        ctx.status(400).json(new ApiErrorResponse(400, "Improper Reservation Format", "" + e, stackTraceString(e)));
-    }
-
-    private static void queryParamError(Context ctx, Exception e) {
-        ctx.status(400).json(new ApiErrorResponse(400, "Invalid Query Parameters", "" + e, stackTraceString(e)));
-    }
-
-    private static void databaseError(Context ctx, Exception e) {
-        ctx.status(500).json(new ApiErrorResponse(500, "Database Error", "" + e, stackTraceString(e)));
-    }
-
-    private static void serverError(Context ctx, Exception e) {
-        ctx.status(500).json(new ApiErrorResponse(500, "Server Error", "" + e, stackTraceString(e)));
-    }
-
-    private static String stackTraceString(Exception e) {
-        StringWriter stack = new StringWriter();
-        e.printStackTrace(new PrintWriter(stack));
-        return stack.toString();
     }
 }

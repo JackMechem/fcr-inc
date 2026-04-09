@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.inc.fcr.errorHandling.*;
+import static com.inc.fcr.errorHandling.ApiErrors.*;
 import com.inc.fcr.car.enums.*;
 import io.javalin.http.Context;
 import io.javalin.openapi.*;
@@ -43,7 +44,7 @@ public class CarController extends CarOpenApi {
             if (select) car = DatabaseController.getCarFromVinSelect(vin, parsedQueryParams);
             else car = DatabaseController.getCarFromVin(vin);
 
-            if (car == null) carNotFound(ctx);
+            if (car == null) notFound(ctx);
             else ctx.json(car);
 
         } catch (Exception e) {
@@ -88,7 +89,7 @@ public class CarController extends CarOpenApi {
             ctx.status(201);
 
         } catch (Exception e) {
-            if (e instanceof ValidationException) validationError(ctx, e);
+            if (e instanceof ValidationException) formatError(ctx, e);
             else if (e instanceof HibernateException) databaseError(ctx, e);
             else serverError(ctx, e);
         }
@@ -99,7 +100,7 @@ public class CarController extends CarOpenApi {
             // Get car from database
             Car car = DatabaseController.getCarFromVin(ctx.pathParam("id"));
             if (car == null) {
-                carNotFound(ctx);
+                notFound(ctx);
                 return;
             }
 
@@ -114,7 +115,7 @@ public class CarController extends CarOpenApi {
             ctx.status(201);
 
         } catch (Exception e) {
-            if (e instanceof ValidationException) validationError(ctx, e);
+            if (e instanceof ValidationException) formatError(ctx, e);
             else if (e instanceof HibernateException) databaseError(ctx, e);
             else serverError(ctx, e);
         }
@@ -126,36 +127,9 @@ public class CarController extends CarOpenApi {
             DatabaseController.deleteCar(ctx.pathParam("id"));
             ctx.status(204);
         } catch (Exception e) {
-            if (e instanceof ValidationException) carNotFound(ctx);
+            if (e instanceof ValidationException) notFound(ctx);
             else if (e instanceof HibernateException) databaseError(ctx, e);
             else serverError(ctx, e);
         }
-    }
-
-    // Helper methods
-    private static void carNotFound(Context ctx) {
-        ctx.status(404).json(new ApiErrorResponse(404, "Car Not Found", null, null));
-    }
-
-    private static void validationError(Context ctx, Exception e) {
-        ctx.status(400).json(new ApiErrorResponse(400, "Improper Car Format", "" + e, stackTraceString(e)));
-    }
-
-    private static void queryParamError(Context ctx, Exception e) {
-        ctx.status(400).json(new ApiErrorResponse(400, "Invalid Query Parameters", "" + e, stackTraceString(e)));
-    }
-
-    private static void databaseError(Context ctx, Exception e) {
-        ctx.status(500).json(new ApiErrorResponse(500, "Database Error", "" + e, stackTraceString(e)));
-    }
-
-    private static void serverError(Context ctx, Exception e) {
-        ctx.status(500).json(new ApiErrorResponse(500, "Server Error", "" + e, stackTraceString(e)));
-    }
-
-    private static String stackTraceString(Exception e) {
-        StringWriter stack = new StringWriter();
-        e.printStackTrace(new PrintWriter(stack));
-        return stack.toString();
     }
 }

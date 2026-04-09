@@ -7,6 +7,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static com.inc.fcr.errorHandling.ApiErrors.notFound;
+
 public class EnumController {
 
     // Enum list
@@ -47,11 +49,6 @@ public class EnumController {
                 return;
             }
         }
-        enumNotFound(ctx);
-    }
-
-    // Helper methods
-    private static void enumNotFound(Context ctx) {
-        ctx.status(404).json(new ApiErrorResponse(404, "Enum Not Found", null, null));
+        notFound(ctx);
     }
 }

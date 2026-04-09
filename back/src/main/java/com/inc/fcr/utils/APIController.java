@@ -2,16 +2,12 @@ package com.inc.fcr.utils;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.inc.fcr.utils.DatabaseController;
 import com.inc.fcr.database.ParsedQueryParams;
-import com.inc.fcr.errorHandling.ApiErrorResponse;
 import com.inc.fcr.errorHandling.QueryParamException;
 import com.inc.fcr.errorHandling.ValidationException;
+import static com.inc.fcr.errorHandling.ApiErrors.*;
 import io.javalin.http.Context;
 import org.hibernate.HibernateException;
-
-import java.io.PrintWriter;
-import java.io.StringWriter;
 
 public class APIController {
 
@@ -25,12 +21,6 @@ public class APIController {
         this.clazz = clazz;
         this.idClazz = idClazz;
     }
-
-
-    // Overridable methods
-    // -------------------
-    // ...?
-
 
     // Abstract methods
     // ----------------
@@ -118,34 +108,5 @@ public class APIController {
             else if (e instanceof HibernateException) databaseError(ctx, e);
             else serverError(ctx, e);
         }
-    }
-
-
-    // Helper methods
-    // --------------
-    private static void notFound(Context ctx) {
-        ctx.status(404).json(new ApiErrorResponse(404, "Object Not Found", null, null));
-    }
-
-    private static void formatError(Context ctx, Exception e) {
-        ctx.status(400).json(new ApiErrorResponse(400, "Improper Object Format", "" + e, stackTraceString(e)));
-    }
-
-    private static void queryParamError(Context ctx, Exception e) {
-        ctx.status(400).json(new ApiErrorResponse(400, "Invalid Query Parameters", "" + e, stackTraceString(e)));
-    }
-
-    private static void databaseError(Context ctx, Exception e) {
-        ctx.status(500).json(new ApiErrorResponse(500, "Database Error", "" + e, stackTraceString(e)));
-    }
-
-    private static void serverError(Context ctx, Exception e) {
-        ctx.status(500).json(new ApiErrorResponse(500, "Server Error", "" + e, stackTraceString(e)));
-    }
-
-    private static String stackTraceString(Exception e) {
-        StringWriter stack = new StringWriter();
-        e.printStackTrace(new PrintWriter(stack));
-        return stack.toString();
     }
 }
