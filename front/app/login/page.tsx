@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import BrowseHeader from "../components/headers/browseHeader";
+import NavHeader from "../components/headers/navHeader";
 import Cookies from "js-cookie";
 import { validateCredentials } from "../lib/AuthValidation";
 
@@ -32,7 +32,7 @@ const LoginPage = () => {
 
 	return (
 		<div>
-			<BrowseHeader white={false} />
+			<NavHeader white={false} />
 			<div className="min-h-screen flex items-center justify-center bg-white">
 				<div className="w-full max-w-sm border border-accent/30 rounded-2xl p-8 shadow-md bg-white">
 					<h1 className="text-3xl text-accent mb-3">Login</h1>

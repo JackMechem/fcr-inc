@@ -42,7 +42,7 @@ const ActiveFilters = ({ className }: { className: string }) => {
 
 	return (
 		<div
-			className={"md:flex hidden flex-wrap gap-[6px] items-center " + className}
+			className={"flex flex-wrap gap-[6px] items-center" + className}
 		>
 			{entries.map(([key, value]) => (
 				<button

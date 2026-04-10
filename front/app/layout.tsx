@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Titillium_Web } from "next/font/google";
 import "./globals.css";
-import LandingHeader from "./components/headers/landingHeader";
-import MainBodyContainer from "./components/containers/mainBodyContainer";
+import SidebarLayout from "./components/SidebarLayout";
 
 const inter = Inter({
 	subsets: ["latin"],
@@ -31,7 +30,7 @@ export default function RootLayout({
 			<body
 				className={`${inter.variable} ${titillium.variable} antialiased overflow-x-hidden bg-primary`}
 			>
-				{children}
+				<SidebarLayout>{children}</SidebarLayout>
 			</body>
 		</html>
 	);

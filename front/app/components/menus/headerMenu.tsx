@@ -1,68 +1,80 @@
 "use client";
 
 import Link from "next/link";
-
 import { useCartStore } from "@/stores/cartStore";
-import TitleText from "../text/titleText";
-import { BiTrash } from "react-icons/bi";
-import { CartProps } from "@/app/types/CartTypes";
+import { useSidebarStore } from "@/stores/sidebarStore";
 import DefaultProfilePhoto from "../defaultProfilePhoto";
 import Image from "next/image";
-import { Ref } from "react";
-import { PiEmpty } from "react-icons/pi";
-import { BsCart, BsCartDash, BsCartX } from "react-icons/bs";
+import { BiTrash, BiX } from "react-icons/bi";
+import { CartProps } from "@/app/types/CartTypes";
+import { BsCartX, BsCart } from "react-icons/bs";
 
-const HeaderMenu = ({ ref }: { ref: Ref<HTMLDivElement> }) => {
+const HeaderMenu = () => {
+	const { openPanel, close } = useSidebarStore();
+	const isOpen = openPanel === "menu";
 	const {
 		carData,
 		removeCar,
 	}: { carData: CartProps[]; removeCar: (vin: string) => void } =
 		useCartStore();
-	const cartCount: number = carData.length;
+	const cartCount = carData.length;
+
 	return (
 		<div
-			ref={ref}
-			className="absolute z-[2] md:right-[20px] right-[10px] md:left-auto left-[10px] w-auto mx-0 top-[100%] mt-[10px] border border-third/80 bg-primary shadow-md text-foreground md:w-[400px] rounded-xl overflow-hidden"
+			className={`fixed top-0 right-0 h-full z-50 w-full md:w-[380px] bg-primary border-l border-third shadow-xl flex flex-col transition-transform duration-300 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"}`}
 		>
-			<div className="flex w-full flex-col justify-center items-center bg-primary-dark py-[10px] px-[15px]">
-				<div className="flex relative flex-col gap-[10px] items-center justify-center py-[15px] md:px-[40px] w-full">
-					<div className="w-fit h-fit border-4 border-accent/70 bg-accent/10 p-[2px] rounded-full">
-						<DefaultProfilePhoto totalHeight={60} headSize={20} />
-					</div>
-					<h2 className="font-titillium text-accent text-[18pt] text-center font-[500]">
-						Guest
-					</h2>
-					<div className="flex w-full items-center gap-[10px]">
-						<Link
-							href={"/signup"}
-							className="font-[500] text-[11pt] w-full text-center text-accent px-[12px] py-[6px] bg-primary rounded-full hover:bg-accent/90 hover:text-primary duration-[200ms]"
-						>
-							Signup
-						</Link>
-						<Link
-							href={"/login"}
-							className="font-[500] text-[11pt] w-full text-center text-accent px-[12px] py-[6px] bg-primary rounded-full hover:bg-accent/90 hover:text-primary duration-[200ms]"
-						>
-							Login
-						</Link>
-					</div>
+			{/* Close button */}
+			<button
+				onClick={close}
+				className="absolute top-[14px] left-[14px] text-[18pt] text-foreground hover:text-accent transition-colors"
+			>
+				<BiX />
+			</button>
+
+			{/* Profile section */}
+			<div className="flex flex-col items-center bg-primary-dark py-[20px] px-[15px] pt-[50px]">
+				<div className="w-fit h-fit border-4 border-accent/70 bg-accent/10 p-[2px] rounded-full mb-[10px]">
+					<DefaultProfilePhoto totalHeight={60} headSize={20} />
+				</div>
+				<h2 className="font-titillium text-accent text-[18pt] font-[500] mb-[10px]">
+					Guest
+				</h2>
+				<div className="flex w-full items-center gap-[10px]">
+					<Link
+						href={"/signup"}
+						onClick={close}
+						className="font-[500] text-[11pt] w-full text-center text-accent px-[12px] py-[6px] bg-primary rounded-full hover:bg-accent/90 hover:text-primary duration-[200ms]"
+					>
+						Signup
+					</Link>
+					<Link
+						href={"/login"}
+						onClick={close}
+						className="font-[500] text-[11pt] w-full text-center text-accent px-[12px] py-[6px] bg-primary rounded-full hover:bg-accent/90 hover:text-primary duration-[200ms]"
+					>
+						Login
+					</Link>
 				</div>
 			</div>
-			<div className="py-[15px] px-[15px] flex flex-col w-full">
-				{cartCount > 0 ? (
-					<div className="flex mb-[10px] font-[400] text-accent font-titillium gap-[10px] items-center">
-						<BsCart />
-						<h2 className="">
-							Shopping Cart
-						</h2>
-					</div>
-				) : (
-					<div className="flex gap-[10px] items-center font-[400] text-accent font-titillium">
-						<BsCartX /> No cars in cart
-					</div>
-				)}
+
+			{/* Cart section */}
+			<div className="flex flex-col flex-1 overflow-y-auto py-[15px] px-[15px]">
+				<div className="flex mb-[10px] font-[400] text-accent font-titillium gap-[10px] items-center">
+					{cartCount > 0 ? (
+						<>
+							<BsCart />
+							<h2>Shopping Cart</h2>
+						</>
+					) : (
+						<>
+							<BsCartX />
+							<span>No cars in cart</span>
+						</>
+					)}
+				</div>
+
 				{cartCount > 0 && (
-					<div className="w-full rounded-md px-[0px] py-[5px] flex flex-col gap-[5px] max-h-[300px] overflow-y-auto">
+					<div className="flex flex-col gap-[5px]">
 						{carData.map((car: CartProps) => (
 							<div
 								key={car.vin}
@@ -87,9 +99,7 @@ const HeaderMenu = ({ ref }: { ref: Ref<HTMLDivElement> }) => {
 									</h3>
 								</div>
 								<button
-									onClick={() => {
-										removeCar(car.vin);
-									}}
+									onClick={() => removeCar(car.vin)}
 									className="hover:text-primary text-foreground-light text-[14pt] px-[10px] h-fill hover:bg-accent/70 rounded-r-xl cursor-pointer ml-auto duration-[200ms]"
 								>
 									<BiTrash />
@@ -98,29 +108,39 @@ const HeaderMenu = ({ ref }: { ref: Ref<HTMLDivElement> }) => {
 						))}
 					</div>
 				)}
+
 				{cartCount > 0 && (
-					<>
-						<Link
-							href={"/cart"}
-							className="w-full mt-[20px] flex items-center justify-center py-[9px] bg-accent/10 border-2 border-accent rounded-xl text-accent text-[12pt] font-[500] shadow-sm hover:bg-accent hover:text-primary cursor-pointer duration-[100ms]"
-						>
-							Go to cart
-						</Link>
+					<div className="mt-[20px] flex flex-col gap-[10px]">
+						{/*
+                        <Link
+                            href={"/cart"}
+                            onClick={close}
+                            className="w-full flex items-center justify-center py-[9px] bg-accent/10 border-2 border-accent rounded-xl text-accent text-[12pt] font-[500] shadow-sm hover:bg-accent hover:text-primary cursor-pointer duration-[100ms]"
+                        >
+                            Go to cart
+                        </Link>
+                        */}
 						<Link
 							href={"/checkout"}
-							className="w-full mt-[10px] flex items-center justify-center py-[9px] bg-accent rounded-xl text-primary text-[12pt] font-[500] shadow-sm hover:brightness-[110%] hover:scale-[101%] cursor-pointer duration-[100ms]"
+							onClick={close}
+							className="w-full flex items-center justify-center py-[9px] bg-accent rounded-xl text-primary text-[12pt] font-[500] shadow-sm hover:brightness-[110%] hover:scale-[101%] cursor-pointer duration-[100ms]"
 						>
 							Checkout
 						</Link>
-					</>
+					</div>
 				)}
 			</div>
-			<Link
-				href={"/admin"}
-				className="absolute font-[500] text-[10pt] w-fit top-[5px] left-[10px] text-center text-accent"
-			>
-				Admin Dashboard
-			</Link>
+
+			{/* Admin link */}
+			<div className="px-[15px] py-[12px] border-t border-third">
+				<Link
+					href={"/admin"}
+					onClick={close}
+					className="font-[500] text-[10pt] text-accent hover:underline"
+				>
+					Admin Dashboard
+				</Link>
+			</div>
 		</div>
 	);
 };

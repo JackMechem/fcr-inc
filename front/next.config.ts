@@ -21,6 +21,16 @@ const nextConfig: NextConfig = {
 				port: "",
 				pathname: "/photos/**",
 			},
+			{
+				protocol: "https",
+				hostname: "www.caranddriver.com",
+				port: "",
+				pathname: "/photos/**",
+			},
+			{
+				protocol: "https",
+				hostname: "**",
+			},
 		],
 	},
 };

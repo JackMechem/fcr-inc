@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { addCar, getAllCars, deleteCar } from "../../lib/AdminApiCalls";
 import { getCar, getFilteredCars } from "@/app/lib/CarApi";
 import Cookies from "js-cookie";
-import BrowseHeader from "@/app/components/headers/browseHeader";
+import NavHeader from "@/app/components/headers/navHeader";
 
 interface ICopyOptions {
 	vin: string;
@@ -119,7 +119,7 @@ const EditCarPage = () => {
 
 	return (
 		<div className="mx-[20px]">
-			<BrowseHeader white={false} />
+			<NavHeader white={false} />
 			<div className="my-6">
 				<label className="block text-xs font-bold uppercase text-slate-500 mb-2">
 					Copy from Existing Vehicle

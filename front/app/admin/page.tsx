@@ -5,10 +5,9 @@ import DynamicTable from "./DynamicTable";
 import { addCar, getAllCars, deleteCar } from "../lib/AdminApiCalls";
 import { Car } from "../types/CarTypes";
 import MainBodyContainer from "../components/containers/mainBodyContainer";
-import LandingHeader from "../components/headers/landingHeader";
+import NavHeader from "../components/headers/navHeader";
 import TitleText from "../components/text/titleText";
 import Link from "next/link";
-import BrowseHeader from "../components/headers/browseHeader";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import { validateCredentials } from "../lib/AuthValidation";
@@ -76,7 +75,7 @@ export default function AdminPage() {
 
 	return (
 		<>
-			<BrowseHeader white={false} />
+			<NavHeader white={false} />
 			<MainBodyContainer>
 				<div className="space-y-10 pb-20">
 					<section>

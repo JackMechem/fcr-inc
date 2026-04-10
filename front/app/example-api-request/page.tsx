@@ -1,4 +1,5 @@
-import LandingHeader from "../components/headers/landingHeader";
+import NavHeader from "../components/headers/navHeader";
+
 
 interface LosAngelesWeatherData {
 	icaoId: string;
@@ -44,7 +45,7 @@ const ExampleAPIRequest = async () => {
 	const data: LosAngelesWeatherData[] = await getData();
 	return (
 		<div>
-			<LandingHeader />
+			<NavHeader />
 			<div className="w-full px-[100px]">
 				<h1 className="text-center text-accent font-titillium font-bold text-[20pt] italic">
 					It is {data[0].temp} degrees in {data[0].name}

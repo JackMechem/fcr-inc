@@ -4,7 +4,7 @@ import { getAllCars, getFilteredCars } from "./lib/CarApi";
 import { Car, CarPages } from "./types/CarTypes";
 import MainBodyContainer from "./components/containers/mainBodyContainer";
 import LandingPageFilterButtons from "./components/buttons/landingPageFilterButtons";
-import LandingHeader from "./components/headers/landingHeader";
+import NavHeader from "./components/headers/navHeader";
 import LandingHero from "./components/heros/landingHero";
 import CarBrandCard from "./components/cards/carBrandCard";
 
@@ -22,15 +22,6 @@ import VolkswagenCarImage from "./media/transparentCarImages/volkswagen.png";
 import Link from "next/link";
 
 const Home = async () => {
-	const carPagesLuxuryData: CarPages = await getFilteredCars({
-		vehicleClass: "LUXURY",
-	});
-	const carsDataLuxury: Car[] = carPagesLuxuryData.data;
-
-	const carPagesDataManual: CarPages = await getFilteredCars({
-		transmission: "MANUAL",
-	});
-	const carsDataManual: Car[] = carPagesDataManual.data;
 
 	const carPagesDataCheap: CarPages = await getFilteredCars({
 		minPricePerDay: 0,
@@ -91,7 +82,7 @@ const Home = async () => {
 
 	return (
 		<>
-			<LandingHeader />
+			<NavHeader />
 			<LandingHero />
 			<MainBodyContainer className="flex flex-col gap-[40px]">
 				<BrandScroll>
@@ -127,30 +118,6 @@ const Home = async () => {
 					/>
 				</BrandScroll>
 
-				<div>
-					<Link
-						href={"/browse?vehicleClass=LUXURY"}
-						className="flex justify-between items-center mt-[40px]"
-					>
-						<TitleText>Luxury Cars</TitleText>
-						<p className="text-accent text-[12pt] font-[500]">
-							See more {"->"}
-						</p>
-					</Link>
-					{carsDataLuxury.length > 0 && <CarScroll cars={carsDataLuxury} />}
-				</div>
-				<div>
-					<Link
-						href={"/browse?transmission=MANUAL"}
-						className="flex justify-between items-center mt-[20px]"
-					>
-						<TitleText>Manual Cars</TitleText>
-						<p className="text-accent text-[12pt] font-[500]">
-							See more {"->"}
-						</p>
-					</Link>
-					{carsDataManual.length > 0 && <CarScroll cars={carsDataManual} />}
-				</div>
 				<div>
 					<Link
 						href={"/browse?minPricePerDay=0&maxPricePerDay=100"}
