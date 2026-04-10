@@ -4,21 +4,25 @@ import { persist } from "zustand/middleware";
 
 interface CartStore {
   carData: CartProps[];
+  notification: CartProps | null;
   addCar: (car: CartProps) => void;
   removeCar: (vin: string) => void;
   clearCart: () => void;
   inCart: (vin: string) => boolean;
+  clearNotification: () => void;
 }
 
 export const useCartStore = create<CartStore>()(
   persist(
     (set, get) => ({
       carData: [],
+      notification: null,
       addCar: (car) =>
         set((state) => ({
           carData: state.carData.some((c) => c.vin === car.vin)
             ? state.carData
             : [...state.carData, car],
+          notification: car,
         })),
       removeCar: (vin) =>
         set((state) => ({
@@ -26,7 +30,8 @@ export const useCartStore = create<CartStore>()(
         })),
       clearCart: () => set({ carData: [] }),
       inCart: (vin) => get().carData.some((c) => c.vin === vin),
+      clearNotification: () => set({ notification: null }),
     }),
-    { name: "cart-storage" }
+    { name: "cart-storage", partialize: (state) => ({ carData: state.carData }) }
   )
 );

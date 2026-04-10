@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Titillium_Web } from "next/font/google";
 import "./globals.css";
 import SidebarLayout from "./components/SidebarLayout";
+import CartNotification from "./components/CartNotification";
 
 const inter = Inter({
 	subsets: ["latin"],
@@ -31,6 +32,7 @@ export default function RootLayout({
 				className={`${inter.variable} ${titillium.variable} antialiased overflow-x-hidden bg-primary`}
 			>
 				<SidebarLayout>{children}</SidebarLayout>
+				<CartNotification />
 			</body>
 		</html>
 	);
