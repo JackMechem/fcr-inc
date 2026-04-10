@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSidebarStore } from "@/stores/sidebarStore";
 import HeaderMenu from "./menus/headerMenu";
 import FilterSidebar from "./menus/filterSidebar";
@@ -15,7 +16,9 @@ const SidebarLayout = ({ children }: { children: React.ReactNode }) => {
                 {children}
             </div>
             <HeaderMenu />
-            <FilterSidebar />
+            <Suspense>
+                <FilterSidebar />
+            </Suspense>
         </div>
     );
 };
