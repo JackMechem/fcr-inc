@@ -69,7 +69,7 @@ const DatePicker = ({ label, showLabel = true, placeholder = "Add date", selecte
     };
 
     return (
-        <div ref={ref} className="relative z-[99]">
+        <div ref={ref} className="relative">
             {showLabel && <p className="text-[10pt]">{label}</p>}
             <button
                 type="button"

@@ -1,8 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 import { useCartStore } from "@/stores/cartStore";
 import { useSidebarStore } from "@/stores/sidebarStore";
+import { validateCredentials } from "@/app/lib/AuthValidation";
 import DefaultProfilePhoto from "../defaultProfilePhoto";
 import Image from "next/image";
 import { BiTrash, BiX } from "react-icons/bi";
@@ -12,12 +16,34 @@ import { BsCartX, BsCart } from "react-icons/bs";
 const HeaderMenu = () => {
 	const { openPanel, close } = useSidebarStore();
 	const isOpen = openPanel === "menu";
-	const {
-		carData,
-		removeCar,
-	}: { carData: CartProps[]; removeCar: (vin: string) => void } =
-		useCartStore();
+	const { carData, removeCar }: { carData: CartProps[]; removeCar: (vin: string) => void } = useCartStore();
 	const cartCount = carData.length;
+	const router = useRouter();
+
+	const [isAdmin, setIsAdmin] = useState(false);
+	const [username, setUsername] = useState<string | null>(null);
+
+	useEffect(() => {
+		const raw = Cookies.get("credentials");
+		if (!raw) return;
+		const { username: u, password } = JSON.parse(raw);
+		validateCredentials(u, password).then((status) => {
+			if (status === 200) {
+				setIsAdmin(true);
+				setUsername(u);
+			} else {
+				setIsAdmin(false);
+				setUsername(null);
+			}
+		});
+	}, [isOpen]);
+
+	const handleLogout = () => {
+		Cookies.remove("credentials");
+		setIsAdmin(false);
+		setUsername(null);
+		close();
+	};
 
 	return (
 		<div
@@ -36,24 +62,38 @@ const HeaderMenu = () => {
 				<div className="w-fit h-fit border-4 border-accent/70 bg-accent/10 p-[2px] rounded-full mb-[10px]">
 					<DefaultProfilePhoto totalHeight={60} headSize={20} />
 				</div>
-				<h2 className="font-titillium text-accent text-[18pt] font-[500] mb-[10px]">
-					Guest
+				<h2 className="font-titillium text-accent text-[18pt] font-[500]">
+					{isAdmin && username ? username : "Guest"}
 				</h2>
-				<div className="flex w-full items-center gap-[10px]">
-					<Link
-						href={"/signup"}
-						onClick={close}
-						className="font-[500] text-[11pt] w-full text-center text-accent px-[12px] py-[6px] bg-primary rounded-full hover:bg-accent/90 hover:text-primary duration-[200ms]"
-					>
-						Signup
-					</Link>
-					<Link
-						href={"/login"}
-						onClick={close}
-						className="font-[500] text-[11pt] w-full text-center text-accent px-[12px] py-[6px] bg-primary rounded-full hover:bg-accent/90 hover:text-primary duration-[200ms]"
-					>
-						Login
-					</Link>
+				{isAdmin && (
+					<p className="text-accent/60 text-[10pt] mb-[10px]">Admin</p>
+				)}
+				<div className={`flex w-full items-center gap-[10px] ${isAdmin ? "" : "mt-[10px]"}`}>
+					{isAdmin ? (
+						<button
+							onClick={handleLogout}
+							className="font-[500] text-[11pt] w-full text-center text-accent px-[12px] py-[6px] bg-primary rounded-full hover:bg-accent/90 hover:text-primary duration-[200ms]"
+						>
+							Logout
+						</button>
+					) : (
+						<>
+							<Link
+								href={"/signup"}
+								onClick={close}
+								className="font-[500] text-[11pt] w-full text-center text-accent px-[12px] py-[6px] bg-primary rounded-full hover:bg-accent/90 hover:text-primary duration-[200ms]"
+							>
+								Signup
+							</Link>
+							<Link
+								href={"/login"}
+								onClick={close}
+								className="font-[500] text-[11pt] w-full text-center text-accent px-[12px] py-[6px] bg-primary rounded-full hover:bg-accent/90 hover:text-primary duration-[200ms]"
+							>
+								Login
+							</Link>
+						</>
+					)}
 				</div>
 			</div>
 
@@ -117,15 +157,6 @@ const HeaderMenu = () => {
 
 				{cartCount > 0 && (
 					<div className="mt-[20px] flex flex-col gap-[10px]">
-						{/*
-                        <Link
-                            href={"/cart"}
-                            onClick={close}
-                            className="w-full flex items-center justify-center py-[9px] bg-accent/10 border-2 border-accent rounded-xl text-accent text-[12pt] font-[500] shadow-sm hover:bg-accent hover:text-primary cursor-pointer duration-[100ms]"
-                        >
-                            Go to cart
-                        </Link>
-                        */}
 						<Link
 							href={"/checkout"}
 							onClick={close}
@@ -138,15 +169,17 @@ const HeaderMenu = () => {
 			</div>
 
 			{/* Admin link */}
-			<div className="px-[15px] py-[12px] border-t border-third">
-				<Link
-					href={"/admin"}
-					onClick={close}
-					className="font-[500] text-[10pt] text-accent hover:underline"
-				>
-					Admin Dashboard
-				</Link>
-			</div>
+			{isAdmin && (
+				<div className="px-[15px] py-[12px] border-t border-third">
+					<Link
+						href={"/admin"}
+						onClick={close}
+						className="font-[500] text-[10pt] text-accent hover:underline"
+					>
+						Admin Dashboard
+					</Link>
+				</div>
+			)}
 		</div>
 	);
 };

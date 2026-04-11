@@ -66,12 +66,12 @@ const LandingSearchBar = () => {
     // Debounced fetch with 1 s cooldown
     useEffect(() => {
         if (pendingTimer.current) clearTimeout(pendingTimer.current);
-        if (!searchText.trim()) {
-            setSuggestions([]);
-            setLoadingSuggestions(false);
-            return;
-        }
         const doFetch = async () => {
+            if (!searchText.trim()) {
+                setSuggestions([]);
+                setLoadingSuggestions(false);
+                return;
+            }
             lastRequestTime.current = Date.now();
             setLoadingSuggestions(true);
             try {
@@ -85,9 +85,8 @@ const LandingSearchBar = () => {
             } catch { /* ignore */ }
             setLoadingSuggestions(false);
         };
-        const elapsed = Date.now() - lastRequestTime.current;
-        const delay = elapsed >= 1000 ? 0 : 1000 - elapsed;
-        pendingTimer.current = setTimeout(doFetch, delay);
+        const elapsed = !searchText.trim() ? 0 : (Date.now() - lastRequestTime.current >= 1000 ? 0 : 1000 - (Date.now() - lastRequestTime.current));
+        pendingTimer.current = setTimeout(doFetch, elapsed);
         return () => { if (pendingTimer.current) clearTimeout(pendingTimer.current); };
     }, [searchText]);
 
