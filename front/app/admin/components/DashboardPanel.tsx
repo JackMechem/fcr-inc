@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { getFilteredCars } from "@/app/lib/CarApi";
 import { Car } from "@/app/types/CarTypes";
 import { useAdminSidebarStore, AdminView } from "@/stores/adminSidebarStore";
-import { BiCar, BiPlus, BiEdit, BiTable, BiTrendingUp } from "react-icons/bi";
-import { MdAttachMoney, MdSpeed, MdLocalGasStation, MdDirectionsCar } from "react-icons/md";
+import { BiCar, BiPlus, BiEdit, BiTable, BiCalendar } from "react-icons/bi";
+import { MdAttachMoney, MdSpeed, MdDirectionsCar } from "react-icons/md";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -60,15 +60,26 @@ const BreakdownBar = ({ label, count, total, color }: { label: string; count: nu
     );
 };
 
-const QuickAction = ({ icon, label, view, onClick }: { icon: React.ReactNode; label: string; view: AdminView; onClick: (v: AdminView) => void }) => (
-    <button
-        onClick={() => onClick(view)}
-        className="flex items-center gap-[10px] px-[18px] py-[12px] rounded-xl border border-third/50 hover:border-accent/50 hover:bg-accent/5 text-foreground transition-colors text-left"
-    >
-        <span className="text-accent text-[18pt]">{icon}</span>
-        <span className="text-[11pt] font-[500]">{label}</span>
-    </button>
-);
+const NAV_SECTIONS = [
+    {
+        id: "cars",
+        icon: <BiCar />,
+        label: "Cars",
+        items: [
+            { icon: <BiPlus />,  label: "Add Car",   view: "add-car"   as AdminView },
+            { icon: <BiEdit />,  label: "Edit Car",  view: "edit-car"  as AdminView },
+            { icon: <BiTable />, label: "View Data", view: "view-data" as AdminView },
+        ],
+    },
+    {
+        id: "reservations",
+        icon: <BiCalendar />,
+        label: "Reservations",
+        items: [
+            { icon: <BiTable />, label: "View Data", view: "view-reservations" as AdminView },
+        ],
+    },
+];
 
 const SectionTitle = ({ children }: { children: React.ReactNode }) => (
     <p className="text-foreground text-[13pt] font-[600] mb-[14px]">{children}</p>
@@ -213,13 +224,32 @@ const DashboardPanel = () => {
                 </table>
             </div>
 
-            {/* ── Quick actions ── */}
-            <div>
-                <SectionTitle>Quick Actions</SectionTitle>
-                <div className="flex flex-wrap gap-[12px]">
-                    <QuickAction icon={<BiPlus />} label="Add Car" view="add-car" onClick={setActiveView} />
-                    <QuickAction icon={<BiEdit />} label="Edit Car" view="edit-car" onClick={setActiveView} />
-                    <QuickAction icon={<BiTable />} label="View Data" view="view-data" onClick={setActiveView} />
+            {/* ── Sections ── */}
+            <div className="flex flex-col gap-[20px]">
+                <SectionTitle>Sections</SectionTitle>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-[16px]">
+                    {NAV_SECTIONS.map((section) => (
+                        <div key={section.id} className="bg-primary border border-third/40 rounded-2xl overflow-hidden shadow-sm">
+                            {/* Section header */}
+                            <div className="flex items-center gap-[10px] px-[20px] py-[14px] border-b border-third/30 bg-primary-dark/20">
+                                <span className="text-accent text-[18pt]">{section.icon}</span>
+                                <span className="text-foreground text-[12pt] font-[600]">{section.label}</span>
+                            </div>
+                            {/* Sub-items */}
+                            <div className="flex flex-col divide-y divide-third/20">
+                                {section.items.map((item) => (
+                                    <button
+                                        key={String(item.view)}
+                                        onClick={() => setActiveView(item.view)}
+                                        className="flex items-center gap-[12px] px-[20px] py-[14px] hover:bg-accent/5 hover:text-accent text-foreground transition-colors cursor-pointer text-left group"
+                                    >
+                                        <span className="text-foreground-light text-[16pt] group-hover:text-accent transition-colors">{item.icon}</span>
+                                        <span className="text-[11pt] font-[500]">{item.label}</span>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
         </div>
