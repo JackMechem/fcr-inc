@@ -8,6 +8,7 @@ import { useAdminSidebarStore } from "@/stores/adminSidebarStore";
 import Cookies from "js-cookie";
 import Image from "next/image";
 import { BiCar, BiCheck, BiSearch, BiX, BiPlus } from "react-icons/bi";
+import ReactMarkdown from "react-markdown";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -31,7 +32,7 @@ const BLANK: Partial<Car> = {
     vin: "", make: "", model: "", description: "",
     transmission: "AUTOMATIC", drivetrain: "AWD", engineLayout: "V",
     fuel: "GASOLINE", bodyType: "SEDAN", roofType: "HARDTOP", vehicleClass: "LUXURY",
-    features: [], images: [],
+    features: [], images: ["", "", "", "", ""],
 };
 
 const inputCls = "w-full bg-primary border border-third rounded-xl px-[14px] py-[10px] text-[10.5pt] text-foreground placeholder:text-foreground-light/60 focus:outline-none focus:border-accent/60 transition";
@@ -150,7 +151,68 @@ const CopyPicker = ({
     );
 };
 
-// ── Main component ────────────────────────────────────────────────────────────
+// ── Markdown editor ───────────────────────────────────────────────────────────
+
+const MarkdownEditor = ({ value, onChange }: { value: string; onChange: (v: string) => void }) => {
+    const [tab, setTab] = useState<"write" | "preview">("write");
+
+    return (
+        <div className="flex flex-col gap-0 rounded-xl overflow-hidden border border-third focus-within:border-accent/60 transition">
+            {/* Tab bar */}
+            <div className="flex border-b border-third bg-primary-dark/30">
+                {(["write", "preview"] as const).map((t) => (
+                    <button
+                        key={t}
+                        type="button"
+                        onClick={() => setTab(t)}
+                        className={`px-[16px] py-[8px] text-[9pt] font-[600] uppercase tracking-wider transition-colors cursor-pointer ${
+                            tab === t
+                                ? "text-accent border-b-2 border-accent -mb-[1px] bg-primary"
+                                : "text-foreground-light hover:text-foreground"
+                        }`}
+                    >
+                        {t}
+                    </button>
+                ))}
+            </div>
+
+            {/* Write */}
+            {tab === "write" && (
+                <textarea
+                    className="w-full bg-primary px-[14px] py-[10px] text-[10.5pt] text-foreground placeholder:text-foreground-light/60 focus:outline-none resize-none h-[180px] font-mono"
+                    placeholder="Describe the vehicle — supports **markdown**…"
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                />
+            )}
+
+            {/* Preview */}
+            {tab === "preview" && (
+                <div className="min-h-[180px] px-[16px] py-[12px] bg-primary prose prose-sm prose-invert max-w-none
+                    [&_h1]:text-foreground [&_h1]:text-[14pt] [&_h1]:font-[700] [&_h1]:mb-[8px]
+                    [&_h2]:text-foreground [&_h2]:text-[12pt] [&_h2]:font-[600] [&_h2]:mb-[6px]
+                    [&_h3]:text-foreground [&_h3]:text-[11pt] [&_h3]:font-[600]
+                    [&_p]:text-foreground [&_p]:text-[10.5pt] [&_p]:leading-[1.6] [&_p]:mb-[8px]
+                    [&_strong]:text-foreground [&_strong]:font-[600]
+                    [&_em]:text-foreground-light
+                    [&_ul]:text-foreground [&_ul]:list-disc [&_ul]:pl-[20px] [&_ul]:mb-[8px]
+                    [&_ol]:text-foreground [&_ol]:list-decimal [&_ol]:pl-[20px] [&_ol]:mb-[8px]
+                    [&_li]:text-[10.5pt] [&_li]:mb-[2px]
+                    [&_a]:text-accent [&_a]:underline
+                    [&_code]:bg-third/40 [&_code]:text-accent [&_code]:px-[6px] [&_code]:py-[1px] [&_code]:rounded [&_code]:text-[9.5pt]
+                    [&_pre]:bg-third/40 [&_pre]:rounded-xl [&_pre]:p-[12px] [&_pre]:overflow-x-auto
+                    [&_blockquote]:border-l-2 [&_blockquote]:border-accent/50 [&_blockquote]:pl-[12px] [&_blockquote]:text-foreground-light
+                    [&_hr]:border-third/50">
+                    {value.trim() ? (
+                        <ReactMarkdown>{value}</ReactMarkdown>
+                    ) : (
+                        <p className="text-foreground-light/50 text-[10.5pt] italic">Nothing to preview yet.</p>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
 
 // ── Feature tag input ─────────────────────────────────────────────────────────
 
@@ -261,7 +323,11 @@ const CarFormPanel = ({ mode }: CarFormPanelProps) => {
         }
     };
 
+    const isValidUrl = (url: string) => { try { new URL(url); return true; } catch { return false; } };
     const previewImages = (form.images ?? []).filter((url) => url.trim() !== "");
+    const validPreviewImages = previewImages.filter(isValidUrl);
+    const filledImageCount = validPreviewImages.length;
+    const MIN_IMAGES = 5;
 
     return (
         <div className="flex flex-col gap-[20px] pb-[40px]">
@@ -416,11 +482,9 @@ const CarFormPanel = ({ mode }: CarFormPanelProps) => {
 
                 {/* Description */}
                 <SectionCard title="Description">
-                    <textarea
-                        className={`${inputCls} h-[100px] resize-none`}
-                        placeholder="Describe the vehicle — highlight what makes it special…"
+                    <MarkdownEditor
                         value={form.description ?? ""}
-                        onChange={(e) => set("description", e.target.value)}
+                        onChange={(v) => set("description", v)}
                     />
                 </SectionCard>
 
@@ -431,7 +495,12 @@ const CarFormPanel = ({ mode }: CarFormPanelProps) => {
                         onChange={(tags) => set("features", tags)}
                     />
                     <div className="flex flex-col gap-[8px]">
-                        <label className={labelCls}>Image URLs</label>
+                        <div className="flex items-center justify-between">
+                            <label className={labelCls}>Image URLs</label>
+                            <span className={`text-[8.5pt] font-[500] ${filledImageCount >= MIN_IMAGES ? "text-accent" : "text-amber-400"}`}>
+                                {filledImageCount} / {MIN_IMAGES} required
+                            </span>
+                        </div>
                         {(form.images ?? [""]).map((url, i) => (
                             <div key={i} className="flex gap-[8px] items-center">
                                 <input
@@ -444,7 +513,7 @@ const CarFormPanel = ({ mode }: CarFormPanelProps) => {
                                         set("images", updated);
                                     }}
                                 />
-                                {(form.images ?? []).length > 1 && (
+                                {(form.images ?? []).length > MIN_IMAGES && (
                                     <button
                                         type="button"
                                         onClick={() => {
@@ -468,11 +537,12 @@ const CarFormPanel = ({ mode }: CarFormPanelProps) => {
                     </div>
 
                     {/* Image preview */}
-                    {previewImages.length > 0 && (
+                    {validPreviewImages.length > 0 && (
                         <div className="flex gap-[10px] overflow-x-auto pb-[4px] scrollbar-hide">
-                            {previewImages.map((url, i) => (
+                            {validPreviewImages.map((url, i) => (
                                 <div key={i} className="relative flex-shrink-0 w-[120px] h-[80px] rounded-xl overflow-hidden border border-third bg-third/20">
-                                    <Image src={url} alt={`preview ${i + 1}`} fill className="object-cover" sizes="120px" />
+                                    <Image src={url} alt={`preview ${i + 1}`} fill className="object-cover" sizes="120px"
+                                        onError={(e) => (e.currentTarget.style.display = "none")} />
                                 </div>
                             ))}
                         </div>
@@ -480,9 +550,14 @@ const CarFormPanel = ({ mode }: CarFormPanelProps) => {
                 </SectionCard>
 
                 {/* Submit */}
+                {filledImageCount < MIN_IMAGES && (
+                    <p className="text-amber-400 text-[9.5pt] text-center">
+                        Add at least {MIN_IMAGES} image URLs before saving ({MIN_IMAGES - filledImageCount} more needed).
+                    </p>
+                )}
                 <button
                     type="submit"
-                    disabled={isLoading}
+                    disabled={isLoading || filledImageCount < MIN_IMAGES}
                     className="w-full py-[14px] bg-accent text-primary font-[600] text-[11pt] rounded-xl hover:brightness-110 transition disabled:opacity-50 cursor-pointer"
                 >
                     {isLoading ? "Saving…" : submitted ? "✓ Saved!" : mode === "edit" ? "Overwrite Vehicle" : "Add Vehicle to Fleet"}

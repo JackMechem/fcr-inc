@@ -8,6 +8,7 @@ import AdminSidebar from "../components/menus/adminSidebar";
 import CarFormPanel from "./components/CarFormPanel";
 import DashboardPanel from "./components/DashboardPanel";
 import InventoryPanel from "./components/InventoryPanel";
+import ReservationsPanel from "./components/ReservationsPanel";
 import { useAdminSidebarStore } from "@/stores/adminSidebarStore";
 import { useWindowSize } from "@/app/hooks/useWindowSize";
 import { useRouter } from "next/navigation";
@@ -47,6 +48,8 @@ export default function AdminPage() {
 				);
 			case "view-data":
 				return <InventoryPanel />;
+			case "view-reservations":
+				return <ReservationsPanel />;
 			default:
 				return <DashboardPanel />;
 		}
