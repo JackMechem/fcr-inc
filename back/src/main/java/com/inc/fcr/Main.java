@@ -2,6 +2,7 @@ package com.inc.fcr;
 
 import com.inc.fcr.car.Car;
 import com.inc.fcr.car.CarController;
+import com.inc.fcr.payment.Payment;
 import com.inc.fcr.reservation.Reservation;
 import com.inc.fcr.reservation.ReservationController;
 import com.inc.fcr.user.User;
@@ -52,6 +53,7 @@ public class Main {
             APIController cars = new APIController(Car.class, String.class);
             APIController reservations = new APIController(Reservation.class, Long.class);
             APIController users = new APIController(User.class, Long.class);
+            APIController payments = new APIController(Payment.class, Long.class);
 
             // Initialize endpoints
             config.router.mount(router -> {
@@ -90,6 +92,16 @@ public class Main {
                         get(users::getOne, Role.ANYONE);
                         patch(users::update, Role.WRITE);
                         delete(users::delete, Role.ADMIN);
+                    });
+                });
+
+                path("payments", () -> {
+                    get(payments::getAll, Role.ANYONE);
+                    post(payments::create, Role.WRITE);
+                    path("{id}", () -> {
+                        get(payments::getOne, Role.ANYONE);
+                        patch(payments::update, Role.WRITE);
+                        delete(payments::delete, Role.ADMIN);
                     });
                 });
 
