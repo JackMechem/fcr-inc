@@ -8,7 +8,7 @@ import { PiEngine } from "react-icons/pi";
 const CarGridCard = ({ car }: { car: Car }) => (
 	<Link
 		href={`/car/${car.vin}`}
-		className="text-left rounded-xl overflow-hidden cursor-pointer hover:scale-[102%] duration-150 text-foreground bg-primary shadow-md flex flex-col"
+		className="text-left rounded-xl overflow-hidden cursor-pointer hover:scale-[102%] duration-150 text-foreground bg-primary shadow-md flex flex-col border border-third"
 	>
 		<Image
 			width={400}

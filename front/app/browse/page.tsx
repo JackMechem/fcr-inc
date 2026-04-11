@@ -21,7 +21,7 @@ const num = (val: string | string[] | undefined): number | undefined =>
 // --- Skeletons ---
 
 const CarCardSkeleton = () => (
-	<div className="flex md:flex-row flex-col md:h-[200px] w-full gap-[10px]">
+	<div className="flex md:flex-row flex-col md:h-[300px] w-full gap-[10px]">
 		<div className="md:w-[40%] w-full md:h-auto h-[200px] rounded-xl bg-third animate-pulse" />
 		<div className="md:w-[60%] w-full px-[20px] py-[15px] flex flex-col justify-between gap-[10px] shadow-[0px_1px_8px_-3px] shadow-accent/30 bg-accent/3 rounded-xl">
 			<div className="flex flex-col gap-[8px]">
@@ -177,15 +177,22 @@ const BrowsePage = async ({
 			/>
 			<div className="2xl:px-[200px] lg:px-[50px] pt-[15px] pb-[50px] w-full h-fill bg-primary m-0">
 				<ActiveFilters className="self-center mt-6 ml-6" />
-				<div className="mt-8 mb-4 w-full px-4 flex flex-row gap-4 justify-between items-start">
+				<div className="mt-2 mb-4 w-full px-4 flex flex-row gap-4 justify-between items-center">
 					<div className="flex items-center justify-between gap-2">
 						<SortButtons />
 					</div>
-					<Suspense>
-						<LayoutToggle />
-					</Suspense>
+					<div className="sm:block hidden">
+						<Suspense>
+							<LayoutToggle />
+						</Suspense>
+					</div>
 				</div>
-				<Suspense key={paramsKey} fallback={layout === "grid" ? <CarGridSkeleton /> : <CarListSkeleton />}>
+				<Suspense
+					key={paramsKey}
+					fallback={
+						layout === "grid" ? <CarGridSkeleton /> : <CarListSkeleton />
+					}
+				>
 					<CarResults p={p} layout={layout} />
 				</Suspense>
 			</div>

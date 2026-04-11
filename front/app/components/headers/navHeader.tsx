@@ -48,10 +48,13 @@ const NavHeader = ({
 	const { set, params } = useFilterParams();
 
 	const [searchText, setSearchText] = useState(() => params.search?.toString() ?? "");
+	const prevParamSearch = useRef(params.search?.toString() ?? "");
 
-	useEffect(() => {
-		setSearchText(params.search?.toString() ?? "");
-	}, [params.search]);
+	const paramSearch = params.search?.toString() ?? "";
+	if (paramSearch !== prevParamSearch.current) {
+		prevParamSearch.current = paramSearch;
+		setSearchText(paramSearch);
+	}
 
 	const isWhite = white && isExpanded;
 
@@ -75,13 +78,12 @@ const NavHeader = ({
 	useEffect(() => {
 		if (pendingTimer.current) clearTimeout(pendingTimer.current);
 
-		if (!searchText.trim()) {
-			setSuggestions([]);
-			setLoadingSuggestions(false);
-			return;
-		}
-
 		const doFetch = async () => {
+			if (!searchText.trim()) {
+				setSuggestions([]);
+				setLoadingSuggestions(false);
+				return;
+			}
 			lastRequestTime.current = Date.now();
 			setLoadingSuggestions(true);
 			try {
@@ -98,9 +100,8 @@ const NavHeader = ({
 			setLoadingSuggestions(false);
 		};
 
-		const elapsed = Date.now() - lastRequestTime.current;
-		const delay = elapsed >= 1000 ? 0 : 1000 - elapsed;
-		pendingTimer.current = setTimeout(doFetch, delay);
+		const elapsed = !searchText.trim() ? 0 : (Date.now() - lastRequestTime.current >= 1000 ? 0 : 1000 - (Date.now() - lastRequestTime.current));
+		pendingTimer.current = setTimeout(doFetch, elapsed);
 
 		return () => {
 			if (pendingTimer.current) clearTimeout(pendingTimer.current);

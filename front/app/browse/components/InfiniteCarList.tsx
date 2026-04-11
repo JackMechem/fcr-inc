@@ -6,8 +6,8 @@ import CarCard from "./carCard";
 import CarGridCard from "@/app/components/cars/carGridCard";
 
 const CarListSkeleton = () => (
-	<div className="flex md:flex-row flex-col md:h-[200px] w-full gap-[10px]">
-		<div className="md:w-[40%] w-full md:h-auto h-[200px] rounded-xl bg-third animate-pulse" />
+	<div className="flex flex-col md:flex-row h-auto w-full gap-[10px]">
+		<div className="md:w-[40%] w-full h-[300px] rounded-xl bg-third animate-pulse" />
 		<div className="md:w-[60%] w-full px-[20px] py-[15px] flex flex-col justify-between gap-[10px] shadow-[0px_1px_8px_-3px] shadow-accent/30 bg-accent/3 rounded-xl">
 			<div className="flex flex-col gap-[8px]">
 				<div className="flex justify-between">
@@ -63,9 +63,19 @@ const InfiniteCarList = ({ initialCars, totalPages, filterParams, layout = "list
 	const [cars, setCars] = useState<Car[]>(initialCars);
 	const [loading, setLoading] = useState(false);
 	const [hasMore, setHasMore] = useState(totalPages > 1);
+	const [isSmall, setIsSmall] = useState(() =>
+		typeof window !== "undefined" ? !window.matchMedia("(min-width: 640px)").matches : false
+	);
 	const sentinelRef = useRef<HTMLDivElement>(null);
 	const loadingRef = useRef(false);
 	const pageRef = useRef(1);
+
+	useEffect(() => {
+		const mq = window.matchMedia("(min-width: 640px)");
+		const handler = (e: MediaQueryListEvent) => setIsSmall(!e.matches);
+		mq.addEventListener("change", handler);
+		return () => mq.removeEventListener("change", handler);
+	}, []);
 
 	useEffect(() => {
 		const observer = new IntersectionObserver(
@@ -97,7 +107,7 @@ const InfiniteCarList = ({ initialCars, totalPages, filterParams, layout = "list
 		return () => observer.disconnect();
 	}, []);
 
-	const isList = layout === "list";
+	const isList = layout === "list" && !isSmall;
 
 	return (
 		<>

@@ -31,35 +31,48 @@ const CarCard = ({ car }: CarCardProps) => {
 		<Link
 			href={"/car/" + car.vin}
 			key={car.vin}
-			className="hover:scale-[102%] z-[0] duration-[100ms] overflow-visible flex md:flex-row flex-col md:h-[210px] w-full gap-[10px]"
+			className="hover:scale-[100.5%] z-[0] duration-[100ms] overflow-visible flex md:flex-row flex-col md:h-[300px] w-full gap-[10px] bg-primary border-third border rounded-xl shadow-sm"
 		>
 			<Image
 				src={car.images[0]}
 				alt={car.make}
 				height={500}
 				width={500}
-				className="object-cover md:w-[38%] w-full md:h-auto h-[200px] rounded-xl shadow-[0px_1px_8px_-3px] shadow-accent/30"
+				className="object-cover md:w-[38%] w-full md:h-auto h-[200px] rounded-l-xl"
 			/>
-			<div className="md:w-[62%] w-full px-[20px] py-[15px] flex flex-col justify-between md:gap-0 gap-[10px] shadow-[0px_1px_8px_-3px] shadow-accent/30 bg-accent/3 rounded-xl">
+			<div className="md:w-[62%] w-full pl-[20px] pr-[25px] py-[20px] flex flex-col justify-between md:gap-0 gap-[10px]">
 				{/* Title row */}
 				<div>
 					<div className="flex justify-between items-center">
-						<h1 className="text-[16pt] font-[500] leading-[110%] text-foreground/90">
+						<h1 className="text-[19pt] font-[400] leading-[110%] text-foreground">
 							{car.model}
 						</h1>
-						<h1 className="text-[12pt] font-[500] leading-[110%] text-accent/80">
+						<h1 className="text-[14pt] font-[500] leading-[110%] text-accent/60">
 							{car.make}
 						</h1>
 					</div>
-					<p className="text-foreground-light text-[12pt] leading-[150%]">
+					<p className="text-foreground-light/70 text-[12pt] leading-[150%]">
 						{car.modelYear}
 					</p>
+					{/* Features */}
+					{car.features?.length > 0 && (
+						<div className="flex flex-wrap gap-[6px] mt-[10px] max-w-[500px]">
+							{car.features.map((f) => (
+								<span
+									key={f}
+									className="text-[9pt] font-[500] text-accent/80 border border-accent/30 rounded-full px-[10px] py-[2px]"
+								>
+									{f}
+								</span>
+							))}
+						</div>
+					)}
 				</div>
 
 				{/* Stats + price */}
 				<div className="flex justify-between items-end gap-[10px]">
 					{/* Two-column stat grid */}
-					<div className="grid xl:grid-cols-3 grid-cols-2 gap-x-[20px] gap-y-[5px] text-foreground-light">
+					<div className="grid xl:grid-cols-3 grid-cols-2 gap-x-[20px] gap-y-[5px] text-primary border border-primary/50 px-[10px] py-[8px] mb-[5px] rounded-xl bg-accent/80">
 						<Stat icon={<BiCar />} label={fmt(car.vehicleClass)} />
 						<Stat icon={<SiTransmission />} label={fmt(car.transmission)} />
 						<Stat icon={<GiCarSeat />} label={`${car.seats} seats`} />
@@ -70,7 +83,7 @@ const CarCard = ({ car }: CarCardProps) => {
 
 					{/* Price */}
 					<div className="flex flex-col items-end min-w-fit">
-						<h1 className="text-accent text-[20pt]">
+						<h1 className="text-accent text-[19pt]">
 							${car.pricePerDay}
 							<span className="text-accent/60 text-[12pt]">/day</span>
 						</h1>
