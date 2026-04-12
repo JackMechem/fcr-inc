@@ -6,11 +6,11 @@ interface SpecGroupProps {
 }
 
 const SpecGroup = ({ title, children }: SpecGroupProps) => (
-	<div className="flex flex-col gap-[12px]">
+	<div className="flex flex-col gap-[10px] w-fit shrink-0">
 		<p className="text-[8pt] font-[700] uppercase tracking-widest text-foreground-light/60">
 			{title}
 		</p>
-		<div className="grid sm:grid-cols-3 grid-cols-2 gap-x-[24px] gap-y-[14px]">
+		<div className="flex flex-row flex-wrap gap-[16px]">
 			{children}
 		</div>
 	</div>

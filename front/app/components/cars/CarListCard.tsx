@@ -7,11 +7,12 @@ import { PiEngine, PiGauge } from "react-icons/pi";
 import { SiTransmission } from "react-icons/si";
 import { BsFuelPump } from "react-icons/bs";
 import { formatEnum } from "@/app/lib/formatEnum";
+import { TbManualGearbox } from "react-icons/tb";
 
 const Stat = ({ icon, label }: { icon: React.ReactNode; label: string }) => (
 	<div className="flex gap-[5px] items-center">
 		<span className="text-[14pt] flex-shrink-0">{icon}</span>
-		<p className="text-[10pt] font-[500]">{label}</p>
+		<p className="text-[10pt] font-[400]">{label}</p>
 	</div>
 );
 
@@ -50,7 +51,7 @@ const CarListCard = ({ car }: { car: Car }) => {
 					{/* Features */}
 					{car.features?.length > 0 && (
 						<div className="flex flex-wrap gap-[6px] mt-[10px] max-w-[500px]">
-							{car.features.map((f) => (
+							{car.features.slice(0, 6).map((f) => (
 								<span
 									key={f}
 									className="text-[9pt] font-[500] text-accent/80 border border-accent/30 rounded-full px-[10px] py-[2px]"
@@ -65,9 +66,9 @@ const CarListCard = ({ car }: { car: Car }) => {
 				{/* Stats + price */}
 				<div className="flex justify-between items-end gap-[10px]">
 					{/* Two-column stat grid */}
-					<div className="grid xl:grid-cols-3 grid-cols-2 gap-x-[20px] gap-y-[5px] text-primary border border-primary/50 px-[10px] py-[8px] mb-[5px] rounded-xl bg-accent/80">
+					<div className="grid xl:grid-cols-3 grid-cols-2 gap-x-[25px] gap-y-[12px] text-[10pt] text-accent border border-accent/10 px-[10px] py-[8px] mb-[5px] rounded-xl bg-accent/5">
 						<Stat icon={<BiCar />} label={formatEnum(car.vehicleClass)} />
-						<Stat icon={<SiTransmission />} label={formatEnum(car.transmission)} />
+						<Stat icon={<TbManualGearbox />} label={formatEnum(car.transmission)} />
 						<Stat icon={<GiCarSeat />} label={`${car.seats} seats`} />
 						<Stat icon={<BsFuelPump />} label={formatEnum(car.fuel)} />
 						<Stat icon={<PiEngine />} label={engineLabel} />

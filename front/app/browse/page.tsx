@@ -12,6 +12,7 @@ import InfiniteCarList from "./components/InfiniteCarList";
 import LayoutToggle from "./components/layoutToggle";
 import CarListSkeleton from "../components/skeletons/CarListSkeleton";
 import CarGridSkeleton from "../components/skeletons/CarGridSkeleton";
+import BrowseContentWrapper from "./components/BrowseContentWrapper";
 
 type Params = { [key: string]: string | string[] | undefined };
 
@@ -112,7 +113,7 @@ const BrowsePage = async ({
 				}
 				activeFilters={<ActiveFilters className="self-center" />}
 			/>
-			<div className="2xl:px-[200px] lg:px-[50px] pt-[15px] pb-[50px] w-full h-fill bg-primary m-0">
+			<BrowseContentWrapper>
 				<ActiveFilters className="self-center mt-6 ml-6" />
 				<div className="mt-2 mb-4 w-full px-4 flex flex-row gap-4 justify-between items-center">
 					<div className="flex items-center justify-between gap-2">
@@ -132,7 +133,7 @@ const BrowsePage = async ({
 				>
 					<CarResults p={p} layout={layout} />
 				</Suspense>
-			</div>
+			</BrowseContentWrapper>
 		</div>
 	);
 };

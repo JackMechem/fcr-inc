@@ -46,33 +46,31 @@ const LeftColumn = ({ carData }: { carData: Car }) => {
 			)}
 
 			{/* Specifications card */}
-			<div className="card p-[20px] flex flex-col gap-[20px]">
+			<div className="card p-[20px] flex flex-col gap-[16px] w-fit self-start">
 				<p className="text-foreground text-[11pt] font-[600] pb-[4px] border-b border-third/50">
 					Specifications
 				</p>
 
-				<SpecGroup title="Performance">
-					<Spec icon={<PiLightning />} label="Horsepower" value={`${carData.horsepower} hp`} />
-					<Spec icon={<TbWheel />} label="Torque" value={`${carData.torque} lb-ft`} />
-					<Spec icon={<PiGauge />} label="MPG" value={`${carData.mpg} mpg`} />
-				</SpecGroup>
+				<div className="flex flex-row flex-wrap gap-[40px]">
+					<SpecGroup title="Performance">
+						<Spec icon={<PiLightning />} label="Horsepower" value={`${carData.horsepower} hp`} />
+						<Spec icon={<TbWheel />} label="Torque" value={`${carData.torque} lb-ft`} />
+						<Spec icon={<PiGauge />} label="MPG" value={`${carData.mpg} mpg`} />
+					</SpecGroup>
 
-				<div className="w-full h-[1px] bg-third/50" />
+					<SpecGroup title="Drivetrain">
+						<Spec icon={<TbManualGearbox />} label="Transmission" value={`${carData.gears}-speed ${formatEnum(carData.transmission)}`} />
+						<Spec icon={<TbArrowAutofitDown />} label="Drivetrain" value={formatEnum(carData.drivetrain)} />
+						<Spec icon={<PiEngine />} label="Engine" value={engineLabel} />
+						<Spec icon={<BsFuelPump />} label="Fuel" value={formatEnum(carData.fuel)} />
+					</SpecGroup>
 
-				<SpecGroup title="Drivetrain">
-					<Spec icon={<TbManualGearbox />} label="Transmission" value={`${carData.gears}-speed ${formatEnum(carData.transmission)}`} />
-					<Spec icon={<TbArrowAutofitDown />} label="Drivetrain" value={formatEnum(carData.drivetrain)} />
-					<Spec icon={<PiEngine />} label="Engine" value={engineLabel} />
-					<Spec icon={<BsFuelPump />} label="Fuel" value={formatEnum(carData.fuel)} />
-				</SpecGroup>
-
-				<div className="w-full h-[1px] bg-third/50" />
-
-				<SpecGroup title="Details">
-					<Spec icon={<BiCar />} label="Body Type" value={formatEnum(carData.bodyType)} />
-					<Spec icon={<MdRoofing />} label="Roof" value={formatEnum(carData.roofType)} />
-					<Spec icon={<GiCarSeat />} label="Seats" value={`${carData.seats} seats`} />
-				</SpecGroup>
+					<SpecGroup title="Details">
+						<Spec icon={<BiCar />} label="Body Type" value={formatEnum(carData.bodyType)} />
+						<Spec icon={<MdRoofing />} label="Roof" value={formatEnum(carData.roofType)} />
+						<Spec icon={<GiCarSeat />} label="Seats" value={`${carData.seats} seats`} />
+					</SpecGroup>
+				</div>
 			</div>
 
 			{/* Description */}
