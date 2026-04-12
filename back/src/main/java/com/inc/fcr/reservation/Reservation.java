@@ -6,6 +6,7 @@ import com.inc.fcr.errorHandling.ValidationException;
 import com.inc.fcr.payment.Payment;
 import com.inc.fcr.user.User;
 import com.inc.fcr.utils.DatabaseController;
+import com.inc.fcr.utils.EntityController;
 import jakarta.persistence.*;
 
 import java.time.Instant;
@@ -19,13 +20,13 @@ public class Reservation {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long reservationId;
-    @ManyToOne
+    @ManyToOne @JsonBackReference
     @JoinColumn(name = "vin", nullable = false)
     private Car car;
     @ManyToOne @JsonBackReference
     @JoinColumn(name = "userId", nullable = false)
     private User user;
-    @ManyToMany
+    @ManyToMany @JsonBackReference
     @JoinTable(name = "reservationPayments",
             joinColumns = @JoinColumn(name = "reservationId"),
             inverseJoinColumns = @JoinColumn(name = "paymentId")
@@ -44,6 +45,11 @@ public class Reservation {
         this.pickUpTime = pickUpTime;
         this.dropOffTime = dropOffTime;
         this.dateBooked = dateBooked;
+    }
+
+    public Reservation(long id) throws IllegalAccessException {
+        Reservation r = (Reservation) DatabaseController.getOne(Reservation.class, id);
+        EntityController.copyFields(r, this);
     }
 
     // Seems not to work/be used by the parsers or hibernate?
@@ -113,14 +119,14 @@ public class Reservation {
     }
 
     public void setPickUpTime(Instant pickUpTime) throws ValidationException {
-        if (pickUpTime.isAfter(dropOffTime)) {
+        if (dropOffTime != null && pickUpTime.isAfter(dropOffTime)) {
             throw new ValidationException("Invalid pick up time: after drop off time");
         }
         this.pickUpTime = pickUpTime;
     }
 
     public void setDropOffTime(Instant dropOffTime) throws ValidationException {
-        if (dropOffTime.isBefore(pickUpTime)) {
+        if (pickUpTime != null && dropOffTime.isBefore(pickUpTime)) {
             throw new ValidationException("Invalid drop off time: before pick up time");
         }
         this.dropOffTime = dropOffTime;

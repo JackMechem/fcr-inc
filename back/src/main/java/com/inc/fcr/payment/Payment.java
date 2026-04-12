@@ -1,5 +1,7 @@
 package com.inc.fcr.payment;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.inc.fcr.car.Car;
 import com.inc.fcr.reservation.Reservation;
 import com.inc.fcr.user.User;
@@ -18,7 +20,7 @@ public class Payment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long paymentId;
-    @ManyToMany(mappedBy = "payments")
+    @ManyToMany(mappedBy = "payments") @JsonManagedReference
     private List<Reservation> reservations = new ArrayList<>();
     @Column(nullable = false)
     private double totalAmount;
@@ -47,10 +49,12 @@ public class Payment {
         return amountPaid >= totalAmount;
     }
 
+    @JsonIgnore
     public List<User> getUsers() {
         return reservations.stream().map(Reservation::getUser).toList();
     }
 
+    @JsonIgnore
     public List<Car> getCars() {
         return reservations.stream().map(Reservation::getCar).toList();
     }
@@ -90,5 +94,9 @@ public class Payment {
 
     public void setPaymentType(PaymentType paymentType) {
         this.paymentType = paymentType;
+    }
+
+    public void setReservations(List<Reservation> reservations) {
+        this.reservations = reservations;
     }
 }

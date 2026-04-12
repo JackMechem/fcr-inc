@@ -1,5 +1,6 @@
 package com.inc.fcr.car;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.inc.fcr.database.Converters;
 import com.inc.fcr.database.SearchField;
 import com.inc.fcr.reservation.Reservation;
@@ -116,9 +117,8 @@ public class Car {
     @Column(name = "vehicleClass")
     private VehicleClass vehicleClass;
 
-    // TODO: Implement this..? (note: do not include in constructor or try to set it)
-//    @OneToMany(mappedBy = "car")
-//    private List<Reservation> reservations = new ArrayList<>();
+    @OneToMany(mappedBy = "car") @JsonManagedReference
+    private List<Reservation> reservations = new ArrayList<>();
 
     // --- CONSTRUCTORS ---
 
@@ -214,7 +214,7 @@ public class Car {
     public VehicleClass getVehicleClass() { return vehicleClass; }
     public void setVehicleClass(VehicleClass vehicleClass) { this.vehicleClass = vehicleClass; }
 
-//    public List<Reservation> getReservations() { return reservations; }
+    public List<Reservation> getReservations() { return reservations; }
 
     // Setters with Validation
     public void setModelYear(int modelYear) throws ValidationException {
