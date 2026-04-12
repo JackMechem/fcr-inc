@@ -26,7 +26,6 @@ const EditCarPage = () => {
 				select: "vin,make,model",
 				pageSize: 100,
 			});
-			console.log(carData);
 			setCopyOptions(carData.data);
 		} catch (error) {
 			alert("Fetch failed: " + error);

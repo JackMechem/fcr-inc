@@ -11,8 +11,6 @@ const CarPage = async ({ params }: { params: Promise<{ slug: string }> }) => {
 	const { slug } = await params;
 
 	const carData: Car = await getCar(slug);
-	console.log(carData);
-
 	return (
 		<div>
 			<NavHeader white={false} />
