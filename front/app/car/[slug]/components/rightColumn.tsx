@@ -1,109 +1,112 @@
 "use client";
 
-import TitleText from "@/app/components/text/titleText";
 import DatePicker from "@/app/components/DatePicker";
 import { useHydrated } from "@/app/hooks/useHydrated";
 import { CartProps } from "@/app/types/CartTypes";
 import { Car } from "@/app/types/CarTypes";
 import { useCartStore } from "@/stores/cartStore";
-import { PropsWithChildren, useState } from "react";
+import { useState } from "react";
 
-const carToCartProps = (car: Car, startDate?: Date, endDate?: Date): CartProps => {
-	return {
-		vin: car.vin,
-		make: car.make,
-		model: car.model,
-		pricePerDay: car.pricePerDay,
-		image: car.images[0] ? car.images[0] : undefined,
-		startDate: startDate?.toISOString(),
-		endDate: endDate?.toISOString(),
-	};
-};
+const carToCartProps = (car: Car, startDate?: Date, endDate?: Date): CartProps => ({
+	vin: car.vin,
+	make: car.make,
+	model: car.model,
+	pricePerDay: car.pricePerDay,
+	image: car.images[0] ?? undefined,
+	startDate: startDate?.toISOString(),
+	endDate: endDate?.toISOString(),
+});
 
-interface RightColumnProps extends PropsWithChildren {
-	carData: Car;
-}
+const labelCls = "text-[8pt] font-[700] uppercase tracking-wider text-foreground-light mb-[6px] block";
 
-const RightColumn = ({ children, carData }: RightColumnProps) => {
+const RightColumn = ({ carData }: { carData: Car }) => {
 	const { addCar, removeCar, inCart } = useCartStore();
 	const isInCart = inCart(carData.vin);
 	const [startDate, setStartDate] = useState<Date | undefined>(undefined);
 	const [endDate, setEndDate] = useState<Date | undefined>(undefined);
-
 	const hydrated = useHydrated();
 
+	const canAdd = isInCart || (!!startDate && !!endDate);
+
+	if (!hydrated) return null;
+
 	return (
-		hydrated && (
-			<div className="flex flex-col gap-[15px] md:w-[500px] h-fit mt-[20px] bg-primary border border-third p-[20px] rounded-xl shadow-md">
-				<div>
-					<TitleText>${carData.pricePerDay}/day</TitleText>
-					<p className="text-foreground opacity-[0.7] text-[11pt]">
-						Before taxes
-					</p>
-				</div>
-				<div className="w-full h-[1px] bg-third" />
-				<div>
-					<h4 className="text-[14pt] font-[600] text-accent mb-[10px]">
-						Your Trip
-					</h4>
-					<div className="mb-[10px] flex w-full gap-[10px]">
-						<div className="w-full">
-							<p className="text-[11pt] text-foreground opacity-[0.8] mb-[5px]">
-								Trip Start
-							</p>
-							<div className="flex gap-[10px]">
-								<div className="px-[10px] py-[8px] w-full border-2 border-third rounded-lg">
-									<DatePicker
-										label="Trip Start"
-										showLabel={false}
-										placeholder="Date"
-										selected={startDate}
-										fromDate={new Date()}
-										onSelect={(d) => {
-											setStartDate(d);
-											if (endDate && d && d > endDate) setEndDate(undefined);
-										}}
-									/>
-								</div>
-							</div>
+		<div className="card flex flex-col gap-[16px] md:w-[380px] w-full flex-shrink-0 h-fit mt-[20px] p-[20px]">
+
+			{/* Price */}
+			<div>
+				<p className="text-accent text-[24pt] font-[500] leading-none">
+					${carData.pricePerDay}
+					<span className="text-[14pt] font-[400] text-accent/70">/day</span>
+				</p>
+				<p className="text-foreground-light text-[10pt] mt-[4px]">Before taxes</p>
+			</div>
+
+			<div className="w-full h-[1px] bg-third/60" />
+
+			{/* Date pickers */}
+			<div className="flex flex-col gap-[12px]">
+				<p className="text-foreground text-[11pt] font-[600]">Your Trip</p>
+				<div className="grid grid-cols-2 gap-[10px]">
+					<div>
+						<label className={labelCls}>Trip Start</label>
+						<div className="border border-third rounded-xl px-[12px] py-[10px] focus-within:border-accent/60 transition">
+							<DatePicker
+								label="Trip Start"
+								showLabel={false}
+								placeholder="Add date"
+								selected={startDate}
+								fromDate={new Date()}
+								onSelect={(d) => {
+									setStartDate(d);
+									if (endDate && d && d > endDate) setEndDate(undefined);
+								}}
+							/>
 						</div>
-						<div className="w-full">
-							<p className="text-[11pt] text-foreground opacity-[0.8] mb-[5px]">
-								Trip End
-							</p>
-							<div className="flex gap-[10px]">
-								<div className="px-[10px] py-[8px] w-full border-2 border-third rounded-lg">
-									<DatePicker
-										label="Trip End"
-										showLabel={false}
-										placeholder="Date"
-										selected={endDate}
-										onSelect={setEndDate}
-										fromDate={startDate}
-									/>
-								</div>
-							</div>
+					</div>
+					<div>
+						<label className={labelCls}>Trip End</label>
+						<div className="border border-third rounded-xl px-[12px] py-[10px] focus-within:border-accent/60 transition">
+							<DatePicker
+								label="Trip End"
+								showLabel={false}
+								placeholder="Add date"
+								selected={endDate}
+								onSelect={setEndDate}
+								fromDate={startDate}
+							/>
 						</div>
 					</div>
 				</div>
-				<div className="w-full h-[1px] bg-third" />
-
-				{!isInCart && (!startDate || !endDate) && (
-					<p className="text-center text-[10pt] text-foreground/50">
-						Select trip dates to add to cart
-					</p>
-				)}
-				<button
-					disabled={!isInCart && (!startDate || !endDate)}
-					onClick={() =>
-						isInCart ? removeCar(carData.vin) : addCar(carToCartProps(carData, startDate, endDate))
-					}
-					className="w-full flex items-center justify-center py-[10px] bg-accent rounded-xl text-primary font-[500] shadow-sm hover:brightness-[110%] hover:scale-[101%] cursor-pointer duration-[100ms] disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100 disabled:brightness-100"
-				>
-					{!isInCart ? "Add to cart" : "Remove from cart"}
-				</button>
 			</div>
-		)
+
+			<div className="w-full h-[1px] bg-third/60" />
+
+			{/* Hint */}
+			{!isInCart && (!startDate || !endDate) && (
+				<p className="text-center text-[9.5pt] text-foreground-light/70">
+					Select trip dates to add to cart
+				</p>
+			)}
+
+			{/* CTA */}
+			<button
+				disabled={!canAdd}
+				onClick={() =>
+					isInCart
+						? removeCar(carData.vin)
+						: addCar(carToCartProps(carData, startDate, endDate))
+				}
+				className={`w-full py-[12px] rounded-xl font-[600] text-[11pt] transition duration-[100ms] cursor-pointer
+					disabled:opacity-40 disabled:cursor-not-allowed
+					${isInCart
+						? "bg-third text-foreground hover:bg-accent/20 hover:text-accent/80 border border-third"
+						: "bg-accent text-primary hover:brightness-110 hover:scale-[101%]"
+					}`}
+			>
+				{isInCart ? "Remove from cart" : "Add to cart"}
+			</button>
+		</div>
 	);
 };
 
