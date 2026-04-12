@@ -46,3 +46,36 @@ body {
 .scrollbar-hide::-webkit-scrollbar {
 	display: none;
 }
+
+/*
+ * ── Global component utilities ────────────────────────────────────────────────
+ * Shared class patterns used across many components. Prefer these over
+ * repeating the same Tailwind strings inline.
+ */
+
+/* Buttons */
+.btn-primary {
+	@apply px-[12px] py-[6px] rounded-full bg-accent text-primary font-[500] hover:brightness-110 transition cursor-pointer;
+}
+.btn-secondary {
+	@apply px-[12px] py-[6px] rounded-full border border-accent text-accent font-[500] hover:bg-accent/10 transition cursor-pointer;
+}
+.btn-ghost {
+	@apply px-[12px] py-[6px] rounded-full text-foreground-light hover:text-foreground hover:bg-third/40 transition cursor-pointer;
+}
+
+/* Cards */
+.card {
+	@apply bg-primary rounded-xl border border-third shadow-sm;
+}
+
+/* Filter chips */
+.filter-chip {
+	@apply flex items-center gap-[4px] px-[10px] py-[4px] rounded-full border text-[9pt] font-[500] transition-colors cursor-pointer;
+}
+.filter-chip-active {
+	@apply bg-accent/80 text-primary border-accent/80 hover:bg-accent;
+}
+.filter-chip-inactive {
+	@apply bg-primary text-foreground border-third hover:border-accent/50;
+}
