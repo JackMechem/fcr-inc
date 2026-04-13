@@ -167,6 +167,9 @@ const HeaderMenu = () => {
 							Checkout
 						</Link>
 					)}
+					<Link href="/reservations" onClick={close} className={styles.reservationsBtn}>
+						My Reservations
+					</Link>
 					{isAdmin && (
 						<Link href="/admin" onClick={close} className={styles.adminBtn}>
 							Admin Dashboard

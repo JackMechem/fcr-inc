@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import PaymentSuccessDialog from "./components/dialogs/PaymentSuccessDialog";
 import CarScroll from "./components/scrolls/carScroll";
 import TitleText from "./components/text/titleText";
 import { getFilteredCars } from "./lib/CarApi";
@@ -67,6 +68,9 @@ const CheapCarsSection = async () => {
 const Home = () => {
 	return (
 		<>
+			<Suspense>
+				<PaymentSuccessDialog />
+			</Suspense>
 			<NavHeader />
 			<LandingHero />
 			<MainBodyContainer className={styles.mainContent}>

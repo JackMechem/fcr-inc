@@ -425,6 +425,10 @@
 	filter: brightness(1.1);
 }
 
+.paymentElement {
+	margin-bottom: 20px;
+}
+
 .termsNote {
 	color: var(--color-foreground-light);
 	font-size: 8.5pt;
