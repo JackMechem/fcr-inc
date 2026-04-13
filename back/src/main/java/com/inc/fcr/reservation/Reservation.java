@@ -15,21 +15,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "reservations")
+@Table(name = "stripe_reservations")
 public class Reservation {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long reservationId;
-    @ManyToOne @JsonBackReference
+    @ManyToOne @JsonBackReference("car-reservation")
     @JoinColumn(name = "vin", nullable = false)
     private Car car;
-    @ManyToOne @JsonBackReference
+    @ManyToOne @JsonBackReference("user-reservation")
     @JoinColumn(name = "userId", nullable = false)
     private User user;
-    @ManyToMany @JsonBackReference
-    @JoinTable(name = "reservationPayments",
+    @ManyToMany @JsonBackReference("payment-reservation")
+    @JoinTable(name = "stripe_reservation_payments",
             joinColumns = @JoinColumn(name = "reservationId"),
-            inverseJoinColumns = @JoinColumn(name = "paymentId")
+            inverseJoinColumns = @JoinColumn(name = "paymentId", columnDefinition = "VARCHAR(255)")
     ) private List<Payment> payments = new ArrayList<>();
     @Column(nullable = false)
     private Instant pickUpTime;
@@ -81,8 +81,8 @@ public class Reservation {
         return (getDurationHours()+18) / 24;
     }
 
-    public Payment getPayment(long paymentId) {
-        return payments.stream().filter(p -> p.getPaymentId() == paymentId).findFirst().orElse(null);
+    public Payment getPayment(String paymentId) {
+        return payments.stream().filter(p -> p.getPaymentId().equals(paymentId)).findFirst().orElse(null);
     }
 
     // Getters
@@ -101,7 +101,7 @@ public class Reservation {
     public List<Payment> getPayments() {
         return payments;
     }
-    public List<Long> getPaymentIds() {
+    public List<String> getPaymentIds() {
         return payments.stream().map(Payment::getPaymentId).toList();
     }
 

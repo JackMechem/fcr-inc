@@ -14,13 +14,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "payments")
+@Table(name = "stripe_payments")
 public class Payment {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long paymentId;
-    @ManyToMany(mappedBy = "payments") @JsonManagedReference @JsonIgnore
+    @Column(length = 255)
+    private String paymentId;
+    @ManyToMany(mappedBy = "payments") @JsonManagedReference("payment-reservation") @JsonIgnore
     private List<Reservation> reservations = new ArrayList<>();
     @Column(nullable = false)
     private double totalAmount;
@@ -40,7 +40,7 @@ public class Payment {
         this.paymentType = paymentType;
     }
 
-    public Payment(long id) throws IllegalAccessException {
+    public Payment(String id) throws IllegalAccessException {
         Payment p = (Payment) DatabaseController.getOne(Payment.class, id);
         EntityController.copyFields(p, this);
     }
@@ -65,7 +65,7 @@ public class Payment {
 
     // Getters
 
-    public Long getPaymentId() {
+    public String getPaymentId() {
         return paymentId;
     }
 
