@@ -97,7 +97,7 @@ public class Car {
     private RoofType roofType;
     @Enumerated(EnumType.STRING)
     private VehicleClass vehicleClass;
-    @OneToMany(mappedBy = "car") @JsonManagedReference @JsonIgnore
+    @OneToMany(mappedBy = "car") @JsonManagedReference("car-reservation") @JsonIgnore
     private List<Reservation> reservations = new ArrayList<>();
 
     // --- CONSTRUCTORS ---

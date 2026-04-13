@@ -33,7 +33,7 @@ public class User {
     @Convert(converter = Converters.JsonDriversLicenseConverter.class)
     @Column(columnDefinition = "json", nullable = false)
     private DriversLicense driversLicense;
-    @OneToMany(mappedBy = "user") @JsonManagedReference @JsonIgnore
+    @OneToMany(mappedBy = "user") @JsonManagedReference("user-reservation") @JsonIgnore
     private List<Reservation> reservations = new ArrayList<>();
     @Column(nullable = false)
     private Instant dateCreated;
