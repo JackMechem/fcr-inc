@@ -7,11 +7,22 @@ import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 
+import java.util.List;
+
 public class ReservationDataController {
 
     // TODO
     public static PagesWrapper getReservations() throws HibernateException {
         return null;
+    }
+
+    public static List<Reservation> getReservationsByUserId(long userId) throws HibernateException {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            return session.createQuery(
+                "SELECT DISTINCT r FROM Reservation r LEFT JOIN FETCH r.payments WHERE r.user.userId = :userId ORDER BY r.dateBooked DESC",
+                Reservation.class
+            ).setParameter("userId", userId).getResultList();
+        }
     }
 
     public static Reservation getReservation(long id) throws HibernateException {

@@ -7,6 +7,7 @@ import com.inc.fcr.payment.StripeController;
 import com.inc.fcr.car.CarMakeController;
 import com.inc.fcr.reservation.Reservation;
 import com.inc.fcr.reservation.ReservationController;
+import com.inc.fcr.reservation.ReservationDataController;
 import com.inc.fcr.user.User;
 import com.inc.fcr.utils.APIController;
 import com.inc.fcr.car.enums.EnumController;
@@ -97,6 +98,9 @@ public class Main {
                         get(users::getOne, Role.ANYONE);
                         patch(users::update, Role.WRITE);
                         delete(users::delete, Role.ADMIN);
+                        path("reservations", () -> {
+                            get(ReservationController::getReservationsByUser, Role.ANYONE);
+                        });
                     });
                 });
 
@@ -111,7 +115,9 @@ public class Main {
                 });
 
                 path("stripe", () -> {
+                    post("/user", StripeController::findOrCreateUser, Role.ANYONE);
                     post("/checkout", StripeController::createCheckoutSession, Role.ANYONE);
+                    post("/payment-intent", StripeController::createPaymentIntent, Role.ANYONE);
                     post("/webhook", StripeController::handleWebhook, Role.ANYONE);
                 });
 
