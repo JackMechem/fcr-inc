@@ -20,13 +20,13 @@ public class Reservation {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long reservationId;
-    @ManyToOne @JsonBackReference
+    @ManyToOne @JsonBackReference("car-reservation")
     @JoinColumn(name = "vin", nullable = false)
     private Car car;
-    @ManyToOne @JsonBackReference
+    @ManyToOne @JsonBackReference("user-reservation")
     @JoinColumn(name = "userId", nullable = false)
     private User user;
-    @ManyToMany @JsonBackReference
+    @ManyToMany @JsonBackReference("payment-reservation")
     @JoinTable(name = "reservationPayments",
             joinColumns = @JoinColumn(name = "reservationId"),
             inverseJoinColumns = @JoinColumn(name = "paymentId")

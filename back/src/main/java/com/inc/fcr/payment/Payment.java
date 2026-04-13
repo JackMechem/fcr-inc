@@ -20,7 +20,7 @@ public class Payment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long paymentId;
-    @ManyToMany(mappedBy = "payments") @JsonManagedReference @JsonIgnore
+    @ManyToMany(mappedBy = "payments") @JsonManagedReference("payment-reservation") @JsonIgnore
     private List<Reservation> reservations = new ArrayList<>();
     @Column(nullable = false)
     private double totalAmount;
