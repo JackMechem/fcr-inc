@@ -13,6 +13,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.inc.fcr.errorHandling.*;
 import com.inc.fcr.car.enums.*;
+
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -261,6 +263,13 @@ public class Car {
         } else {
             throw new ValidationException("Invalid MPG:" + mpg);
         }
+    }
+
+    // Methods
+
+    public List<List<Instant>> getReservationDates() {
+        if (reservations.isEmpty()) return List.of();
+        else return reservations.stream().map(r -> List.of(r.getPickUpTime(), r.getDropOffTime()) ).toList();
     }
 
     @Override
