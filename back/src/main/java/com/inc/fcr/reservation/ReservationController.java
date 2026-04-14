@@ -2,18 +2,25 @@ package com.inc.fcr.reservation;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.inc.fcr.database.DatabaseController;
-import com.inc.fcr.errorHandling.ApiErrorResponse;
 import com.inc.fcr.errorHandling.QueryParamException;
 import com.inc.fcr.errorHandling.ValidationException;
 import io.javalin.http.Context;
 import org.hibernate.HibernateException;
 import static com.inc.fcr.errorHandling.ApiErrors.*;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.time.Instant;
 
 public class ReservationController {
+
+    public static void getReservationsByUser(Context ctx) {
+        try {
+            long userId = Long.parseLong(ctx.pathParam("id"));
+            ctx.json(ReservationDataController.getReservationsByUserId(userId));
+        } catch (Exception e) {
+            if (e instanceof HibernateException) databaseError(ctx, e);
+            else serverError(ctx, e);
+        }
+    }
 
     public static void getAllReservations(Context ctx) {
         try {

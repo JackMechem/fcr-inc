@@ -3,9 +3,11 @@ package com.inc.fcr;
 import com.inc.fcr.car.Car;
 import com.inc.fcr.car.CarController;
 import com.inc.fcr.payment.Payment;
+import com.inc.fcr.payment.StripeController;
 import com.inc.fcr.car.CarMakeController;
 import com.inc.fcr.reservation.Reservation;
 import com.inc.fcr.reservation.ReservationController;
+import com.inc.fcr.reservation.ReservationDataController;
 import com.inc.fcr.user.User;
 import com.inc.fcr.utils.APIController;
 import com.inc.fcr.car.enums.EnumController;
@@ -54,7 +56,7 @@ public class Main {
             APIController cars = new APIController(Car.class, String.class);
             APIController reservations = new APIController(Reservation.class, Long.class);
             APIController users = new APIController(User.class, Long.class);
-            APIController payments = new APIController(Payment.class, Long.class);
+            APIController payments = new APIController(Payment.class, String.class);
 
             // Initialize endpoints
             config.router.mount(router -> {
@@ -96,6 +98,9 @@ public class Main {
                         get(users::getOne, Role.ANYONE);
                         patch(users::update, Role.WRITE);
                         delete(users::delete, Role.ADMIN);
+                        path("reservations", () -> {
+                            get(ReservationController::getReservationsByUser, Role.ANYONE);
+                        });
                     });
                 });
 
@@ -107,6 +112,13 @@ public class Main {
                         patch(payments::update, Role.WRITE);
                         delete(payments::delete, Role.ADMIN);
                     });
+                });
+
+                path("stripe", () -> {
+                    post("/user", StripeController::findOrCreateUser, Role.ANYONE);
+                    post("/checkout", StripeController::createCheckoutSession, Role.ANYONE);
+                    post("/payment-intent", StripeController::createPaymentIntent, Role.ANYONE);
+                    post("/webhook", StripeController::handleWebhook, Role.ANYONE);
                 });
 
                 // redirect to enums (/enums) and (/enums{enum})

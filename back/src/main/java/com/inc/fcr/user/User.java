@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "users")
+@Table(name = "stripe_users")
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
