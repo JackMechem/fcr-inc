@@ -1,0 +1,343 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.header h1 {
+    margin-bottom: 4px;
+}
+
+.header p {}
+
+.loading {
+    color: var(--color-foreground-light);
+    font-size: 14px;
+    padding: 40px 0;
+}
+
+.error {
+    color: var(--color-accent);
+    font-size: 14px;
+}
+
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 80px 0;
+    color: var(--color-foreground-light);
+    font-size: 15px;
+}
+
+.emptyIcon {
+    font-size: 48px;
+    opacity: 0.35;
+}
+
+/* ── Reservation cards ─────────────────────────────────────────────────────── */
+
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.card {
+    background: var(--color-primary);
+    border: 1px solid var(--color-third);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 13px 20px;
+    border-bottom: 1px solid var(--color-third);
+    background: color-mix(in srgb, var(--color-primary) 60%, var(--color-third));
+}
+
+.cardId {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--color-foreground);
+}
+
+.cardIdIcon {
+    color: var(--color-accent);
+    font-size: 18px;
+}
+
+.bookedOn {
+    font-size: 12px;
+    color: var(--color-foreground-light);
+}
+
+.cardBody {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.carRow {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.carThumb {
+    position: relative;
+    width: 80px;
+    height: 56px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--color-third);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.carThumbImg { object-fit: cover; }
+
+.carThumbFallback {
+    font-size: 28px;
+    color: var(--color-foreground-light);
+    opacity: 0.4;
+}
+
+.carName {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-foreground);
+    margin-bottom: 2px;
+}
+
+.carVin {
+    font-size: 12px;
+    color: var(--color-foreground-light);
+    font-family: monospace;
+}
+
+.datesRow {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.infoRow {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.infoIcon {
+    font-size: 18px;
+    color: var(--color-accent);
+    margin-top: 2px;
+    flex-shrink: 0;
+}
+
+.infoLabel {
+    font-size: 11px;
+    color: var(--color-foreground-light);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 2px;
+}
+
+.infoValue {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-foreground);
+}
+
+/* ── Actions ───────────────────────────────────────────────────────────────── */
+
+.actions {
+    display: flex;
+    gap: 10px;
+}
+
+.editBtn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    color: var(--color-accent);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 25%, transparent);
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: background 150ms;
+}
+
+.editBtn:hover {
+    background: color-mix(in srgb, var(--color-accent) 20%, transparent);
+}
+
+.cancelBtn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: none;
+    color: var(--color-foreground-light);
+    border: 1px solid var(--color-third);
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: border-color 150ms, color 150ms;
+}
+
+.cancelBtn:hover {
+    border-color: var(--color-accent);
+    color: var(--color-accent);
+}
+
+/* ── Forms ─────────────────────────────────────────────────────────────────── */
+
+.form {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    max-width: 640px;
+}
+
+.formSection {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 20px;
+    background: var(--color-primary);
+    border: 1px solid var(--color-third);
+    border-radius: 12px;
+}
+
+.sectionTitle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-foreground);
+    margin-bottom: 2px;
+}
+
+.sectionIcon {
+    color: var(--color-accent);
+    font-size: 16px;
+}
+
+.fieldGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.label {
+    display: flex;
+    align-items: center;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-foreground-light);
+}
+
+.labelIcon {
+    margin-right: 4px;
+    color: var(--color-accent);
+}
+
+.input {
+    width: 100%;
+    background: var(--color-primary-dark);
+    border: 1px solid var(--color-third);
+    border-radius: 8px;
+    padding: 9px 12px;
+    color: var(--color-foreground);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 150ms, box-shadow 150ms;
+}
+
+.input:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 15%, transparent);
+}
+
+.inputReadonly {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.grid2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.grid3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+}
+
+.primaryBtn {
+    padding: 11px 28px;
+    background: var(--color-accent);
+    color: var(--color-primary);
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    align-self: flex-start;
+    transition: filter 150ms;
+}
+
+.primaryBtn:hover { filter: brightness(1.1); }
+.primaryBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.backBtn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--color-foreground-light);
+    margin-bottom: 12px;
+    transition: color 150ms;
+}
+
+.backBtn:hover { color: var(--color-foreground); }
+
+.successBox {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 32px;
+    background: color-mix(in srgb, #22c55e 10%, transparent);
+    border: 1px solid color-mix(in srgb, #22c55e 30%, transparent);
+    border-radius: 12px;
+    max-width: 480px;
+}
+
+.successText {
+    color: #22c55e;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+@media (max-width: 600px) {
+    .datesRow { grid-template-columns: 1fr 1fr; }
+    .grid3 { grid-template-columns: 1fr 1fr; }
+}

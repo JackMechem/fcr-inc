@@ -108,8 +108,8 @@ const DashboardPanel = () => {
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h1>Admin Dashboard</h1>
-        <p>Fleet overview and quick actions</p>
+        <h1 className="page-title">Admin Dashboard</h1>
+        <p className="page-subtitle">Fleet overview and quick actions</p>
       </div>
 
       <div className={styles.statsGrid}>

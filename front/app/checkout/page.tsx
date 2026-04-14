@@ -105,7 +105,7 @@ const StripePaymentForm = ({ onError }: { onError: (msg: string) => void }) => {
         const { error } = await stripe.confirmPayment({
             elements,
             confirmParams: {
-                return_url: `${window.location.origin}/?payment=success`,
+                return_url: `${window.location.origin}/dashboard?payment=success`,
             },
         });
 
@@ -154,7 +154,7 @@ export default function CheckoutPage() {
         try {
             const res = await fetch(`/api/user-lookup?email=${encodeURIComponent(form.email)}`);
             const userRes = res.ok ? await res.json() : null;
-            const user = userRes.data[0];
+            const user = userRes?.data?.[0] ?? userRes ?? null;
             console.log(user);
             if (user) {
                 setUserExists(true);
@@ -252,8 +252,8 @@ export default function CheckoutPage() {
             <div className={styles.pageWrapper}>
                 <MainBodyContainer>
                     <div className={styles.inner}>
-                        <h1 className={styles.heading}>Checkout</h1>
-                        <p className={styles.subheading}>
+                        <h1 className={`page-title ${styles.heading}`}>Checkout</h1>
+                        <p className={`page-subtitle ${styles.subheading}`}>
                             {carData.length} vehicle{carData.length !== 1 ? "s" : ""} in your reservation
                         </p>
 

@@ -7,15 +7,10 @@
 }
 
 .header h1 {
-	color: var(--color-foreground);
-	font-size: 28pt;
-	font-weight: 700;
 	line-height: 1.2;
 }
 
 .header p {
-	color: var(--color-foreground-light);
-	font-size: 11pt;
 	margin-top: 4px;
 }
 

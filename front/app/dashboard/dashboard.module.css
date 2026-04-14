@@ -1,0 +1,140 @@
+.content {
+    transition: padding-left 300ms ease-in-out;
+}
+
+.inner {
+    padding: 40px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+/* ── Email prompt ──────────────────────────────────────────────────────────── */
+
+.promptWrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 64px);
+    padding: 20px;
+    background: var(--color-primary);
+}
+
+.promptCard {
+    width: 100%;
+    max-width: 380px;
+    background: var(--color-primary);
+    border: 1px solid var(--color-third);
+    border-radius: 1rem;
+    padding: 36px 32px;
+    box-shadow: 0 4px 24px rgb(0 0 0 / 0.07);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.promptTitle {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--color-foreground);
+}
+
+.promptSubtitle {
+    font-size: 13px;
+    color: var(--color-foreground-light);
+    margin-top: -8px;
+}
+
+.promptForm {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.promptFieldGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.promptLabel {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-foreground-light);
+}
+
+.promptInput {
+    width: 100%;
+    background: var(--color-primary-dark);
+    border: 1px solid var(--color-third);
+    border-radius: 0.75rem;
+    padding: 10px 14px;
+    color: var(--color-foreground);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 150ms, box-shadow 150ms;
+}
+
+.promptInput:focus {
+    border-color: var(--color-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 15%, transparent);
+}
+
+.promptBtn {
+    width: 100%;
+    padding: 11px 0;
+    background: var(--color-accent);
+    color: var(--color-primary);
+    border: none;
+    border-radius: 0.75rem;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 150ms;
+}
+
+.promptBtn:hover { filter: brightness(1.1); }
+.promptBtn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.promptError {
+    font-size: 13px;
+    color: var(--color-accent);
+}
+
+/* ── Payment success banner ────────────────────────────────────────────────── */
+
+.successBanner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 18px;
+    background: color-mix(in srgb, #22c55e 12%, transparent);
+    border: 1px solid color-mix(in srgb, #22c55e 30%, transparent);
+    border-radius: 10px;
+}
+
+.successBannerLeft {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    color: #22c55e;
+}
+
+.successBannerIcon {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.successBannerClose {
+    color: #22c55e;
+    font-size: 18px;
+    opacity: 0.7;
+    transition: opacity 150ms;
+}
+
+.successBannerClose:hover { opacity: 1; }

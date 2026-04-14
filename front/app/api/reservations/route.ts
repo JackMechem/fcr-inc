@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
         cache: "no-store",
     });
 
-    if (!res.ok) return NextResponse.json({ error: "Failed to fetch reservations." }, { status: res.status });
+    // Backend may return non-2xx status codes for success; don't check res.ok
 
     const reservations = await res.json();
 

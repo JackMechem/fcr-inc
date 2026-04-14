@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import MainBodyContainer from "../components/containers/mainBodyContainer";
 import NavHeader from "../components/headers/navHeader";
-import TitleText from "../components/text/titleText";
 import AdminSidebar from "../components/menus/adminSidebar";
 import CarFormPanel from "./components/CarFormPanel";
 import DashboardPanel from "./components/DashboardPanel";
@@ -35,14 +34,14 @@ export default function AdminPage() {
 			case "add-car":
 				return (
 					<div>
-						<TitleText className="mb-[24px]">Add Car</TitleText>
+						<h1 className="page-title" style={{ marginBottom: 24 }}>Add Car</h1>
 						<CarFormPanel mode="add" />
 					</div>
 				);
 			case "edit-car":
 				return (
 					<div>
-						<TitleText className="mb-[24px]">Edit Car</TitleText>
+						<h1 className="page-title" style={{ marginBottom: 24 }}>Edit Car</h1>
 						<CarFormPanel mode="edit" />
 					</div>
 				);
