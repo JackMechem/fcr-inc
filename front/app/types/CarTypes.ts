@@ -20,7 +20,8 @@ export interface Car {
     roofType: string;
     vehicleClass: string;
     modelYear: number;
-    [key: string]: string | number | string[] | undefined;
+    reservationDates?: number[][];
+    [key: string]: string | number | string[] | number[][] | undefined;
 }
 
 export interface CarPages {
@@ -36,6 +37,8 @@ export interface CarApiParams {
     select?: string;
     sortBy?: string;
     sortDir?: "asc" | "desc";
+    fromDate?: string;
+    untilDate?: string;
     make?: string;
     model?: string;
     modelYear?: number;
@@ -63,6 +66,7 @@ export interface CarApiParams {
     minPricePerDay?: number;
     maxPricePerDay?: number;
     search?: string;
+    availabilityFilter?: string;
 }
 
 

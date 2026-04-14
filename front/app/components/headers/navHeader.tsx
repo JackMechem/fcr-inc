@@ -14,6 +14,8 @@ import { useFilterParams } from "@/app/hooks/useFilterParams";
 import { useScrollCollapse } from "@/app/hooks/useScrollCollapse";
 import { useSearchSuggestions } from "@/app/hooks/useSearchSuggestions";
 import type { Suggestion } from "@/app/hooks/useSearchSuggestions";
+import { saveDates, getStoredDates } from "@/app/lib/browseStorage";
+import { useCartStore } from "@/stores/cartStore";
 import styles from "./navHeader.module.css";
 
 const COMPACT_SCROLL_THRESHOLD = 100;
@@ -32,8 +34,6 @@ const NavHeader = ({
 	mobileFilterButton,
 	activeFilters,
 }: NavHeaderProps) => {
-	const [fromDate, setFromDate] = useState<Date | undefined>(undefined);
-	const [untilDate, setUntilDate] = useState<Date | undefined>(undefined);
 	const [showSuggestions, setShowSuggestions] = useState(false);
 	const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
 	const searchBarRef = useRef<HTMLDivElement>(null);
@@ -41,6 +41,103 @@ const NavHeader = ({
 	const router = useRouter();
 	const pathname = usePathname();
 	const { set, params } = useFilterParams();
+
+	const parseDate = (s: string | undefined): Date | undefined => {
+		if (!s) return undefined;
+		// Parse YYYY-MM-DD as local midnight to avoid UTC off-by-one
+		const parts = s.split("-").map(Number);
+		if (parts.length !== 3 || parts.some(isNaN)) return undefined;
+		const d = new Date(parts[0], parts[1] - 1, parts[2]);
+		return isNaN(d.getTime()) ? undefined : d;
+	};
+
+	// Use local date parts to avoid UTC timezone off-by-one issues
+	const toDateStr = (d: Date | undefined) => {
+		if (!d) return undefined;
+		const y = d.getFullYear();
+		const m = String(d.getMonth() + 1).padStart(2, "0");
+		const day = String(d.getDate()).padStart(2, "0");
+		return `${y}-${m}-${day}`;
+	};
+
+	const cartItems = useCartStore((s) => s.carData);
+	const cartDateRanges = cartItems
+		.filter((c) => c.startDate && c.endDate)
+		.map((c) => ({ from: new Date(c.startDate!), to: new Date(c.endDate!) }));
+
+	// Initialize from URL params, falling back to localStorage for cross-page persistence
+	const [fromDate, setFromDate] = useState<Date | undefined>(() =>
+		parseDate(params.fromDate?.toString()),
+	);
+	const [untilDate, setUntilDate] = useState<Date | undefined>(() =>
+		parseDate(params.untilDate?.toString()),
+	);
+
+	// On mount: if URL has no dates, restore from localStorage
+	const localStorageInitialized = useRef(false);
+	useEffect(() => {
+		if (localStorageInitialized.current) return;
+		localStorageInitialized.current = true;
+		if (!params.fromDate && !params.untilDate) {
+			const stored = getStoredDates();
+			const storedFrom = stored.get("fromDate");
+			const storedUntil = stored.get("untilDate");
+			if (storedFrom) setFromDate(parseDate(storedFrom));
+			if (storedUntil) setUntilDate(parseDate(storedUntil));
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+
+	const prevParamFromDate = useRef(params.fromDate?.toString() ?? "");
+	const prevParamUntilDate = useRef(params.untilDate?.toString() ?? "");
+
+	const paramFromDate = params.fromDate?.toString() ?? "";
+	const paramUntilDate = params.untilDate?.toString() ?? "";
+
+	// Sync from URL changes (e.g. browser back/forward, BrowseParamsSync restoring dates)
+	if (paramFromDate !== prevParamFromDate.current) {
+		prevParamFromDate.current = paramFromDate;
+		if (paramFromDate) {
+			setFromDate(parseDate(paramFromDate));
+		} else {
+			// URL cleared — check localStorage before wiping local state
+			const stored = getStoredDates().get("fromDate");
+			setFromDate(stored ? parseDate(stored) : undefined);
+		}
+	}
+	if (paramUntilDate !== prevParamUntilDate.current) {
+		prevParamUntilDate.current = paramUntilDate;
+		if (paramUntilDate) {
+			setUntilDate(parseDate(paramUntilDate));
+		} else {
+			const stored = getStoredDates().get("untilDate");
+			setUntilDate(stored ? parseDate(stored) : undefined);
+		}
+	}
+
+	// True when the selected browse date range overlaps any cart item's rental period
+	const hasCartDateConflict =
+		!!fromDate &&
+		!!untilDate &&
+		cartDateRanges.some(
+			(r) =>
+				fromDate.getTime() < r.to.getTime() &&
+				untilDate.getTime() > r.from.getTime(),
+		);
+
+	const handleFromDateChange = (d: Date | undefined) => {
+		const newUntil = untilDate && d && d > untilDate ? undefined : untilDate;
+		setFromDate(d);
+		setUntilDate(newUntil);
+		set({ fromDate: toDateStr(d), untilDate: toDateStr(newUntil) });
+		saveDates(toDateStr(d), toDateStr(newUntil));
+	};
+
+	const handleUntilDateChange = (d: Date | undefined) => {
+		setUntilDate(d);
+		set({ untilDate: toDateStr(d) });
+		saveDates(toDateStr(fromDate), toDateStr(d));
+	};
 
 	const [searchText, setSearchText] = useState(
 		() => params.search?.toString() ?? "",
@@ -178,27 +275,35 @@ const NavHeader = ({
 							</div>
 							{separator}
 							<div className={styles.datepickerSlot110}>
-								<p className={styles.searchFieldLabel}>From</p>
+								<div className={styles.dateLabelRow}>
+									<p className={styles.searchFieldLabel}>From</p>
+									{hasCartDateConflict && fromDate && (
+										<span className={styles.dateDot} />
+									)}
+								</div>
 								<DatePicker
 									label="From"
 									showLabel={false}
 									selected={fromDate}
-									onSelect={(d) => {
-										setFromDate(d);
-										if (untilDate && d && d > untilDate)
-											setUntilDate(undefined);
-									}}
+									onSelect={handleFromDateChange}
+									cartRanges={cartDateRanges}
 								/>
 							</div>
 							{separator}
 							<div className={styles.datepickerSlot100}>
-								<p className={styles.searchFieldLabel}>Until</p>
+								<div className={styles.dateLabelRow}>
+									<p className={styles.searchFieldLabel}>Until</p>
+									{hasCartDateConflict && untilDate && (
+										<span className={styles.dateDot} />
+									)}
+								</div>
 								<DatePicker
 									label="Until"
 									showLabel={false}
 									selected={untilDate}
-									onSelect={setUntilDate}
+									onSelect={handleUntilDateChange}
 									fromDate={fromDate}
+									cartRanges={cartDateRanges}
 								/>
 							</div>
 							{searchButton}
@@ -247,28 +352,33 @@ const NavHeader = ({
 							className={styles.mobileSearchInput}
 						/>
 						<div className={styles.mobileSeparator} />
-						<div className={styles.datepickerSlot}>
+						<div className={styles.datepickerSlotDot}>
 							<DatePicker
 								label="From"
 								showLabel={false}
 								placeholder="From"
 								selected={fromDate}
-								onSelect={(d) => {
-									setFromDate(d);
-									if (untilDate && d && d > untilDate) setUntilDate(undefined);
-								}}
+								onSelect={handleFromDateChange}
+								cartRanges={cartDateRanges}
 							/>
+							{hasCartDateConflict && fromDate && (
+								<span className={styles.dateDotAbsolute} />
+							)}
 						</div>
 						<div className={styles.mobileSeparator} />
-						<div className={styles.datepickerSlot}>
+						<div className={styles.datepickerSlotDot}>
 							<DatePicker
 								label="Until"
 								showLabel={false}
 								placeholder="Until"
 								selected={untilDate}
-								onSelect={setUntilDate}
+								onSelect={handleUntilDateChange}
 								fromDate={fromDate}
+								cartRanges={cartDateRanges}
 							/>
+							{hasCartDateConflict && untilDate && (
+								<span className={styles.dateDotAbsolute} />
+							)}
 						</div>
 						{searchButton}
 						{showSuggestions &&

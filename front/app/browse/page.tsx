@@ -13,6 +13,7 @@ import LayoutToggle from "./components/layoutToggle";
 import CarListSkeleton from "../components/skeletons/CarListSkeleton";
 import CarGridSkeleton from "../components/skeletons/CarGridSkeleton";
 import BrowseContentWrapper from "./components/BrowseContentWrapper";
+import BrowseParamsSync from "./components/BrowseParamsSync";
 import styles from "./components/browseContent.module.css";
 
 type Params = { [key: string]: string | string[] | undefined };
@@ -51,7 +52,6 @@ const CarResults = async ({
 		maxGears: num(p.maxGears),
 		minPricePerDay: num(p.minPricePerDay),
 		maxPricePerDay: num(p.maxPricePerDay),
-		select: str(p.select),
 		sortBy: str(p.sortBy),
 		sortDir: str(p.sortDir) as "asc" | "desc" | undefined,
 		make: str(p.make),
@@ -64,6 +64,7 @@ const CarResults = async ({
 		roofType: str(p.roofType),
 		vehicleClass: str(p.vehicleClass),
 		search: str(p.search),
+		availabilityFilter: str(p.availabilityFilter),
 	};
 
 	const carsPages: CarPages = await getFilteredCars(filterParams);
@@ -74,6 +75,8 @@ const CarResults = async ({
 			totalPages={carsPages.totalPages}
 			filterParams={filterParams}
 			layout={layout}
+			fromDate={str(p.fromDate)}
+			untilDate={str(p.untilDate)}
 		/>
 	);
 };
@@ -100,6 +103,9 @@ const BrowsePage = async ({
 
 	return (
 		<div className={styles.page}>
+			<Suspense>
+				<BrowseParamsSync />
+			</Suspense>
 			<NavHeader
 				white={false}
 				filterControls={

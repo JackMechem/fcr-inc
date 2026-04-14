@@ -136,12 +136,51 @@
 	flex-shrink: 0;
 }
 
+.datepickerSlotDot {
+	position: relative;
+	min-width: 40px;
+	width: 10%;
+	flex-shrink: 0;
+}
+
 .datepickerSlot110 {
 	width: 110px;
 }
 
 .datepickerSlot100 {
 	width: 100px;
+}
+
+.dateLabelRow {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.dateDot {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background-color: #1d4ed8;
+	flex-shrink: 0;
+	display: inline-block;
+}
+
+.dateDotAbsolute {
+	position: absolute;
+	top: 50%;
+	right: -3px;
+	transform: translateY(-50%);
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background-color: #1d4ed8;
+	pointer-events: none;
+}
+
+:global([data-theme="dark"]) .dateDot,
+:global([data-theme="dark"]) .dateDotAbsolute {
+	background-color: #93c5fd;
 }
 
 .searchBtnContainer {

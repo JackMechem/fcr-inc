@@ -28,6 +28,23 @@
 }
 
 /* ── FilterButton ────────────────────────────────────────────────────────────── */
+.filterBtnWrapper {
+	position: relative;
+	display: flex;
+	height: 100%;
+}
+
+.filterActiveDot {
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background-color: var(--color-accent);
+	pointer-events: none;
+}
+
 .filterBtn {
 	font-size: 20pt;
 	color: color-mix(in srgb, var(--color-accent) 80%, transparent);

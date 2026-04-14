@@ -17,9 +17,10 @@ interface DatePickerProps {
     onSelect: (date: Date | undefined) => void;
     fromDate?: Date;
     disabledRanges?: DateRange[];
+    cartRanges?: DateRange[];
 }
 
-const DatePicker = ({ label, showLabel = true, placeholder = "Add date", selected, onSelect, fromDate, disabledRanges = [] }: DatePickerProps) => {
+const DatePicker = ({ label, showLabel = true, placeholder = "Add date", selected, onSelect, fromDate, disabledRanges = [], cartRanges = [] }: DatePickerProps) => {
     const [open, setOpen] = useState(false);
     const [viewMonth, setViewMonth] = useState(selected ?? new Date());
     const [popupAlign, setPopupAlign] = useState<"center" | "left" | "right">("center");
@@ -61,12 +62,21 @@ const DatePicker = ({ label, showLabel = true, placeholder = "Add date", selecte
     const days = buildCalendarDays();
     const today = startOfDay(new Date());
 
-    const isDisabled = (day: Date) => {
+    const isInRange = (day: Date, ranges: DateRange[]) => {
         const d = startOfDay(day);
-        if (fromDate && isBefore(d, startOfDay(fromDate))) return true;
-        return disabledRanges.some(
+        return ranges.some(
             ({ from, to }) => !isBefore(d, startOfDay(from)) && !isAfter(d, startOfDay(to))
         );
+    };
+
+    const isCartReserved = (day: Date) => isInRange(day, cartRanges);
+    const isReserved = (day: Date) => isInRange(day, disabledRanges);
+
+    const isDisabled = (day: Date) => {
+        const d = startOfDay(day);
+        if (isBefore(d, today)) return true;
+        if (fromDate && isBefore(d, startOfDay(fromDate))) return true;
+        return isReserved(day) || isCartReserved(day);
     };
 
     const popupPositionClass = popupAbove ? styles.popupAbove : styles.popupBelow;
@@ -122,13 +132,17 @@ const DatePicker = ({ label, showLabel = true, placeholder = "Add date", selecte
                     <div className={styles.daysGrid}>
                         {days.map((day) => {
                             const disabled = isDisabled(day);
+                            const cartDay = isCartReserved(day);
+                            const reserved = isReserved(day);
                             const isCurrentMonth = isSameMonth(day, viewMonth);
                             const isSelected = selected && isSameDay(day, selected);
                             const isToday = isSameDay(day, today);
 
                             let dayClass = styles.day;
                             if (!isCurrentMonth) dayClass += " " + styles.dayOutsideMonth;
-                            if (disabled) dayClass += " " + styles.dayDisabled;
+                            if (disabled && cartDay) dayClass += " " + styles.dayCartReserved;
+                            else if (disabled && reserved) dayClass += " " + styles.dayReserved;
+                            else if (disabled) dayClass += " " + styles.dayDisabled;
                             if (isSelected) dayClass += " " + styles.daySelected;
                             else if (isToday && !disabled) dayClass += " " + styles.dayToday;
                             else if (!disabled && isCurrentMonth) dayClass += " " + styles.dayNormal;

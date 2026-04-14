@@ -125,6 +125,34 @@
 	opacity: 0.2;
 }
 
+.dayReserved {
+	cursor: not-allowed;
+	background-color: color-mix(in srgb, #ef4444 18%, transparent);
+	color: #dc2626;
+	font-weight: 500;
+	text-decoration: line-through;
+	opacity: 0.85;
+}
+
+:global([data-theme="dark"]) .dayReserved {
+	background-color: color-mix(in srgb, #f87171 15%, transparent);
+	color: #f87171;
+}
+
+.dayCartReserved {
+	cursor: not-allowed;
+	background-color: color-mix(in srgb, #3b82f6 18%, transparent);
+	color: #1d4ed8;
+	font-weight: 500;
+	text-decoration: line-through;
+	opacity: 0.9;
+}
+
+:global([data-theme="dark"]) .dayCartReserved {
+	background-color: color-mix(in srgb, #60a5fa 15%, transparent);
+	color: #93c5fd;
+}
+
 .daySelected {
 	background-color: var(--color-accent);
 	color: var(--color-primary);

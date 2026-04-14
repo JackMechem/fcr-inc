@@ -38,6 +38,20 @@ const FilterSidebar = () => {
 
 			{/* Scrollable content */}
 			<div className={styles.scrollable}>
+				<div className={styles.section}>
+					<SectionTitle>Availability</SectionTitle>
+					<PillSelect
+						selected={get("availabilityFilter")}
+						onChange={(v) => set({ availabilityFilter: v ?? undefined })}
+						options={[
+							{ paramId: "available", displayText: "Available only" },
+							{ paramId: "hide_unavailable", displayText: "Hide unavailable" },
+						]}
+					/>
+				</div>
+
+				<Divider />
+
 				{filterEnums && (
 					<>
 						<div className={styles.section}>

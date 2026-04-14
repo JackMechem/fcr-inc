@@ -40,6 +40,9 @@ const SKIP = new Set([
 	"select",
 	"layout",
 	"search",
+	"fromDate",
+	"untilDate",
+	"availabilityFilter",
 ]);
 
 const ActiveFilters = ({ className }: { className?: string }) => {
