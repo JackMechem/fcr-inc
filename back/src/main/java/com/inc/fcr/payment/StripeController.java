@@ -419,22 +419,8 @@ public class StripeController {
             throw new RuntimeException("Failed to create payment: " + paymentResponse.body());
         }
 
-        // Step 2: Collect existing payment IDs for this user and append the new one
         long userId = Long.parseLong(metadata.get("userId"));
-        List<String> allPaymentIds = new ArrayList<>();
-        try (org.hibernate.Session hSession = HibernateUtil.getSessionFactory().openSession()) {
-            List<String> existing = hSession.createQuery(
-                "SELECT DISTINCT p.paymentId FROM Reservation r JOIN r.payments p WHERE r.user.userId = :userId",
-                String.class
-            ).setParameter("userId", userId).getResultList();
-            allPaymentIds.addAll(existing);
-        }
-        allPaymentIds.add(paymentId);
-        System.out.println("Webhook: payments for user " + userId + ": " + allPaymentIds);
-
-        String paymentsJson = allPaymentIds.stream()
-                .map(id -> "\"" + id + "\"")
-                .collect(java.util.stream.Collectors.joining(",", "[", "]"));
+        String paymentsJson = "[\"" + paymentId + "\"]";
 
         // Step 3: Create a reservation per car, referencing all payments
         List<Long> createdReservationIds = new ArrayList<>();
