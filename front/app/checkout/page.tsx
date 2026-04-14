@@ -2,28 +2,28 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
-import Cookies from "js-cookie";
+import { loadStripe, type Stripe } from "@stripe/stripe-js";
+import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import NavHeader from "../components/headers/navHeader";
 import MainBodyContainer from "../components/containers/mainBodyContainer";
 import { useCartStore } from "@/stores/cartStore";
 import { CartProps } from "../types/CartTypes";
-import { BiCar, BiCalendar, BiTrash, BiCreditCard, BiLock, BiUser, BiPhone, BiEnvelope, BiIdCard } from "react-icons/bi";
+import { BiCar, BiCalendar, BiTrash, BiIdCard, BiUser, BiMap, BiPhone, BiEnvelope } from "react-icons/bi";
 import styles from "./checkout.module.css";
-
-const API = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const daysBetween = (start?: string, end?: string): number => {
     if (!start || !end) return 1;
     const ms = new Date(end).getTime() - new Date(start).getTime();
-    const days = Math.ceil(ms / (1000 * 60 * 60 * 24));
-    return days > 0 ? days : 1;
+    return Math.ceil(ms / (1000 * 60 * 60 * 24)) + 1;
 };
 
 const fmtDate = (d?: string) =>
     d ? new Date(d).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "—";
+
+const toUnixSeconds = (dateStr: string) =>
+    Math.floor(new Date(dateStr).getTime() / 1000);
 
 // ── Cart item row ─────────────────────────────────────────────────────────────
 
@@ -90,28 +90,106 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
     </div>
 );
 
+// ── Stripe payment form (must be inside <Elements>) ───────────────────────────
+
+const StripePaymentForm = ({ onError }: { onError: (msg: string) => void }) => {
+    const stripe = useStripe();
+    const elements = useElements();
+    const [loading, setLoading] = useState(false);
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!stripe || !elements) return;
+        setLoading(true);
+
+        const { error } = await stripe.confirmPayment({
+            elements,
+            confirmParams: {
+                return_url: `${window.location.origin}/dashboard?payment=success`,
+            },
+        });
+
+        if (error) {
+            onError(error.message ?? "Payment failed. Please try again.");
+            setLoading(false);
+        }
+    };
+
+    return (
+        <form onSubmit={handleSubmit}>
+            <div className={styles.paymentElement}>
+                <PaymentElement />
+            </div>
+            <button type="submit" disabled={!stripe || loading} className={styles.confirmBtn}>
+                {loading ? "Processing..." : "Pay Now"}
+            </button>
+        </form>
+    );
+};
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function CheckoutPage() {
-    const { carData, removeCar, clearCart } = useCartStore();
-    const router = useRouter();
+    const { carData, removeCar } = useCartStore();
 
     const [form, setForm] = useState({
-        firstName: "", lastName: "", email: "", phone: "", license: "",
-        cardName: "", cardNumber: "", expiry: "", cvv: "",
+        firstName: "", lastName: "", email: "", phoneNumber: "",
+        buildingNumber: "", streetName: "", city: "", state: "", zipCode: "",
+        licenseNumber: "", licenseState: "", expirationDate: "", dateOfBirth: "",
     });
+    const [emailChecked, setEmailChecked] = useState(false);
+    const [emailChecking, setEmailChecking] = useState(false);
+    const [userExists, setUserExists] = useState(false);
+    const [clientSecret, setClientSecret] = useState<string | null>(null);
+    const [stripePromise, setStripePromise] = useState<Promise<Stripe | null> | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const setField = (key: keyof typeof form, value: string) =>
-        setForm((prev) => ({ ...prev, [key]: value }));
+    const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
+        setForm((prev) => ({ ...prev, [key]: e.target.value }));
 
-    const formatCard = (val: string) =>
-        val.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
+    const handleEmailCheck = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setEmailChecking(true);
+        try {
+            const res = await fetch(`/api/user-lookup?email=${encodeURIComponent(form.email)}`);
+            const userRes = res.ok ? await res.json() : null;
+            const user = userRes?.data?.[0] ?? userRes ?? null;
+            console.log(user);
+            if (user) {
+                setUserExists(true);
+                setForm((prev) => ({
+                    ...prev,
+                    firstName: user.firstName ?? "",
+                    lastName: user.lastName ?? "",
+                    phoneNumber: user.phoneNumber ?? "",
+                    buildingNumber: user.address?.buildingNumber ?? "",
+                    streetName: user.address?.streetName ?? "",
+                    city: user.address?.city ?? "",
+                    state: user.address?.state ?? "",
+                    zipCode: user.address?.zipCode ?? "",
+                    licenseNumber: user.driversLicense?.driversLicense ?? "",
+                    licenseState: user.driversLicense?.state ?? "",
+                    expirationDate: user.driversLicense?.expirationDate
+                        ? new Date(user.driversLicense.expirationDate * 1000).toISOString().split("T")[0]
+                        : "",
+                    dateOfBirth: user.driversLicense?.dateOfBirth
+                        ? new Date(user.driversLicense.dateOfBirth * 1000).toISOString().split("T")[0]
+                        : "",
+                }));
+            } else {
+                setUserExists(false);
+            }
+            setEmailChecked(true);
+        } finally {
+            setEmailChecking(false);
+        }
+    };
 
-    const formatExpiry = (val: string) => {
-        const digits = val.replace(/\D/g, "").slice(0, 4);
-        return digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
+    const resetEmail = () => {
+        setEmailChecked(false);
+        setUserExists(false);
+        setForm((prev) => ({ ...prev, email: "" }));
     };
 
     const subtotals = carData.map((item) => item.pricePerDay * daysBetween(item.startDate, item.endDate));
@@ -119,44 +197,48 @@ export default function CheckoutPage() {
     const tax = Math.round(subtotal * 0.08);
     const total = subtotal + tax;
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleProceed = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError(null);
 
         try {
-            const raw = Cookies.get("credentials");
-            if (!raw) throw new Error("You must be logged in to make a reservation.");
-            const { username, password } = JSON.parse(raw);
-            const authHeader = `Basic ${btoa(`${username}:${password}`)}`;
+            const res = await fetch("/api/payment-intent", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    userInfo: {
+                        email: form.email,
+                        firstName: form.firstName,
+                        lastName: form.lastName,
+                        phoneNumber: form.phoneNumber,
+                        address: {
+                            buildingNumber: form.buildingNumber,
+                            streetName: form.streetName,
+                            city: form.city,
+                            state: form.state,
+                            zipCode: form.zipCode,
+                        },
+                        driversLicense: {
+                            driversLicense: form.licenseNumber,
+                            state: form.licenseState,
+                            expirationDate: toUnixSeconds(form.expirationDate),
+                            dateOfBirth: toUnixSeconds(form.dateOfBirth),
+                        },
+                    },
+                    cars: carData.map((item) => ({
+                        vin: item.vin,
+                        pickUpTime: item.startDate ? new Date(item.startDate).toISOString() : "",
+                        dropOffTime: item.endDate ? new Date(item.endDate).toISOString() : "",
+                    })),
+                }),
+            });
 
-            const dateBooked = new Date().toISOString();
+            if (!res.ok) throw new Error((await res.json()).error ?? "Failed to initiate payment.");
 
-            await Promise.all(carData.map((item) => {
-                const pickUpTime = item.startDate ? new Date(item.startDate).toISOString() : "";
-                const dropOffTime = item.endDate ? new Date(item.endDate).toISOString() : "";
-
-                const body = {
-                        pickUpTime,
-                        dropOffTime,
-                        dateBooked,
-                        car: item.vin,
-                        user: 1,
-                        payments: [1],
-                    };
-                console.log("Reservation body:", JSON.stringify(body, null, 2));
-
-                return fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/reservations`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json", "Authorization": authHeader },
-                    body: JSON.stringify(body),
-                }).then((res) => {
-                    if (!res.ok) throw new Error(`Failed to book ${item.make} ${item.model}`);
-                });
-            }));
-
-            clearCart();
-            router.push("/");
+            const data = await res.json();
+            setStripePromise(loadStripe(data.publishableKey));
+            setClientSecret(data.clientSecret);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
         } finally {
@@ -170,8 +252,8 @@ export default function CheckoutPage() {
             <div className={styles.pageWrapper}>
                 <MainBodyContainer>
                     <div className={styles.inner}>
-                        <h1 className={styles.heading}>Checkout</h1>
-                        <p className={styles.subheading}>
+                        <h1 className={`page-title ${styles.heading}`}>Checkout</h1>
+                        <p className={`page-subtitle ${styles.subheading}`}>
                             {carData.length} vehicle{carData.length !== 1 ? "s" : ""} in your reservation
                         </p>
 
@@ -181,146 +263,208 @@ export default function CheckoutPage() {
                                 <p className={styles.emptyText}>Your cart is empty.</p>
                             </div>
                         ) : (
-                            <form onSubmit={handleSubmit}>
-                                <div className={styles.formGrid}>
+                            <div className={styles.formGrid}>
 
-                                    {/* ── Left column ── */}
-                                    <div className={styles.leftCol}>
+                                {/* ── Left column ── */}
+                                <div className={styles.leftCol}>
+                                    <SectionCard title="Your Vehicles" icon={<BiCar />}>
+                                        <div>
+                                            {carData.map((item) => (
+                                                <CartItemRow
+                                                    key={item.vin}
+                                                    item={item}
+                                                    onRemove={() => removeCar(item.vin)}
+                                                />
+                                            ))}
+                                        </div>
+                                    </SectionCard>
 
-                                        {/* Cart items */}
-                                        <SectionCard title="Your Vehicles" icon={<BiCar />}>
-                                            <div>
-                                                {carData.map((item) => (
-                                                    <CartItemRow
-                                                        key={item.vin}
-                                                        item={item}
-                                                        onRemove={() => removeCar(item.vin)}
-                                                    />
-                                                ))}
-                                            </div>
-                                        </SectionCard>
-
-                                        {/* Personal details */}
-                                        <SectionCard title="Your Details" icon={<BiUser />}>
-                                            <div className={styles.inputGrid2}>
-                                                <Field label="First Name">
-                                                    <input className={styles.input} placeholder="John" value={form.firstName}
-                                                        onChange={(e) => setField("firstName", e.target.value)} required />
-                                                </Field>
-                                                <Field label="Last Name">
-                                                    <input className={styles.input} placeholder="Doe" value={form.lastName}
-                                                        onChange={(e) => setField("lastName", e.target.value)} required />
-                                                </Field>
-                                            </div>
-                                            <div className={styles.inputGrid2}>
-                                                <Field label="Email">
+                                    {!clientSecret && (<>
+                                        <SectionCard title="Personal Info" icon={<BiUser />}>
+                                            {/* Email row — always shown */}
+                                            <Field label="Email">
+                                                <div className={styles.emailRow}>
                                                     <div className={styles.inputWithIcon}>
                                                         <BiEnvelope className={styles.inputIcon} />
-                                                        <input type="email" className={styles.inputWithIconField} placeholder="john@example.com"
-                                                            value={form.email} onChange={(e) => setField("email", e.target.value)} required />
+                                                        <input
+                                                            type="email"
+                                                            className={`${styles.inputWithIconField} ${emailChecked ? styles.inputReadonly : ""}`}
+                                                            placeholder="john@example.com"
+                                                            value={form.email}
+                                                            onChange={set("email")}
+                                                            readOnly={emailChecked}
+                                                            required
+                                                        />
                                                     </div>
-                                                </Field>
+                                                    {emailChecked ? (
+                                                        <button type="button" className={styles.changeEmailBtn} onClick={resetEmail}>
+                                                            Change
+                                                        </button>
+                                                    ) : (
+                                                        <form onSubmit={handleEmailCheck}>
+                                                            <button type="submit" className={styles.checkEmailBtn} disabled={emailChecking}>
+                                                                {emailChecking ? "..." : "Continue"}
+                                                            </button>
+                                                        </form>
+                                                    )}
+                                                </div>
+                                            </Field>
+
+                                            {/* Rest of personal info — shown after email check */}
+                                            {emailChecked && (<>
+                                                {userExists && (
+                                                    <p className={styles.userFoundNote}>Account found — details pre-filled.</p>
+                                                )}
+                                                <div className={styles.inputGrid2}>
+                                                    <Field label="First Name">
+                                                        <input
+                                                            className={`${styles.input} ${userExists ? styles.inputReadonly : ""}`}
+                                                            placeholder="John" value={form.firstName}
+                                                            onChange={set("firstName")} readOnly={userExists} required />
+                                                    </Field>
+                                                    <Field label="Last Name">
+                                                        <input
+                                                            className={`${styles.input} ${userExists ? styles.inputReadonly : ""}`}
+                                                            placeholder="Doe" value={form.lastName}
+                                                            onChange={set("lastName")} readOnly={userExists} required />
+                                                    </Field>
+                                                </div>
                                                 <Field label="Phone">
                                                     <div className={styles.inputWithIcon}>
                                                         <BiPhone className={styles.inputIcon} />
-                                                        <input type="tel" className={styles.inputWithIconField} placeholder="+1 (555) 000-0000"
-                                                            value={form.phone} onChange={(e) => setField("phone", e.target.value)} required />
+                                                        <input type="tel"
+                                                            className={`${styles.inputWithIconField} ${userExists ? styles.inputReadonly : ""}`}
+                                                            placeholder="555-555-5555" value={form.phoneNumber}
+                                                            onChange={set("phoneNumber")} readOnly={userExists} required />
                                                     </div>
                                                 </Field>
-                                            </div>
-                                            <Field label="Driver's Licence Number">
-                                                <div className={styles.inputWithIcon}>
-                                                    <BiIdCard className={styles.inputIcon} />
-                                                    <input className={styles.inputWithIconField} placeholder="e.g. D123-4567-8900"
-                                                        value={form.license} onChange={(e) => setField("license", e.target.value)} required />
-                                                </div>
-                                            </Field>
+                                            </>)}
                                         </SectionCard>
 
-                                        {/* Payment */}
-                                        <SectionCard title="Payment" icon={<BiCreditCard />}>
-                                            <Field label="Name on Card">
-                                                <input className={styles.input} placeholder="John Doe" value={form.cardName}
-                                                    onChange={(e) => setField("cardName", e.target.value)} required />
-                                            </Field>
-                                            <Field label="Card Number">
-                                                <div className={styles.inputWithIcon}>
-                                                    <BiCreditCard className={styles.inputIcon} />
-                                                    <input className={`${styles.inputWithIconField} ${styles.inputMono}`}
-                                                        placeholder="0000 0000 0000 0000"
-                                                        value={form.cardNumber}
-                                                        onChange={(e) => setField("cardNumber", formatCard(e.target.value))}
-                                                        maxLength={19} required />
+                                        {emailChecked && (<>
+                                            <SectionCard title="Address" icon={<BiMap />}>
+                                                <div className={styles.inputGrid2}>
+                                                    <Field label="Building Number">
+                                                        <input className={`${styles.input} ${userExists ? styles.inputReadonly : ""}`}
+                                                            placeholder="123" value={form.buildingNumber}
+                                                            onChange={set("buildingNumber")} readOnly={userExists} required />
+                                                    </Field>
+                                                    <Field label="Street Name">
+                                                        <input className={`${styles.input} ${userExists ? styles.inputReadonly : ""}`}
+                                                            placeholder="Main St" value={form.streetName}
+                                                            onChange={set("streetName")} readOnly={userExists} required />
+                                                    </Field>
                                                 </div>
-                                            </Field>
-                                            <div className={styles.inputGrid2}>
-                                                <Field label="Expiry">
-                                                    <input className={`${styles.input} ${styles.inputMono}`} placeholder="MM/YY"
-                                                        value={form.expiry}
-                                                        onChange={(e) => setField("expiry", formatExpiry(e.target.value))}
-                                                        maxLength={5} required />
+                                                <div className={styles.inputGrid2}>
+                                                    <Field label="City">
+                                                        <input className={`${styles.input} ${userExists ? styles.inputReadonly : ""}`}
+                                                            placeholder="Springfield" value={form.city}
+                                                            onChange={set("city")} readOnly={userExists} required />
+                                                    </Field>
+                                                    <Field label="State">
+                                                        <input className={`${styles.input} ${userExists ? styles.inputReadonly : ""}`}
+                                                            placeholder="IL" value={form.state} maxLength={2}
+                                                            onChange={set("state")} readOnly={userExists} required />
+                                                    </Field>
+                                                </div>
+                                                <Field label="Zip Code">
+                                                    <input className={`${styles.input} ${userExists ? styles.inputReadonly : ""}`}
+                                                        placeholder="62701" value={form.zipCode}
+                                                        onChange={set("zipCode")} readOnly={userExists} required />
                                                 </Field>
-                                                <Field label="CVV">
-                                                    <input className={`${styles.input} ${styles.inputMono}`} placeholder="123"
-                                                        value={form.cvv}
-                                                        onChange={(e) => setField("cvv", e.target.value.replace(/\D/g, "").slice(0, 4))}
-                                                        maxLength={4} required />
-                                                </Field>
-                                            </div>
-                                            <div className={styles.secureNote}>
-                                                <BiLock className={styles.secureIcon} />
-                                                <span>Your payment information is encrypted and secure.</span>
-                                            </div>
-                                        </SectionCard>
-                                    </div>
+                                            </SectionCard>
 
-                                    {/* ── Right column: Order summary ── */}
-                                    <div className={styles.summaryCol}>
-                                        <p className={styles.summaryTitle}>Order Summary</p>
-
-                                        <div className={styles.summaryItems}>
-                                            {carData.map((item, i) => {
-                                                const days = daysBetween(item.startDate, item.endDate);
-                                                return (
-                                                    <div key={item.vin} className={styles.summaryItem}>
-                                                        <div className={styles.summaryItemLeft}>
-                                                            <p className={styles.summaryItemName}>{item.make} {item.model}</p>
-                                                            <p className={styles.summaryItemDays}>{days}d × ${item.pricePerDay}/day</p>
+                                            <SectionCard title="Driver's License" icon={<BiIdCard />}>
+                                                <div className={styles.inputGrid2}>
+                                                    <Field label="License Number">
+                                                        <div className={styles.inputWithIcon}>
+                                                            <BiIdCard className={styles.inputIcon} />
+                                                            <input className={`${styles.inputWithIconField} ${userExists ? styles.inputReadonly : ""}`}
+                                                                placeholder="D1234567" value={form.licenseNumber}
+                                                                onChange={set("licenseNumber")} readOnly={userExists} required />
                                                         </div>
-                                                        <p className={styles.summaryItemPrice}>${subtotals[i].toLocaleString()}</p>
+                                                    </Field>
+                                                    <Field label="State">
+                                                        <input className={`${styles.input} ${userExists ? styles.inputReadonly : ""}`}
+                                                            placeholder="IL" value={form.licenseState} maxLength={2}
+                                                            onChange={set("licenseState")} readOnly={userExists} required />
+                                                    </Field>
+                                                </div>
+                                                <div className={styles.inputGrid2}>
+                                                    <Field label="Expiration Date">
+                                                        <input type="date" className={`${styles.input} ${userExists ? styles.inputReadonly : ""}`}
+                                                            value={form.expirationDate}
+                                                            onChange={set("expirationDate")} readOnly={userExists} required />
+                                                    </Field>
+                                                    <Field label="Date of Birth">
+                                                        <input type="date" className={`${styles.input} ${userExists ? styles.inputReadonly : ""}`}
+                                                            value={form.dateOfBirth}
+                                                            onChange={set("dateOfBirth")} readOnly={userExists} required />
+                                                    </Field>
+                                                </div>
+                                            </SectionCard>
+                                        </>)}
+                                    </>)}
+                                </div>
+
+                                {/* ── Right column: Order summary ── */}
+                                <div className={styles.summaryCol}>
+                                    <p className={styles.summaryTitle}>Order Summary</p>
+
+                                    <div className={styles.summaryItems}>
+                                        {carData.map((item, i) => {
+                                            const days = daysBetween(item.startDate, item.endDate);
+                                            return (
+                                                <div key={item.vin} className={styles.summaryItem}>
+                                                    <div className={styles.summaryItemLeft}>
+                                                        <p className={styles.summaryItemName}>{item.make} {item.model}</p>
+                                                        <p className={styles.summaryItemDays}>{days}d × ${item.pricePerDay}/day</p>
                                                     </div>
-                                                );
-                                            })}
-                                        </div>
-
-                                        <div className={styles.summaryTotals}>
-                                            <div className={styles.summaryRow}>
-                                                <span>Subtotal</span>
-                                                <span>${subtotal.toLocaleString()}</span>
-                                            </div>
-                                            <div className={styles.summaryRow}>
-                                                <span>Tax (8%)</span>
-                                                <span>${tax.toLocaleString()}</span>
-                                            </div>
-                                            <div className={styles.summaryTotalRow}>
-                                                <span>Total</span>
-                                                <span className={styles.summaryTotalAmount}>${total.toLocaleString()}</span>
-                                            </div>
-                                        </div>
-
-                                        {error && <p className={styles.errorNote}>{error}</p>}
-
-                                        <button type="submit" className={styles.confirmBtn} disabled={loading}>
-                                            {loading ? "Processing..." : "Confirm Reservation"}
-                                        </button>
-
-                                        <p className={styles.termsNote}>
-                                            By confirming, you agree to our terms of service and rental policy.
-                                        </p>
+                                                    <p className={styles.summaryItemPrice}>${subtotals[i].toLocaleString()}</p>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
 
+                                    <div className={styles.summaryTotals}>
+                                        <div className={styles.summaryRow}>
+                                            <span>Subtotal</span>
+                                            <span>${subtotal.toLocaleString()}</span>
+                                        </div>
+                                        <div className={styles.summaryRow}>
+                                            <span>Tax (8%)</span>
+                                            <span>${tax.toLocaleString()}</span>
+                                        </div>
+                                        <div className={styles.summaryTotalRow}>
+                                            <span>Total</span>
+                                            <span className={styles.summaryTotalAmount}>${total.toLocaleString()}</span>
+                                        </div>
+                                    </div>
+
+                                    {error && <p className={styles.errorNote}>{error}</p>}
+
+                                    {clientSecret && stripePromise ? (
+                                        <Elements stripe={stripePromise} options={{ clientSecret }}>
+                                            <StripePaymentForm onError={setError} />
+                                        </Elements>
+                                    ) : (
+                                        <form onSubmit={handleProceed}>
+                                            <button
+                                                type="submit"
+                                                className={styles.confirmBtn}
+                                                disabled={loading}
+                                            >
+                                                {loading ? "Loading..." : "Proceed to Payment"}
+                                            </button>
+                                        </form>
+                                    )}
+
+                                    <p className={styles.termsNote}>
+                                        By confirming, you agree to our terms of service and rental policy.
+                                    </p>
                                 </div>
-                            </form>
+
+                            </div>
                         )}
                     </div>
                 </MainBodyContainer>

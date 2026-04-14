@@ -16,16 +16,9 @@
     flex-wrap: wrap;
 }
 
-.title {
-    color: var(--color-foreground);
-    font-size: 16pt;
-    font-weight: 700;
-}
+.title {}
 
-.subtitle {
-    color: var(--color-foreground-light);
-    font-size: 10pt;
-}
+.subtitle {}
 
 .buttonGroup {
     display: flex;

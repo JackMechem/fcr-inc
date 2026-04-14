@@ -113,9 +113,9 @@ const ReservationsPanel = () => {
             {/* Header */}
             <div className="flex items-center justify-between gap-[12px] flex-wrap">
                 <div>
-                    <h2 className="text-foreground text-[16pt] font-[700]">Reservations</h2>
+                    <h2 className="page-title">Reservations</h2>
                     {hasFetched && (
-                        <p className="text-foreground-light text-[10pt]">{filtered.length} of {reservations.length} reservations</p>
+                        <p className="page-subtitle">{filtered.length} of {reservations.length} reservations</p>
                     )}
                 </div>
                 <button

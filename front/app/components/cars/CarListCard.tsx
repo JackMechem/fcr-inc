@@ -23,15 +23,35 @@ const CarListCard = ({ car }: { car: Car }) => {
 			? formatEnum(car.engineLayout)
 			: `${formatEnum(car.engineLayout)} ${car.cylinders}`;
 
+	const thumbs = car.images.slice(1, 5);
+	const hasGrid = thumbs.length > 0;
+
 	return (
 		<Link href={"/car/" + car.vin} className={styles.card}>
-			<Image
-				src={car.images[0]}
-				alt={car.make}
-				height={500}
-				width={500}
-				className={styles.image}
-			/>
+			<div className={styles.imageWrapper}>
+				<Image
+					src={car.images[0]}
+					alt={car.make}
+					fill
+					className={styles.image}
+					sizes="(min-width: 768px) 40vw, 100vw"
+				/>
+				{hasGrid && (
+					<div className={styles.thumbGrid}>
+						{thumbs.map((src, i) => (
+							<div key={i} className={styles.thumbCell}>
+								<Image
+									src={src}
+									alt={`${car.make} ${i + 2}`}
+									fill
+									className={styles.thumbImage}
+									sizes="20vw"
+								/>
+							</div>
+						))}
+					</div>
+				)}
+			</div>
 			<div className={styles.body}>
 				{/* Title row */}
 				<div>

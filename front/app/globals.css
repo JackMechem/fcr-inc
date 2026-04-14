@@ -68,6 +68,7 @@ button {
 	all: unset;
 	box-sizing: border-box;
 	cursor: pointer;
+    text-align: center;
 }
 
 /* ── Animations ────────────────────────────────────────────────────────────── */
@@ -141,6 +142,18 @@ button {
  * ── Global component utilities ────────────────────────────────────────────────
  * Shared class patterns used across many components.
  */
+
+/* Page titles — use these on every page heading for consistency */
+.page-title {
+	font-size: 22px;
+	font-weight: 700;
+	color: var(--color-foreground);
+}
+
+.page-subtitle {
+	font-size: 13px;
+	color: var(--color-foreground-light);
+}
 
 /* Buttons */
 .btn-primary {

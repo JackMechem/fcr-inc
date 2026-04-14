@@ -35,8 +35,8 @@ const LoginPage = () => {
 			<NavHeader white={false} />
 			<div className={styles.pageWrapper}>
 				<div className={styles.card}>
-					<h1 className={styles.title}>Login</h1>
-					<p className={styles.subtitle}>Enter login credentials</p>
+					<h1 className={`page-title ${styles.title}`}>Login</h1>
+					<p className={`page-subtitle ${styles.subtitle}`}>Enter login credentials</p>
 
 					<div className={styles.fields}>
 						<div className={styles.fieldGroup}>

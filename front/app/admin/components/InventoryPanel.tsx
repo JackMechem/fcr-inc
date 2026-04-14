@@ -176,9 +176,9 @@ const InventoryPanel = () => {
         <div className={styles.container}>
             <div className={styles.header}>
                 <div>
-                    <h2 className={styles.title}>Live Inventory</h2>
+                    <h2 className="page-title">Live Inventory</h2>
                     {hasFetched && (
-                        <p className={styles.subtitle}>
+                        <p className="page-subtitle">
                             {filtered.length} of {cars.length} vehicles
                         </p>
                     )}
