@@ -5,8 +5,8 @@ export type UserDashboardView = "reservations" | "edit-reservation" | "user-deta
 
 export interface DashboardReservation {
     reservationId: number;
-    carVin: string;
-    userId: number;
+    car: { vin: string; make: string; model: string; images: string[] } | null;
+    user: number | { userId: number; [key: string]: unknown };
     paymentIds: string[];
     pickUpTime: number | string;
     dropOffTime: number | string;
@@ -14,7 +14,6 @@ export interface DashboardReservation {
     duration: number;
     durationHours: number;
     durationDays: number;
-    car: { vin: string; make: string; model: string; images: string[] } | null;
 }
 
 interface UserDashboardStore {

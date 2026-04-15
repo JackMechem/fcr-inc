@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAllCars, deleteCar } from "../../lib/AdminApiCalls";
+import { getAllCars, deleteCar } from "@/app/lib/AdminApiCalls";
 import { Car } from "@/app/types/CarTypes";
 import { useAdminSidebarStore } from "@/stores/adminSidebarStore";
 import Image from "next/image";
-import Cookies from "js-cookie";
 import {
     BiSearch,
     BiTrash,
@@ -103,11 +102,6 @@ const InventoryPanel = () => {
     const [checkingImages, setCheckingImages] = useState(false);
     const [imageCheckDone, setImageCheckDone] = useState(false);
 
-    const [credentials] = useState(() => {
-        const raw = Cookies.get("credentials");
-        return raw ? JSON.parse(raw) : { username: "", password: "" };
-    });
-
     const fetchCars = async () => {
         setLoading(true);
         try {
@@ -157,7 +151,7 @@ const InventoryPanel = () => {
         if (!window.confirm(`Delete vehicle ${vin}?`)) return;
         setDeletingVin(vin);
         try {
-            await deleteCar(vin, credentials.username, credentials.password);
+            await deleteCar(vin);
             setCars((prev) => prev.filter((c) => c.vin !== vin));
         } catch (e) {
             alert("Error: " + e);

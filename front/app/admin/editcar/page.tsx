@@ -2,9 +2,7 @@
 
 import { Car } from "@/app/types/CarTypes";
 import { useEffect, useState } from "react";
-import { addCar, getAllCars, deleteCar } from "../../lib/AdminApiCalls";
-import { getCar, getFilteredCars } from "@/app/lib/CarApi";
-import Cookies from "js-cookie";
+import { addCar, getAllCars, deleteCar, getCarAdmin, getFilteredCarsAdmin } from "@/app/lib/AdminApiCalls";
 import NavHeader from "@/app/components/headers/navHeader";
 
 interface ICopyOptions {
@@ -22,7 +20,7 @@ const EditCarPage = () => {
 
 	const fetchCopyCarOptions = async () => {
 		try {
-			const carData = await getFilteredCars({
+			const carData = await getFilteredCarsAdmin({
 				select: "vin,make,model",
 				pageSize: 100,
 			});
@@ -37,7 +35,7 @@ const EditCarPage = () => {
 	}, []);
 
 	const fetchFullCar = async (vin: string) => {
-		const carData: Car = await getCar(vin);
+		const carData: Car = await getCarAdmin(vin);
 		setFormData(carData);
 	};
 
@@ -46,11 +44,6 @@ const EditCarPage = () => {
 			fetchFullCar(copyCarVin);
 		}
 	}, [copyCarVin]);
-
-	const [credentials] = useState(() => {
-		const raw = Cookies.get("credentials");
-		return raw ? JSON.parse(raw) : { username: "", password: "" };
-	});
 
 	const [formData, setFormData] = useState<Partial<Car>>({
 		vin: "",
@@ -94,7 +87,7 @@ const EditCarPage = () => {
 		setIsLoading(true);
 		try {
 			// Casting to Car ensures all required fields from the interface are present
-			await addCar(formData as Car, credentials.username, credentials.password);
+			await addCar(formData as Car);
 			alert("Car added successfully!");
 			handleFetchData(); // Refresh list after adding
 		} catch (error) {

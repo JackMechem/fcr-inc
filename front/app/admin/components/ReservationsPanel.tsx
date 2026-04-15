@@ -4,76 +4,105 @@ import { useEffect, useState } from "react";
 import { getAllReservations } from "@/app/lib/ReservationApi";
 import { Reservation } from "@/app/types/ReservationTypes";
 import Image from "next/image";
-import { BiCar, BiRefresh, BiSearch, BiChevronDown, BiChevronUp } from "react-icons/bi";
+import {
+    BiSearch,
+    BiCar,
+    BiRefresh,
+    BiChevronDown,
+    BiChevronUp,
+} from "react-icons/bi";
+import styles from "./inventoryPanel.module.css";
 
 const fmt = (key: string) =>
     key.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase());
 
 const fmtTimestamp = (ts: number) =>
     new Date(ts * 1000).toLocaleDateString("en-US", {
-        month: "short", day: "numeric", year: "numeric",
+        month: "short",
+        day: "numeric",
+        year: "numeric",
     });
 
 const Badge = ({ children }: { children: React.ReactNode }) => (
-    <span className="inline-block px-[8px] py-[2px] rounded-full bg-third/40 text-foreground text-[8pt] font-[500]">
-        {children}
-    </span>
+    <span className={styles.badge}>{children}</span>
 );
 
 const SKIP_CAR = new Set(["vin", "make", "model", "modelYear", "images", "description"]);
 
 const ExpandedRow = ({ res }: { res: Reservation }) => {
+    const user = typeof res.user === "object" && res.user !== null ? res.user as Record<string, unknown> : null;
     const carDetails = Object.entries(res.car).filter(([k]) => !SKIP_CAR.has(k));
+
     return (
-        <div className="px-[20px] py-[20px] bg-primary-dark/40 border-t border-third/40 grid grid-cols-1 md:grid-cols-3 gap-[20px]">
+        <div className={styles.expandedSection}>
             {/* Reservation details */}
-            <div className="flex flex-col gap-[12px]">
-                <p className="text-[8pt] font-[600] uppercase tracking-wider text-foreground-light">Reservation</p>
-                <div className="grid grid-cols-2 gap-x-[16px] gap-y-[10px]">
-                    {[
-                        ["ID",         String(res.reservationId)],
-                        ["Booked",     fmtTimestamp(res.dateBooked)],
-                        ["Pick-up",    fmtTimestamp(res.pickUpTime)],
-                        ["Drop-off",   fmtTimestamp(res.dropOffTime)],
-                        ["Duration",   `${res.durationDays}d ${res.durationHours}h`],
-                    ].map(([label, value]) => (
-                        <div key={label}>
-                            <p className="text-[7.5pt] font-[600] uppercase tracking-wider text-foreground-light">{label}</p>
-                            <p className="text-[10pt] text-foreground mt-[2px]">{value}</p>
+            <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                <div>
+                    <p className={styles.columnLabel}>Reservation</p>
+                    <div className={styles.detailsGrid}>
+                        {[
+                            ["ID", String(res.reservationId)],
+                            ["Booked", fmtTimestamp(res.dateBooked)],
+                            ["Pick-up", fmtTimestamp(res.pickUpTime)],
+                            ["Drop-off", fmtTimestamp(res.dropOffTime)],
+                            ["Duration", `${res.durationDays}d ${res.durationHours % 24}h`],
+                            ["Payments", String(Array.isArray(res.payments) ? res.payments.length : 0)],
+                        ].map(([label, value]) => (
+                            <div key={label}>
+                                <p className={styles.columnLabel}>{label}</p>
+                                <p className={styles.detailValue}>{value}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {user && (
+                    <div>
+                        <p className={styles.columnLabel}>Customer</p>
+                        <div className={styles.detailsGrid}>
+                            {[
+                                ["Name", `${user.firstName} ${user.lastName}`],
+                                ["Email", String(user.email ?? "—")],
+                                ["Phone", String(user.phoneNumber ?? "—")],
+                            ].map(([label, value]) => (
+                                <div key={label}>
+                                    <p className={styles.columnLabel}>{label}</p>
+                                    <p className={styles.detailValue}>{String(value)}</p>
+                                </div>
+                            ))}
                         </div>
-                    ))}
+                    </div>
+                )}
+
+                <div>
+                    <p className={styles.columnLabel}>Vehicle Specs</p>
+                    <div className={styles.detailsGrid}>
+                        {carDetails.map(([key, val]) => (
+                            <div key={key}>
+                                <p className={styles.columnLabel}>{fmt(key)}</p>
+                                <p className={styles.detailValue}>
+                                    {Array.isArray(val) ? (val.length ? val.join(", ") : "—") : String(val ?? "—")}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
 
-            {/* Car specs */}
-            <div className="flex flex-col gap-[12px]">
-                <p className="text-[8pt] font-[600] uppercase tracking-wider text-foreground-light">Vehicle Specs</p>
-                <div className="grid grid-cols-2 gap-x-[16px] gap-y-[10px]">
-                    {carDetails.map(([key, val]) => (
-                        <div key={key}>
-                            <p className="text-[7.5pt] font-[600] uppercase tracking-wider text-foreground-light">{fmt(key)}</p>
-                            <p className="text-[10pt] text-foreground mt-[2px]">
-                                {Array.isArray(val) ? (val.length ? val.join(", ") : "—") : String(val ?? "—")}
-                            </p>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Car images */}
-            <div className="flex flex-col gap-[8px]">
-                <p className="text-[8pt] font-[600] uppercase tracking-wider text-foreground-light">Gallery</p>
+            {/* Gallery */}
+            <div>
+                <p className={styles.columnLabel}>Gallery</p>
                 {res.car.images?.length ? (
-                    <div className="flex gap-[8px] overflow-x-auto pb-[4px] scrollbar-hide">
+                    <div className={styles.galleryScroll}>
                         {res.car.images.map((url, i) => (
-                            <div key={i} className="relative flex-shrink-0 w-[110px] h-[74px] rounded-xl overflow-hidden border border-third bg-third/20">
-                                <Image src={url} alt="" fill className="object-cover" sizes="110px"
+                            <div key={i} className={styles.thumbnail} style={{ width: "110px", height: "74px", flexShrink: 0 }}>
+                                <Image src={url} alt="" fill className={styles.objectCover} sizes="110px"
                                     onError={(e) => (e.currentTarget.style.display = "none")} />
                             </div>
                         ))}
                     </div>
                 ) : (
-                    <p className="text-foreground-light text-[10pt]">No images.</p>
+                    <p className={styles.carYear}>No images.</p>
                 )}
             </div>
         </div>
@@ -109,109 +138,110 @@ const ReservationsPanel = () => {
     );
 
     return (
-        <div className="flex flex-col gap-[20px] pb-[40px]">
-            {/* Header */}
-            <div className="flex items-center justify-between gap-[12px] flex-wrap">
+        <div className={styles.container}>
+            <div className={styles.header}>
                 <div>
                     <h2 className="page-title">Reservations</h2>
                     {hasFetched && (
-                        <p className="page-subtitle">{filtered.length} of {reservations.length} reservations</p>
+                        <p className="page-subtitle">
+                            {filtered.length} of {reservations.length} reservations
+                        </p>
                     )}
                 </div>
                 <button
                     onClick={fetchReservations}
                     disabled={loading}
-                    className="flex items-center gap-[6px] px-[14px] py-[8px] rounded-xl border border-third hover:border-accent/40 hover:bg-accent/5 text-foreground text-[10pt] transition-colors cursor-pointer disabled:opacity-50"
+                    className={`${styles.btn} ${styles.btnRefresh}`}
                 >
-                    <BiRefresh className={`text-[14pt] ${loading ? "animate-spin" : ""}`} />
+                    <BiRefresh className={loading ? styles.spinning : ""} />
                     Refresh
                 </button>
             </div>
 
-            {/* Search */}
-            <div className="relative">
-                <BiSearch className="absolute left-[14px] top-1/2 -translate-y-1/2 text-foreground-light text-[13pt]" />
+            <div className={styles.searchWrapper}>
+                <BiSearch className={styles.searchIcon} />
                 <input
-                    className="w-full bg-primary border border-third rounded-xl pl-[40px] pr-[14px] py-[10px] text-[10.5pt] text-foreground placeholder:text-foreground-light/60 focus:outline-none focus:border-accent/60 transition"
+                    className={styles.searchInput}
                     placeholder="Search by make, model, VIN or reservation ID…"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                 />
             </div>
 
-            {/* Table */}
-            {!hasFetched && loading ? (
-                <div className="flex flex-col gap-[8px]">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                        <div key={i} className="h-[64px] rounded-xl bg-third/20 animate-pulse" />
+            <div className={styles.tableContainer}>
+                <div className={styles.tableHeader}>
+                    {["Vehicle", "Reservation ID", "Pick-up", "Drop-off", ""].map((h) => (
+                        <p key={h} className={styles.columnLabel}>{h}</p>
                     ))}
                 </div>
-            ) : filtered.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-[60px] text-foreground-light gap-[8px]">
-                    <BiCar className="text-[36pt] opacity-30" />
-                    <p className="text-[11pt]">{hasFetched ? "No reservations match your search." : "No data loaded."}</p>
-                </div>
-            ) : (
-                <div className="bg-primary border border-third/60 rounded-2xl overflow-hidden">
-                    {/* Header row */}
-                    <div className="hidden md:grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-[16px] px-[20px] py-[12px] border-b border-third/50 bg-primary-dark/30">
-                        {["Vehicle", "Reservation ID", "Pick-up", "Drop-off", ""].map((h) => (
-                            <p key={h} className="text-[8pt] font-[600] uppercase tracking-wider text-foreground-light">{h}</p>
-                        ))}
-                    </div>
 
-                    {/* Rows */}
-                    <div className="divide-y divide-third/40">
-                        {filtered.map((res) => {
+                <div className={styles.rowList}>
+                    {!hasFetched && loading ? (
+                        Array.from({ length: 5 }).map((_, i) => (
+                            <div key={i} style={{ height: 64, margin: "8px 20px", borderRadius: 12, background: "var(--color-third)", opacity: 0.3 }} />
+                        ))
+                    ) : filtered.length === 0 ? (
+                        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "60px 20px", gap: 8, color: "var(--color-foreground-light)" }}>
+                            <BiCar style={{ fontSize: "36pt", opacity: 0.3 }} />
+                            <p style={{ fontSize: "11pt" }}>{hasFetched ? "No reservations match your search." : "No data loaded."}</p>
+                        </div>
+                    ) : (
+                        filtered.map((res) => {
                             const isExpanded = expandedId === res.reservationId;
+                            const user = typeof res.user === "object" && res.user !== null ? res.user as Record<string, unknown> : null;
                             return (
                                 <div key={res.reservationId}>
                                     <div
-                                        className="grid grid-cols-[auto_1fr_auto] md:grid-cols-[2fr_1fr_1fr_1fr_auto] gap-[16px] px-[20px] py-[14px] items-center hover:bg-primary-dark/20 transition-colors cursor-pointer"
+                                        className={styles.summaryRow}
                                         onClick={() => setExpandedId(isExpanded ? null : res.reservationId)}
                                     >
                                         {/* Vehicle */}
-                                        <div className="flex items-center gap-[12px] min-w-0">
-                                            <div className="relative flex-shrink-0 w-[52px] h-[36px] rounded-lg overflow-hidden bg-third/30 border border-third/40">
+                                        <div className={styles.vehicleCell}>
+                                            <div className={styles.thumbnail} style={{ width: 52, height: 36 }}>
                                                 {res.car.images?.[0] ? (
-                                                    <Image src={res.car.images[0]} alt="" fill className="object-cover" sizes="52px"
+                                                    <Image src={res.car.images[0]} alt="" fill className={styles.objectCover} sizes="52px"
                                                         onError={(e) => (e.currentTarget.style.display = "none")} />
                                                 ) : (
-                                                    <div className="w-full h-full flex items-center justify-center text-foreground-light/40">
-                                                        <BiCar className="text-[16pt]" />
-                                                    </div>
+                                                    <div className={styles.placeholderIconWrapper}><BiCar /></div>
                                                 )}
                                             </div>
-                                            <div className="min-w-0">
-                                                <p className="text-foreground text-[10.5pt] font-[600] truncate">{res.car.make} {res.car.model}</p>
-                                                <p className="text-foreground-light text-[9pt]">{res.car.modelYear}</p>
+                                            <div className={styles.minWidthZero}>
+                                                <p className={styles.carTitle}>{res.car.make} {res.car.model}</p>
+                                                <p className={styles.carYear}>{res.car.modelYear}</p>
                                             </div>
                                         </div>
 
-                                        {/* ID */}
-                                        <div className="hidden md:block">
+                                        {/* Reservation ID */}
+                                        <div className={styles.hideMobile}>
                                             <Badge>#{res.reservationId}</Badge>
                                         </div>
 
                                         {/* Pick-up */}
-                                        <p className="hidden md:block text-foreground text-[10pt]">{fmtTimestamp(res.pickUpTime)}</p>
+                                        <p className={`${styles.carYear} ${styles.hideMobile}`} style={{ fontSize: "10pt", color: "var(--color-foreground)" }}>
+                                            {fmtTimestamp(res.pickUpTime)}
+                                        </p>
 
                                         {/* Drop-off */}
-                                        <p className="hidden md:block text-foreground text-[10pt]">{fmtTimestamp(res.dropOffTime)}</p>
+                                        <p className={`${styles.carYear} ${styles.hideMobile}`} style={{ fontSize: "10pt", color: "var(--color-foreground)" }}>
+                                            {fmtTimestamp(res.dropOffTime)}
+                                            {user && <span style={{ display: "block", fontSize: "9pt", color: "var(--color-foreground-light)" }}>{String(user.firstName)} {String(user.lastName)}</span>}
+                                        </p>
 
                                         {/* Chevron */}
-                                        <span className="text-foreground-light/40 text-[12pt]">
-                                            {isExpanded ? <BiChevronUp /> : <BiChevronDown />}
-                                        </span>
+                                        <div className={styles.actionGroup}>
+                                            <span className={styles.chevronIcon}>
+                                                {isExpanded ? <BiChevronUp /> : <BiChevronDown />}
+                                            </span>
+                                        </div>
                                     </div>
 
                                     {isExpanded && <ExpandedRow res={res} />}
                                 </div>
                             );
-                        })}
-                    </div>
+                        })
+                    )}
                 </div>
-            )}
+            </div>
         </div>
     );
 };

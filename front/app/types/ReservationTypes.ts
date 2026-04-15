@@ -1,14 +1,19 @@
 import { Car } from "./CarTypes";
 
 export interface Payment {
-    // extend when payment fields are known
-    [key: string]: unknown;
+    paymentId: string;
+    totalAmount: number;
+    amountPaid: number;
+    date: number;
+    paymentType: string;
+    paid: boolean;
 }
 
 export interface Reservation {
     reservationId: number;
     car: Car;
-    payments: Payment[];
+    user: number | { userId: number; [key: string]: unknown };
+    payments: Payment[] | string[];
     pickUpTime: number;
     dropOffTime: number;
     dateBooked: number;

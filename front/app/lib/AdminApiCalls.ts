@@ -1,104 +1,59 @@
 import { Car, CarPages } from "../types/CarTypes";
 
 export const getAllCars = async ({
-	page,
-	pageSize,
+    page,
+    pageSize,
 }: {
-	page?: number;
-	pageSize?: number;
-}): Promise<CarPages> => {
-	const username = "jim";
-	const password = "intentionallyInsecurePassword#3";
+    page?: number;
+    pageSize?: number;
+} = {}): Promise<CarPages> => {
+    const params = new URLSearchParams();
+    if (page) params.set("page", String(page));
+    if (pageSize) params.set("pageSize", String(pageSize));
 
-	const token = btoa(`${username}:${password}`);
-
-	const res: Response = await fetch(
-		`${process.env.NEXT_PUBLIC_API_BASE_URL}/cars?${pageSize ? "pageSize=" + pageSize + "&" : ""}${page ? "page=" + page + "&" : ""}`,
-		{
-			next: { revalidate: false },
-			headers: {
-				Authorization: `Basic ${token}`,
-				"Content-Type": "application/json",
-			},
-		},
-	);
-
-	if (!res.ok) {
-		throw new Error(await res.text());
-	}
-
-	const cars: Promise<CarPages> = res.json();
-	return cars;
+    const res = await fetch(`/api/cars?${params.toString()}`, { cache: "no-store" });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
 };
 
-export const addCar = async (car: Car, username: string, password: string) => {
-
-	const token = btoa(`${username}:${password}`);
-
-	const res: Response = await fetch(
-		`${process.env.NEXT_PUBLIC_API_BASE_URL}/cars`,
-		{
-			next: { revalidate: Number(process.env.NEXT_PUBLIC_REVALIDATE_SECONDS) },
-			method: "POST",
-            body: JSON.stringify(car),
-			headers: {
-				Authorization: `Basic ${token}`,
-				"Content-Type": "application/json",
-			},
-		},
-	);
-
-	if (!res.ok) {
-		throw new Error(await res.text());
-	}
-
-	return res.text();
+export const getFilteredCarsAdmin = async (params: Record<string, string | number | undefined>): Promise<CarPages> => {
+    const qs = new URLSearchParams();
+    for (const [k, v] of Object.entries(params)) {
+        if (v != null) qs.set(k, String(v));
+    }
+    const res = await fetch(`/api/cars?${qs.toString()}`, { cache: "no-store" });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
 };
 
-export const editCar = async (car: Car, username: string, password: string) => {
-
-	const token = btoa(`${username}:${password}`);
-
-	const res: Response = await fetch(
-		`${process.env.NEXT_PUBLIC_API_BASE_URL}/cars/${car.vin}`,
-		{
-			next: { revalidate: Number(process.env.NEXT_PUBLIC_REVALIDATE_SECONDS) },
-			method: "PATCH",
-            body: JSON.stringify(car),
-			headers: {
-				Authorization: `Basic ${token}`,
-				"Content-Type": "application/json",
-			},
-		},
-	);
-
-	if (!res.ok) {
-		throw new Error(await res.text());
-	}
-
-	return res.text();
+export const getCarAdmin = async (vin: string): Promise<Car> => {
+    const res = await fetch(`/api/cars/${vin}`, { cache: "no-store" });
+    if (!res.ok) throw new Error(await res.text());
+    return res.json();
 };
 
+export const addCar = async (car: Car) => {
+    const res = await fetch("/api/cars", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(car),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.text();
+};
 
-export const deleteCar = async (vin: string, username: string, password: string) => {
+export const editCar = async (car: Car) => {
+    const res = await fetch(`/api/cars/${car.vin}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(car),
+    });
+    if (!res.ok) throw new Error(await res.text());
+    return res.text();
+};
 
-	const token = btoa(`${username}:${password}`);
-
-	const res: Response = await fetch(
-		`${process.env.NEXT_PUBLIC_API_BASE_URL}/cars/${vin}`,
-		{
-			next: { revalidate: Number(process.env.NEXT_PUBLIC_REVALIDATE_SECONDS) },
-			method: "DELETE",
-			headers: {
-				Authorization: `Basic ${token}`,
-				"Content-Type": "application/json",
-			},
-		},
-	);
-
-	if (!res.ok) {
-		throw new Error(await res.text());
-	}
-
-	return res.text();
+export const deleteCar = async (vin: string) => {
+    const res = await fetch(`/api/cars/${vin}`, { method: "DELETE" });
+    if (!res.ok) throw new Error(await res.text());
+    return res.text();
 };

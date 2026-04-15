@@ -4,16 +4,11 @@ export const validateCredentials = async (
 ) => {
 	const token = btoa(`${username}:${password}`);
 
-	const res: Response = await fetch(
-		`${process.env.NEXT_PUBLIC_API_BASE_URL}/auth/validate`,
-		{
-			next: { revalidate: false },
-			headers: {
-				Authorization: `Basic ${token}`,
-				"Content-Type": "application/json",
-			},
+	const res: Response = await fetch("/api/auth/validate", {
+		headers: {
+			Authorization: `Basic ${token}`,
 		},
-	);
+	});
 
 	return res.status;
 };

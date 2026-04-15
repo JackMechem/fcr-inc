@@ -15,20 +15,28 @@ export async function POST(req: NextRequest) {
     if (!userRes.ok) {
         return NextResponse.json({ error: "Failed to create user." }, { status: userRes.status });
     }
-    const { userId } = await userRes.json();
+    const userBody = await userRes.json();
+    console.log("[payment-intent] /stripe/user response:", JSON.stringify(userBody));
+    const rawUser = userBody?.userId ?? userBody?.user ?? userBody?.id;
+    const userId = typeof rawUser === "object" && rawUser !== null ? (rawUser.userId ?? rawUser.id) : rawUser;
+
+    const intentPayload = {
+        userId,
+        driversLicense: userInfo.driversLicense.driversLicense,
+        cars,
+    };
+    console.log("[payment-intent] /stripe/payment-intent payload:", JSON.stringify(intentPayload));
 
     // Step 2: create payment intent
     const intentRes = await fetch(`${process.env.API_BASE_URL}/stripe/payment-intent`, {
         method: "POST",
         headers,
-        body: JSON.stringify({
-            userId,
-            driversLicense: userInfo.driversLicense.driversLicense,
-            cars,
-        }),
+        body: JSON.stringify(intentPayload),
     });
     if (!intentRes.ok) {
-        return NextResponse.json({ error: "Failed to initiate payment." }, { status: intentRes.status });
+        const errBody = await intentRes.text();
+        console.error("[payment-intent] /stripe/payment-intent failed:", intentRes.status, errBody);
+        return NextResponse.json({ error: `Failed to initiate payment: ${errBody}` }, { status: intentRes.status });
     }
     const { clientSecret } = await intentRes.json();
 

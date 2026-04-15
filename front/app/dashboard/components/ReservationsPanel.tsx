@@ -73,7 +73,7 @@ export default function ReservationsPanel() {
                                         <p className={styles.carName}>
                                             {r.car ? `${r.car.make} ${r.car.model}` : "Unknown Vehicle"}
                                         </p>
-                                        <p className={styles.carVin}>{r.carVin}</p>
+                                        <p className={styles.carVin}>{r.car?.vin}</p>
                                     </div>
                                 </div>
 

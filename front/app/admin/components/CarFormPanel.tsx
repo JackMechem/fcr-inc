@@ -3,12 +3,10 @@
 import { Car } from "@/app/types/CarTypes";
 import { CarEnums } from "@/app/types/CarEnums";
 import { useEffect, useState } from "react";
-import { addCar, editCar } from "../../lib/AdminApiCalls";
-import { getCar, getFilteredCars } from "@/app/lib/CarApi";
+import { addCar, editCar, getCarAdmin, getFilteredCarsAdmin } from "@/app/lib/AdminApiCalls";
 import { useAdminSidebarStore } from "@/stores/adminSidebarStore";
 import { callGemini } from "@/app/lib/gemini";
 import { formatEnum } from "@/app/lib/formatEnum";
-import Cookies from "js-cookie";
 import Image from "next/image";
 import { BiX, BiPlus } from "react-icons/bi";
 
@@ -57,22 +55,15 @@ const CarFormPanel = ({ mode }: CarFormPanelProps) => {
 	const [form, setForm] = useState<Partial<Car>>(BLANK);
 	const [aiLoading, setAiLoading] = useState<Record<string, boolean>>({});
 
-	const [credentials] = useState(() => {
-		const raw = Cookies.get("credentials");
-		return raw ? JSON.parse(raw) : { username: "", password: "" };
-	});
-
 	useEffect(() => {
-		getFilteredCars({
+		getFilteredCarsAdmin({
 			select: "vin,make,model,modelYear,images,vehicleClass,pricePerDay",
 			pageSize: 200,
 		})
 			.then((res) => setCopyOptions(res.data as CopyOption[]))
 			.catch(console.error);
 
-		fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/enums`, {
-			headers: { "Content-Type": "application/json" },
-		})
+		fetch("/api/enums")
 			.then((r) => r.json())
 			.then(setEnums)
 			.catch(console.error);
@@ -84,7 +75,7 @@ const CarFormPanel = ({ mode }: CarFormPanelProps) => {
 
 	useEffect(() => {
 		if (selectedVin) {
-			getCar(selectedVin).then((car) => setForm(car)).catch(console.error);
+			getCarAdmin(selectedVin).then((car) => setForm(car)).catch(console.error);
 		} else if (selectedVin === null && Object.keys(form).length > Object.keys(BLANK).length) {
 			setForm(BLANK);
 		}
@@ -104,9 +95,9 @@ const CarFormPanel = ({ mode }: CarFormPanelProps) => {
 		setIsLoading(true);
 		try {
 			if (mode === "add") {
-				await addCar(form as Car, credentials.username, credentials.password);
+				await addCar(form as Car);
 			} else {
-				await editCar(form as Car, credentials.username, credentials.password);
+				await editCar(form as Car);
 			}
 			setSubmitted(true);
 			setForm(BLANK);

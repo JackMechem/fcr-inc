@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getFilteredCars } from "@/app/lib/CarApi";
+import { getFilteredCarsAdmin } from "@/app/lib/AdminApiCalls";
 import { Car } from "@/app/types/CarTypes";
 import { useAdminSidebarStore, AdminView } from "@/stores/adminSidebarStore";
 import { BiCar, BiPlus, BiEdit, BiTable, BiCalendar } from "react-icons/bi";
@@ -82,7 +82,7 @@ const DashboardPanel = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getFilteredCars({ pageSize: 500 })
+    getFilteredCarsAdmin({ pageSize: 500 })
       .then((res) => {
         setCars(res.data);
         setTotalItems(res.totalItems);

@@ -30,7 +30,7 @@ function GuestEmailPrompt() {
             const res = await fetch(`/api/user-lookup?email=${encodeURIComponent(email)}`);
             const data = await res.json();
             const user = data?.data?.[0] ?? data ?? null;
-            const id = user?.id ?? user?.userId ?? null;
+            const id = user?.userId ?? user?.id ?? null;
             if (!id) throw new Error("No reservations found for that email.");
             setUserEmail(email);
             setUserId(id);

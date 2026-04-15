@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     try {
         const res = await fetch(
             `${process.env.API_BASE_URL}/users?email=${encodeURIComponent(email)}`,
-            { headers: { "Authorization": authHeader }, cache: "no-store" }
+            { headers: { "Authorization": authHeader }, cache: "no-store", signal: AbortSignal.timeout(8000) }
         );
         console.log("test");
         return NextResponse.json(await res.json());
