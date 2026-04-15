@@ -362,12 +362,6 @@ public class StripeController {
                         .orElseThrow(() -> new RuntimeException("Could not deserialize session"));
                 createPaymentAndReservations(session.getId(), session.getAmountTotal(), session.getMetadata());
 
-            } else if ("payment_intent.succeeded".equals(event.getType())) {
-                PaymentIntent intent = (PaymentIntent) event.getDataObjectDeserializer()
-                        .getObject()
-                        .orElseThrow(() -> new RuntimeException("Could not deserialize payment intent"));
-                createPaymentAndReservations(intent.getId(), intent.getAmount(), intent.getMetadata());
-
             } else {
                 ctx.status(200).json("{\"received\": true}");
                 return;
