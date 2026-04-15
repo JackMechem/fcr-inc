@@ -2,9 +2,11 @@ package com.inc.fcr.payment;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.inc.fcr.car.Car;
 import com.inc.fcr.reservation.Reservation;
 import com.inc.fcr.user.User;
+import com.inc.fcr.utils.APIEntity;
 import com.inc.fcr.utils.DatabaseController;
 import com.inc.fcr.utils.EntityController;
 import jakarta.persistence.*;
@@ -15,7 +17,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "stripe_payments")
-public class Payment {
+public class Payment extends APIEntity {
 
     @Id
     @Column(length = 255)
@@ -73,8 +75,10 @@ public class Payment {
     public List<Reservation> getReservations() {
         return reservations;
     }
-    public List<Long> getReservationIds() {
-        return reservations.stream().map(Reservation::getReservationId).toList();
+    @JsonProperty("reservations")
+    public Object getReservationsParse() {
+        if (parseFullObjects) return reservations;
+        else return reservations.stream().map(Reservation::getReservationId).toList();
     }
 
     public double getTotalAmount() {

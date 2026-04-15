@@ -58,7 +58,10 @@ When adding searchable fields in entities:
 ## Creating an Entity Endpoint
 Follow these steps when creating a new entity endpoint
 
+**NOTE**: No longer using `@JsonBackReference`
+
 1. Create your entity class in its package
+   - Extend the `APIEntity` superclass
 2. Add `jakarta.persistence` annotations:
    - For the class: `@Entity @Table(name = "dbTableName")`
    - For the ID attribute (long type recommended): `@Id`
@@ -70,13 +73,13 @@ Follow these steps when creating a new entity endpoint
      - `@Convert(converter = Converters.JsonMYOBJECTConverter.class)`
      - `@Column(columnDefinition = "json", nullable = false)`
    - Foreign entity reference: (from the entity referencing another)
-     - `@ManyToOne @JsonBackReference`
+     - `@ManyToOne`
      - `@JoinColumn(name = "foreignKeyAttrName", nullable = false)`
    - Foreign entity referencing this: (from the entity being referenced) 
-     - `@OneToMany(mappedBy = "thisAttrNameOnMainEntity") @JsonManagedReference`
+     - `@OneToMany(mappedBy = "thisAttrNameOnMainEntity") @JsonManagedReference("yourUniqueSharedIdentifier")`
    - Foreign entity reference: (ManyToMany from the entity referencing)
 ```java
-      @ManyToMany @JsonBackReference
+      @ManyToMany
       @JoinTable(name = "reservationPayments",
               joinColumns = @JoinColumn(name = "mainEntityKeyAttrName"),
               inverseJoinColumns = @JoinColumn(name = "foreignEntityKeyAttrName")
@@ -95,9 +98,21 @@ Follow these steps when creating a new entity endpoint
 4. Create getters/setters that make sense
    - Warning: *All* getters will be run and returned in API get requests
      - Use `@JsonIgnore` to prevent a getter from being returned
-     - Create extra getters for the API that return foreign entity IDs (don't allow them to return nested whole)
+     - Create extra getters for the API that return foreign entity IDs and objects if `parseFullObjects`
+     - See example below, this allows the API to return IDs normally and objects if the above query param is set
    - Setters provided will be used by API create/update requests
-     - Don't create setters for values that are mapped by another entity or generated
+       - Don't create setters for values that are mapped by another entity or generated
+```java
+      @JsonIgnore
+      public User getUser() {
+          return user;
+      }
+      @JsonProperty("user")
+      public Object getUserParse() {
+          if (parseFullObjects) return user;
+          else return user.getUserId();
+      }
+```
 5. Register your entity in the file `utils/HibernateUtil`
    - `configuration.addAnnotatedClass(YourEntityClass.class);`
 6. Register your entity APIController in Main (Long.class represents the entity's key type)

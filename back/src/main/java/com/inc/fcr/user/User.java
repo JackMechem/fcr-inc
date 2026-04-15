@@ -2,9 +2,11 @@ package com.inc.fcr.user;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.inc.fcr.database.Converters;
 import com.inc.fcr.database.SearchField;
 import com.inc.fcr.reservation.Reservation;
+import com.inc.fcr.utils.APIEntity;
 import com.inc.fcr.utils.DatabaseController;
 import com.inc.fcr.utils.EntityController;
 import jakarta.persistence.*;
@@ -15,7 +17,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "stripe_users")
-public class User {
+public class User extends APIEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long userId;
@@ -119,8 +121,10 @@ public class User {
     public List<Reservation> getReservations() {
         return reservations;
     }
-    public List<Long> getReservationIds() {
-        return reservations.stream().map(Reservation::getReservationId).toList();
+    @JsonProperty("reservations")
+    public Object getReservationsParse() {
+        if (parseFullObjects) return reservations;
+        else return reservations.stream().map(Reservation::getReservationId).toList();
     }
 }
 

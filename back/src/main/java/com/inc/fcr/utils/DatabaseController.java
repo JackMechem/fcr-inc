@@ -10,12 +10,11 @@ import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class DatabaseController {
+
+    public static final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
 
     /*
      * Get One & All
@@ -30,51 +29,49 @@ public class DatabaseController {
         int offset = (page - 1) * limit;
 
         // Make SQL query strings
-        final String entity = clazz.getSimpleName();
+        final String entityName = clazz.getSimpleName();
         String filterClause = params.getFilterClause();
-        String queryString  = (params.getSelectFields() != null ? "SELECT " + params.getSelectClause() + " " : "")
-                + "FROM "+entity+" c" + filterClause + params.getSortClause();
-        String countString  = "SELECT count(c) FROM "+entity+" c" + filterClause;
-        // TODO: the 'c' here matters, it's connected to ParsedQueryParams...
+        String queryString  = "FROM "+entityName+" c" + filterClause + params.getSortClause();
+        String countString  = "SELECT count(c) FROM "+entityName+" c" + filterClause;
+        // The 'c' here matters, it's connected to ParsedQueryParams
 
-        // Hibernate session
         Session session = HibernateUtil.getSessionFactory().openSession();
-
         // Get total items in database and calculate total pages
         long totalItems = session.createQuery(countString, Long.class).getSingleResult();
         int totalPages  = (int) Math.ceil((double) totalItems / limit);
 
-        // Build object map and return
-        if (params.getSelectFields() != null) {
-            List<Object[]> rows = session.createQuery(queryString, Object[].class)
-                    .setFirstResult(offset).setMaxResults(limit).getResultList();
-            List<Map<String, Object>> result = new ArrayList<>();
-            for (Object[] row : rows) {
-                Map<String, Object> objMap = new LinkedHashMap<>();
-                for (int i = 0; i < params.getSelectFields().size(); i++)
-                    objMap.put(params.getSelectFields().get(i), row[i]);
-                result.add(objMap);
-            }
-            return new PagesWrapper(result, page, totalPages, totalItems);
+        // Get entities
+        List<?> entities = session.createQuery(queryString, clazz).setFirstResult(offset).setMaxResults(limit).getResultList();
+        if (params.getParseFullObjects()) entities.stream().forEach(c -> ((APIEntity) c).parseFullObjects = true);
+
+        if (!params.isSelecting()) {
+            return new PagesWrapper(entities, page, totalPages, totalItems);
         } else {
-            List<?> rows = session.createQuery(queryString, clazz)
-                    .setFirstResult(offset).setMaxResults(limit).getResultList();
-            return new PagesWrapper(rows, page, totalPages, totalItems);
+            return new PagesWrapper(entities.stream().map(entity -> {
+                // Filter down to selected fields
+                Map<String, Object> map = mapper.convertValue(entity, Map.class);
+                map.keySet().removeIf(k -> !params.getSelectFields().contains(k.toLowerCase()));
+                return map;
+            }).toList(), page, totalPages, totalItems);
         }
     }
 
-    public static Object getOne(Class<?> clazz, Object id) { return getOne(clazz, id, null); }
+    public static Object getOne(Class<?> clazz, Object id)  throws HibernateException {
+        try { return getOne(clazz, id, null); }
+        catch (QueryParamException impossible) { return null; }
+    }
 
-    public static Object getOne(Class<?> clazz, Object id, ParsedQueryParams params) throws HibernateException {
+    public static Object getOne(Class<?> clazz, Object id, ParsedQueryParams params) throws HibernateException, QueryParamException {
         // Get entity
         Session session = HibernateUtil.getSessionFactory().openSession();
         Object entity = session.get(clazz, id);
 
-        if (params == null || !params.isSelecting()) {
-            return entity;
-        } else {
+        if (params == null) return entity;
+        else if (params.getParseFullObjects()) ((APIEntity) entity).parseFullObjects = true;
+
+        if (!params.isSelecting()) return entity;
+        else {
             // Filter down to selected fields
-            ObjectMapper mapper = new ObjectMapper();
             Map<String, Object> map = mapper.convertValue(entity, Map.class);
             map.keySet().removeIf(k -> !params.getSelectFields().contains(k.toLowerCase()));
             return map;

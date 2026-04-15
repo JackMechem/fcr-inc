@@ -2,60 +2,24 @@ package com.inc.fcr.car;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.inc.fcr.database.Converters;
 import com.inc.fcr.database.SearchField;
 import com.inc.fcr.reservation.Reservation;
+import com.inc.fcr.utils.APIEntity;
 import com.inc.fcr.utils.DatabaseController;
 import com.inc.fcr.utils.EntityController;
 import jakarta.persistence.*;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.inc.fcr.errorHandling.*;
 import com.inc.fcr.car.enums.*;
 
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Entity
 @Table(name = "cars")
-public class Car {
-
-    // Deprecated (old API controller)
-    @FunctionalInterface
-    public interface ThrowingBiConsumer<T, U> {
-        void accept(T t, U u) throws ValidationException;
-    }
-
-    @Transient 
-    private static final ObjectMapper mapper = new ObjectMapper();
-
-    @Transient 
-    public static final Map<String, ThrowingBiConsumer<Car, JsonNode>> setterKeyMap = Map.ofEntries(
-            Map.entry("vin", (c, v) -> c.setVin(v.asText())),
-            Map.entry("make", (c, v) -> c.setMake(v.asText())),
-            Map.entry("model", (c, v) -> c.setModel(v.asText())),
-            Map.entry("modelYear", (c, v) -> c.setModelYear(v.asInt())),
-            Map.entry("description", (c, v) -> c.setDescription(v.asText())),
-            Map.entry("cylinders", (c, v) -> c.setCylinders(v.asInt())),
-            Map.entry("gears", (c, v) -> c.setGears(v.asInt())),
-            Map.entry("horsepower", (c, v) -> c.setHorsepower(v.asInt())),
-            Map.entry("torque", (c, v) -> c.setTorque(v.asInt())),
-            Map.entry("seats", (c, v) -> c.setSeats(v.asInt())),
-            Map.entry("pricePerDay", (c, v) -> c.setPricePerDay(v.asDouble())),
-            Map.entry("mpg", (c, v) -> c.setMpg(v.asDouble())),
-            Map.entry("features", (c, v) -> c.setFeatures(mapper.convertValue(v, new TypeReference<ArrayList<String>>() {}))),
-            Map.entry("images", (c, v) -> c.setImages(mapper.convertValue(v, new TypeReference<ArrayList<String>>() {}))),
-            Map.entry("transmission", (c, v) -> c.setTransmission(TransmissionType.valueOf(v.asText()))),
-            Map.entry("drivetrain", (c, v) -> c.setDrivetrain(Drivetrain.valueOf(v.asText()))),
-            Map.entry("engineLayout", (c, v) -> c.setEngineLayout(EngineLayout.valueOf(v.asText()))),
-            Map.entry("fuel", (c, v) -> c.setFuel(FuelType.valueOf(v.asText()))),
-            Map.entry("bodyType", (c, v) -> c.setBodyType(BodyType.valueOf(v.asText()))),
-            Map.entry("roofType", (c, v) -> c.setRoofType(RoofType.valueOf(v.asText()))),
-            Map.entry("vehicleClass", (c, v) -> c.setVehicleClass(VehicleClass.valueOf(v.asText())))
-    );
+public class Car extends APIEntity {
 
     @Id
     @Column(length = 17)
@@ -197,7 +161,11 @@ public class Car {
 
     @JsonIgnore
     public List<Reservation> getReservations() { return reservations; }
-    public List<Long> getReservationIds() { return reservations.stream().map(Reservation::getReservationId).toList(); }
+    @JsonProperty("reservations")
+    public Object getReservationsParse() {
+        if (parseFullObjects) return reservations;
+        else return reservations.stream().map(Reservation::getReservationId).toList();
+    }
 
     // Setters with Validation
 

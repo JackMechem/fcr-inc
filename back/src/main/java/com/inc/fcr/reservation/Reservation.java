@@ -1,10 +1,13 @@
 package com.inc.fcr.reservation;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.inc.fcr.car.Car;
 import com.inc.fcr.errorHandling.ValidationException;
 import com.inc.fcr.payment.Payment;
 import com.inc.fcr.user.User;
+import com.inc.fcr.utils.APIEntity;
 import com.inc.fcr.utils.DatabaseController;
 import com.inc.fcr.utils.EntityController;
 import jakarta.persistence.*;
@@ -16,17 +19,17 @@ import java.util.List;
 
 @Entity
 @Table(name = "stripe_reservations")
-public class Reservation {
+public class Reservation extends APIEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long reservationId;
-    @ManyToOne @JsonBackReference("car-reservation")
+    @ManyToOne
     @JoinColumn(name = "vin", nullable = false)
     private Car car;
-    @ManyToOne @JsonBackReference("user-reservation")
+    @ManyToOne
     @JoinColumn(name = "userId", nullable = false)
     private User user;
-    @ManyToMany @JsonBackReference("payment-reservation")
+    @ManyToMany
     @JoinTable(name = "stripe_reservation_payments",
             joinColumns = @JoinColumn(name = "reservationId"),
             inverseJoinColumns = @JoinColumn(name = "paymentId", columnDefinition = "VARCHAR(255)")
@@ -81,28 +84,30 @@ public class Reservation {
         return (getDurationHours()+18) / 24;
     }
 
-    public Payment getPayment(String paymentId) {
-        return payments.stream().filter(p -> p.getPaymentId().equals(paymentId)).findFirst().orElse(null);
-    }
-
     // Getters
 
+    @JsonIgnore
     public User getUser() {
         return user;
     }
-    public long getUserId() {
-        return user.getUserId();
+    @JsonProperty("user")
+    public Object getUserParse() {
+        if (parseFullObjects) return user;
+        else return user.getUserId();
     }
 
     public Long getReservationId() {
         return reservationId;
     }
 
+    @JsonIgnore
     public List<Payment> getPayments() {
         return payments;
     }
-    public List<String> getPaymentIds() {
-        return payments.stream().map(Payment::getPaymentId).toList();
+    @JsonProperty("payments")
+    public Object getPaymentsParse() {
+        if (parseFullObjects) return payments;
+        else return payments.stream().map(Payment::getPaymentId).toList();
     }
 
     public Instant getPickUpTime() {
@@ -117,11 +122,14 @@ public class Reservation {
         return dateBooked;
     }
 
+    @JsonIgnore
     public Car getCar() {
         return car;
     }
-    public String getCarVin() {
-        return car.getVin();
+    @JsonProperty("car")
+    public Object getCarParse() {
+        if (parseFullObjects) return car;
+        else return car.getVin();
     }
 
     // Setters

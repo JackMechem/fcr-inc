@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import com.inc.fcr.car.enums.*;
 import com.inc.fcr.errorHandling.QueryParamException;
+import com.inc.fcr.utils.APIEntity;
 import jakarta.persistence.Id;
 import joptsimple.internal.Strings;
 
@@ -24,13 +25,15 @@ public class ParsedQueryParams {
     // Initialize Field Maps
     // ---------------------
 
-    private void mapClassFields() {
+    private void mapClassFields() throws QueryParamException {
         Set<String> searchFields = new LinkedHashSet<>();
         Set<String> numericSet = new LinkedHashSet<>();
         Map<String, String> fieldMap = new LinkedHashMap<>();
         Map<String, String> alphaFieldMap = new LinkedHashMap<>();
         Map<String, Function<String, Object>> filterParsers = new HashMap<>();
         Map<String, String> filterValidValues = new HashMap<>();
+
+        if (!APIEntity.class.isAssignableFrom(clazz)) throw new QueryParamException("Entity does not extend APIEntity.");
 
         for (Field field : clazz.getDeclaredFields()) {
             // Filter unwanted fields
@@ -40,7 +43,7 @@ public class ParsedQueryParams {
             final String name = field.getName();
             final Class<?> type = field.getType();
 
-            if (field.isAnnotationPresent(Id.class)) sortBy = name;
+            if (field.isAnnotationPresent(Id.class)) idName = name;
             if (field.isAnnotationPresent(SearchField.class)) searchFields.add(name);
 
             fieldMap.put(name.toLowerCase(), name);
@@ -78,7 +81,9 @@ public class ParsedQueryParams {
     private Map<String, String> filterFields = null;
     private SortStyle sortDir = SortStyle.ASCENDING;
     private String sortBy;
+    private String idName;
     private boolean sortBySet = false;
+    private boolean parseFullObjects = false;
     private int page = 1;
     private int pageSize = DEFAULT_PAGE_SIZE;
     private String searchText;
@@ -108,6 +113,7 @@ public class ParsedQueryParams {
             String key = entry.getKey().trim().toLowerCase();
             String val = entry.getValue().getFirst().trim();
             switch (key) {
+                case "parsefullobjects" -> parseFullObjects = Boolean.parseBoolean(val);
                 case "select" -> parseSelect(entry.getValue());
                 case "sortby" -> {
                     if (FIELD_MAP.containsKey(val.toLowerCase())) {
@@ -195,7 +201,8 @@ public class ParsedQueryParams {
     // Getters
     // -------
 
-    public String getSelectClause() throws QueryParamException {
+    // DEPRECATED
+    public String getSelectClause() {
         return selectFields.stream()
                 .map(f -> "c." + f)
                 .collect(Collectors.joining(", "));
@@ -247,7 +254,7 @@ public class ParsedQueryParams {
 
     public String getSortClause() {
         return (sortBySet || searchText == null) ?
-                " ORDER BY c." + sortBy + getSortDirClause()
+                " ORDER BY c." + (sortBySet ? sortBy : idName) + getSortDirClause()
                 : " ORDER BY "+getSearchClause()+" DESC";
     }
 
@@ -275,12 +282,20 @@ public class ParsedQueryParams {
         return sortBy;
     }
 
+    public String getIdName() {
+        return idName;
+    }
+
     public int getPage() {
         return page;
     }
 
     public int getPageSize() {
         return pageSize;
+    }
+
+    public boolean getParseFullObjects() {
+        return parseFullObjects;
     }
 
     public void setVinFilter(String vin) {
