@@ -71,6 +71,10 @@ public class Payment extends APIEntity {
         return paymentId;
     }
 
+    public void setPaymentId(String paymentId) {
+        this.paymentId = paymentId;
+    }
+
     @JsonIgnore
     public List<Reservation> getReservations() {
         return reservations;

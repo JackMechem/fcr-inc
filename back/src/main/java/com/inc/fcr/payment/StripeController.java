@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.inc.fcr.car.Car;
 import com.inc.fcr.mail.MailController;
 import com.inc.fcr.user.User;
+import com.inc.fcr.reservation.Reservation;
 import com.inc.fcr.utils.DatabaseController;
 import com.inc.fcr.utils.HibernateUtil;
 import com.stripe.Stripe;
@@ -355,24 +356,34 @@ public class StripeController {
             return;
         }
 
-        try {
-            if ("checkout.session.completed".equals(event.getType())) {
-                Session session = (Session) event.getDataObjectDeserializer()
+        if ("payment_intent.succeeded".equals(event.getType())) {
+            PaymentIntent intent;
+            try {
+                intent = (PaymentIntent) event.getDataObjectDeserializer()
                         .getObject()
-                        .orElseThrow(() -> new RuntimeException("Could not deserialize session"));
-                createPaymentAndReservations(session.getId(), session.getAmountTotal(), session.getMetadata());
-
-            } else {
-                ctx.status(200).json("{\"received\": true}");
+                        .orElseThrow(() -> new RuntimeException("Could not deserialize payment intent"));
+            } catch (Exception e) {
+                ctx.status(400).json("{\"error\": \"" + e.getMessage() + "\"}");
                 return;
             }
 
+            // Respond immediately so Stripe doesn't retry while we process
             ctx.status(200).json("{\"received\": true}");
 
-        } catch (Exception e) {
-            System.err.println("Webhook error: " + e.getMessage());
-            e.printStackTrace();
-            ctx.status(500).json("{\"error\": \"" + e.getMessage().replace("\"", "'") + "\"}");
+            String intentId = intent.getId();
+            long amount = intent.getAmount();
+            Map<String, String> metadata = intent.getMetadata();
+            new Thread(() -> {
+                try {
+                    createPaymentAndReservations(intentId, amount, metadata);
+                } catch (Exception e) {
+                    System.err.println("Webhook processing error: " + e.getMessage());
+                    e.printStackTrace();
+                }
+            }).start();
+
+        } else {
+            ctx.status(200).json("{\"received\": true}");
         }
     }
 
@@ -380,90 +391,44 @@ public class StripeController {
         System.out.println("Webhook metadata: " + metadata);
 
         int carCount = Integer.parseInt(metadata.get("carCount"));
-        System.out.println("Webhook: paymentId=" + paymentId + ", carCount=" + carCount);
+        long userId  = Long.parseLong(metadata.get("userId"));
+        System.out.println("Webhook: paymentId=" + paymentId + ", userId=" + userId + ", carCount=" + carCount);
 
-        HttpClient http = HttpClient.newHttpClient();
-        String port = System.getenv("PORT") != null ? System.getenv("PORT") : "8080";
-        String auth = "Basic " + java.util.Base64.getEncoder().encodeToString("bob:intentionallyInsecurePassword#2".getBytes());
-
-        // Step 1: Create payment
-        double totalAmount = amountCents / 100.0;
-        String paymentBody = "{"
-                + "\"paymentId\":\"" + paymentId + "\","
-                + "\"totalAmount\":" + totalAmount + ","
-                + "\"amountPaid\":" + totalAmount + ","
-                + "\"date\":\"" + Instant.now() + "\","
-                + "\"paymentType\":\"CREDIT\""
-                + "}";
-
-        System.out.println("Webhook: POST /payments body: " + paymentBody);
-
-        HttpResponse<String> paymentResponse = http.send(
-            HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:" + port + "/payments"))
-                .header("Content-Type", "application/json")
-                .header("Authorization", auth)
-                .POST(HttpRequest.BodyPublishers.ofString(paymentBody))
-                .build(),
-            HttpResponse.BodyHandlers.ofString()
-        );
-
-        System.out.println("Webhook: POST /payments response " + paymentResponse.statusCode() + ": " + paymentResponse.body());
-        if (paymentResponse.statusCode() != 201) {
-            throw new RuntimeException("Failed to create payment: " + paymentResponse.body());
+        // Idempotency check — bail if this payment was already processed
+        if (DatabaseController.getOne(Payment.class, paymentId) != null) {
+            System.out.println("Webhook: payment " + paymentId + " already processed, skipping");
+            return;
         }
 
-        long userId = Long.parseLong(metadata.get("userId"));
-        String paymentsJson = "[\"" + paymentId + "\"]";
+        // Step 1: Create Payment directly
+        double totalAmount = amountCents / 100.0;
+        Payment payment = new Payment(totalAmount, totalAmount, Instant.now(), PaymentType.CREDIT);
+        payment.setPaymentId(paymentId);
+        DatabaseController.insert(payment);
+        System.out.println("Webhook: payment inserted: " + paymentId);
 
-        // Step 3: Create a reservation per car, referencing all payments
+        User user = (User) DatabaseController.getOne(User.class, userId);
+        if (user == null) throw new RuntimeException("User not found: " + userId);
+
+        // Step 2: Create a Reservation per car directly
         List<Long> createdReservationIds = new ArrayList<>();
+        List<Payment> payments = List.of(payment);
         for (int i = 0; i < carCount; i++) {
             String vin      = metadata.get("vin_" + i);
             Instant pickUp  = Instant.parse(metadata.get("pickUpTime_" + i));
             Instant dropOff = Instant.parse(metadata.get("dropOffTime_" + i));
             System.out.println("Webhook: creating reservation for VIN=" + vin + " " + pickUp + " -> " + dropOff);
 
-            String reservationBody = "{"
-                    + "\"car\":\"" + vin + "\","
-                    + "\"user\":" + userId + ","
-                    + "\"payments\":" + paymentsJson + ","
-                    + "\"pickUpTime\":\"" + pickUp + "\","
-                    + "\"dropOffTime\":\"" + dropOff + "\","
-                    + "\"dateBooked\":\"" + Instant.now() + "\""
-                    + "}";
+            Car car = (Car) DatabaseController.getOne(Car.class, vin);
+            if (car == null) throw new RuntimeException("Car not found: " + vin);
 
-            System.out.println("Webhook: POST /reservations body: " + reservationBody);
-
-            HttpResponse<String> reservationResponse = http.send(
-                HttpRequest.newBuilder()
-                    .uri(URI.create("http://localhost:" + port + "/reservations"))
-                    .header("Content-Type", "application/json")
-                    .header("Authorization", auth)
-                    .POST(HttpRequest.BodyPublishers.ofString(reservationBody))
-                    .build(),
-                HttpResponse.BodyHandlers.ofString()
-            );
-
-            System.out.println("Webhook: POST /reservations response " + reservationResponse.statusCode() + ": " + reservationResponse.body());
-            if (reservationResponse.statusCode() != 201) {
-                throw new RuntimeException("Failed to create reservation for VIN=" + vin + ": " + reservationResponse.body());
-            }
-
-            // Look up the reservation ID we just created
-            try (org.hibernate.Session hSession = HibernateUtil.getSessionFactory().openSession()) {
-                Long reservationId = hSession.createQuery(
-                    "SELECT r.reservationId FROM Reservation r WHERE r.user.userId = :userId AND r.car.vin = :vin AND r.pickUpTime = :pickUp",
-                    Long.class
-                ).setParameter("userId", userId).setParameter("vin", vin).setParameter("pickUp", pickUp).uniqueResult();
-                if (reservationId != null) createdReservationIds.add(reservationId);
-            }
-
+            Reservation reservation = new Reservation(car, user, new ArrayList<>(payments), pickUp, dropOff, Instant.now());
+            DatabaseController.insert(reservation);
+            if (reservation.getReservationId() != null) createdReservationIds.add(reservation.getReservationId());
             System.out.println("Webhook: reservation created for VIN=" + vin);
         }
 
         // Step 4: Send confirmation email
-        User user = (User) DatabaseController.getOne(User.class, userId);
         if (user != null) {
             List<Map<String, String>> carList = new java.util.ArrayList<>();
             for (int i = 0; i < carCount; i++) {
