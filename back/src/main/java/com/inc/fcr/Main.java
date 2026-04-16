@@ -19,7 +19,7 @@ import static io.javalin.apibuilder.ApiBuilder.*;
 /**
  * Application entry point for the FCR Inc car rental REST API.
  *
- * <p>Bootstraps Hibernate, configures a Javalin HTTP server with OpenAPI/Swagger
+ * <p>Bootstraps Hibernate, configures a Javalin HTTP server with
  * documentation, CORS, and role-based access control, then registers all API routes.</p>
  *
  * <p>The server port is read from the {@code PORT} environment variable,
@@ -34,7 +34,6 @@ import static io.javalin.apibuilder.ApiBuilder.*;
  *   <li>{@code /stripe}       — Stripe checkout / webhook integration</li>
  *   <li>{@code /enums}        — Enum metadata for UI dropdowns</li>
  *   <li>{@code /auth/validate}— Credential validation</li>
- *   <li>{@code /docs}         — Swagger UI</li>
  * </ul>
  */
 public class Main {
