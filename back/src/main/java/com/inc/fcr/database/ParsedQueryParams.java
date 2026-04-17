@@ -160,11 +160,11 @@ public class ParsedQueryParams {
                 case "search" -> searchText = parseSearchText(val);
                 default -> {
                     if (key.startsWith("min") || key.startsWith("max")) {
-                        String field = FIELD_MAP.get(key.substring(3).toLowerCase());
+                        String field = FIELD_MAP.get(key.substring(3));
                         if (field != null && NUMERIC_FIELDS.contains(field)) {
                             if (filterFields != null)
                                 filterFields.remove("exact_" + field);
-                            parseFilter(key.substring(3).toLowerCase(), val, key.startsWith("min") ? "min" : "max");
+                            parseFilter(field, val, key.substring(0,3));
                         }
                     } else if (FIELD_MAP.containsKey(key) && NUMERIC_FIELDS.contains(FIELD_MAP.get(key))) {
                         String field = FIELD_MAP.get(key);
