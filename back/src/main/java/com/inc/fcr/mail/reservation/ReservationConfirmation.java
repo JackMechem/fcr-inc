@@ -79,9 +79,7 @@ public class ReservationConfirmation implements EmailComposer {
                         .append(value(car, "year")).append(" ")
                         .append(value(car, "make")).append(" ")
                         .append(value(car, "model"))
-                        .append("</td></tr>");
-                sb.append("<tr><td style='padding:6px; font-weight:bold;'>VIN</td>")
-                        .append("<td style='padding:6px;'>").append(value(car, "vin")).append("</td></tr>");
+                        .append("</td></tr>").append("<td style='padding:6px;'>").append(value(car, "vin")).append("</td></tr>");
                 sb.append("<tr><td style='padding:6px; font-weight:bold;'>Pick-up</td>")
                         .append("<td style='padding:6px;'>").append(value(car, "pickUpTime")).append("</td></tr>");
                 sb.append("<tr><td style='padding:6px; font-weight:bold;'>Drop-off</td>")
@@ -121,7 +119,6 @@ public class ReservationConfirmation implements EmailComposer {
                         .append(value(car, "year")).append(" ")
                         .append(value(car, "make")).append(" ")
                         .append(value(car, "model")).append("\n");
-                sb.append("VIN: ").append(value(car, "vin")).append("\n");
                 sb.append("Pick-up: ").append(value(car, "pickUpTime")).append("\n");
                 sb.append("Drop-off: ").append(value(car, "dropOffTime")).append("\n\n");
             }

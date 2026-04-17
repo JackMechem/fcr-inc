@@ -1,11 +1,15 @@
 package com.inc.fcr.mail;
 
+
+
 public class Email {
     private final String to;
     private final String from;
     private final String subject;
     private final String html;
     private final String text;
+
+
 
     private Email(Builder builder) {
         this.to = builder.to;
