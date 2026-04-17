@@ -113,6 +113,7 @@ public class StripeController {
                     .uri(URI.create("http://localhost:" + port + "/users"))
                     .header("Content-Type", "application/json")
                     .header("Authorization", auth)
+                    .header("X-API-Key", System.getenv("API_KEY") != null ? System.getenv("API_KEY") : "")
                     .POST(HttpRequest.BodyPublishers.ofString(userBody.toString()))
                     .build(),
                 HttpResponse.BodyHandlers.ofString()
@@ -429,17 +430,17 @@ public class StripeController {
         long userId  = Long.parseLong(metadata.get("userId"));
         System.out.println("Webhook: paymentId=" + paymentId + ", userId=" + userId + ", carCount=" + carCount);
 
-        // Idempotency check — bail if this payment was already processed
-        if (DatabaseController.getOne(Payment.class, paymentId) != null) {
-            System.out.println("Webhook: payment " + paymentId + " already processed, skipping");
-            return;
-        }
-
-        // Step 1: Create Payment directly
+        // Idempotency: insert the payment first; if it already exists the unique constraint
+        // will throw, which prevents a race condition between concurrent webhook deliveries.
         double totalAmount = amountCents / 100.0;
         Payment payment = new Payment(totalAmount, totalAmount, Instant.now(), PaymentType.CREDIT);
         payment.setPaymentId(paymentId);
-        DatabaseController.insert(payment);
+        try {
+            DatabaseController.insert(payment);
+        } catch (Exception e) {
+            System.out.println("Webhook: payment " + paymentId + " already processed (duplicate), skipping");
+            return;
+        }
         System.out.println("Webhook: payment inserted: " + paymentId);
 
         User user = (User) DatabaseController.getOne(User.class, userId);

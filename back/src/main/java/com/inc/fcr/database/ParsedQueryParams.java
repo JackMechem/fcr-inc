@@ -10,6 +10,8 @@ import com.inc.fcr.car.enums.*;
 import com.inc.fcr.errorHandling.QueryParamException;
 import com.inc.fcr.utils.APIEntity;
 import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import joptsimple.internal.Strings;
 
 /**

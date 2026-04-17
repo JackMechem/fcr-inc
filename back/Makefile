@@ -18,6 +18,37 @@ NORMAL := \e[0m
 IMAGE_NAME := fcr-backend
 PORT := 8080
 
+## -- Help --
+
+help:
+	@echo -e "$(BOLD)FCR Backend Makefile$(NORMAL)"
+	@echo ""
+	@echo -e "$(YELLOW)$(BOLD)Local:$(RESET)"
+	@echo -e "  $(GREEN)build$(RESET)                  - compile and package with Maven"
+	@echo -e "  $(GREEN)run$(RESET)                    - build and run with Maven"
+	@echo ""
+	@echo -e "$(YELLOW)$(BOLD)Docker (no sudo):$(RESET)"
+	@echo -e "  $(GREEN)docker-build$(RESET)           - build Docker image"
+	@echo -e "  $(GREEN)docker-run$(RESET)             - build and run Docker container on port $(PORT)"
+	@echo ""
+	@echo -e "$(YELLOW)$(BOLD)Docker (sudo):$(RESET)"
+	@echo -e "  $(GREEN)sudo-docker-build$(RESET)      - build Docker image with sudo"
+	@echo -e "  $(GREEN)sudo-docker-run$(RESET)        - build and run Docker container with sudo on port $(PORT)"
+	@echo ""
+	@echo -e "$(YELLOW)$(BOLD)Production:$(RESET)"
+	@echo -e "  $(GREEN)docker-build-prod$(RESET)      - build production Docker image"
+	@echo -e "  $(GREEN)docker-run-prod$(RESET)        - build and run production Docker container on port $(PORT)"
+	@echo ""
+	@echo -e "$(YELLOW)$(BOLD)Stripe:$(RESET)"
+	@echo -e "  $(GREEN)stripe-webhook-listen$(RESET)  - forward Stripe webhooks to localhost:$(PORT)/stripe/webhook"
+	@echo ""
+	@echo -e "$(YELLOW)$(BOLD)Cleanup:$(RESET)"
+	@echo -e "  $(GREEN)clean$(RESET)                  - stop/remove containers and delete image"
+	@echo -e "  $(GREEN)sudoclean$(RESET)              - same as clean but with sudo"
+	@echo ""
+	@echo -e "$(YELLOW)$(BOLD)Utilities:$(RESET)"
+	@echo -e "  $(GREEN)gen-secret$(RESET)             - generate a random 32-byte hex secret (e.g. for JWT/API keys)"
+
 ## -- Local --
 build:
 	mvn package
@@ -34,6 +65,9 @@ docker-build-prod:
 docker-run-prod: docker-build
 	@echo -e "$(GREEN)$(BOLD)Starting on port $(PORT)...$(RESET)"
 	docker run -d --env-file ./.env -p $(PORT):$(PORT) $(IMAGE_NAME)
+
+stripe-webhook-listen:
+	stripe listen --forward-to localhost:$(PORT)/stripe/webhook
 
 ## -- Non Sudo --
 
@@ -57,9 +91,14 @@ sudo-docker-run: sudo-docker-build
 	@echo -e "$(GREEN)$(BOLD)Starting on port $(PORT)...$(RESET)"
 	sudo docker run --env-file ./.env -p $(PORT):$(PORT) $(IMAGE_NAME)
 
+# -- Utilities --
+
+gen-secret:
+	@openssl rand -hex 32
+
 # -- All --
 
-all: dev # Run docker without sudo by default
+all: docker-run # Run docker without sudo by default
 
 # -- Clean --
 

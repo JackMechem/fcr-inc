@@ -22,6 +22,8 @@
                     buildInputs = with pkgs; [
                         jdk21
                         maven
+                        stripe-cli
+                        openssl
                     ];
 
                     shellHook = ''
@@ -33,11 +35,7 @@
                         echo "Java: $(java -version 2>&1 | head -1)"
                         echo "Maven: $(mvn -version 2>&1 | head -1)"
                         echo ""
-                        echo "Commands:"
-                        echo "  mvn compile        - compile"
-                        echo "  mvn exec:java      - run"
-                        echo "  mvn package        - build fat jar"
-                        echo "  java -jar target/fcr-api-0.1.0-jar-with-dependencies.jar - run jar"
+                        make help
                     '';
                 };
             }

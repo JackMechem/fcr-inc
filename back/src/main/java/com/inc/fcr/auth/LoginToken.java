@@ -4,14 +4,15 @@ import jakarta.persistence.*;
 import java.time.Instant;
 
 /**
- * JPA entity representing a magic-link login token.
+ * JPA entity representing an authentication token stored in {@code auth_login_tokens}.
  *
- * <p>Maps to the {@code auth_login_tokens} table. A token is created when a user
- * requests a magic link and is marked verified when they click it. After verification
- * the token acts as a Bearer session credential until {@link #sessionExpiresAt}.</p>
- *
- * <p>The {@code stripe_users} table is not modified — this table only stores the
- * userId foreign key as a plain {@code long}.</p>
+ * <p>Two token types, distinguished by {@link #type}:</p>
+ * <ul>
+ *   <li>{@code "ACCOUNT_CONFIRM"} — short-lived link emailed on registration or re-login.
+ *       Clicking it sets {@link Account#getEmailConfirmedAt()} and issues a session token.</li>
+ *   <li>{@code "ACCOUNT_SESSION"} — long-lived Bearer credential returned after confirmation.
+ *       Passed as {@code Authorization: Bearer <token>} on subsequent API requests.</li>
+ * </ul>
  */
 @Entity
 @Table(name = "auth_login_tokens")
@@ -21,30 +22,34 @@ public class LoginToken {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
-    /** UUID string sent in the magic-link email. */
+    /** UUID string sent in the email or used as the Bearer credential. */
     @Column(nullable = false, unique = true, length = 36)
     private String token;
 
-    /** ID of the user in {@code stripe_users}. */
+    /** Token purpose: {@code "ACCOUNT_CONFIRM"} or {@code "ACCOUNT_SESSION"}. */
     @Column(nullable = false)
-    private long userId;
+    private String type;
 
-    /** Email address the link was sent to. */
+    /** The {@link Account#getId()} this token belongs to. */
+    @Column(nullable = false)
+    private long accountId;
+
+    /** Email address the link or session belongs to. */
     @Column(nullable = false)
     private String email;
 
     @Column(nullable = false)
     private Instant createdAt;
 
-    /** When the magic link itself expires (short-lived, e.g. 15 minutes). */
+    /** When the confirmation link expires (not used for session tokens). */
     @Column(nullable = false)
     private Instant expiresAt;
 
-    /** Set when the user clicks the link; {@code null} until then. */
+    /** Set when the confirmation link is clicked; {@code null} for session tokens. */
     @Column
     private Instant verifiedAt;
 
-    /** When the session (Bearer token) expires after verification (e.g. 7 days). */
+    /** When this Bearer session expires. */
     @Column(nullable = false)
     private Instant sessionExpiresAt;
 
@@ -56,8 +61,11 @@ public class LoginToken {
     public String getToken() { return token; }
     public void setToken(String token) { this.token = token; }
 
-    public long getUserId() { return userId; }
-    public void setUserId(long userId) { this.userId = userId; }
+    public String getType() { return type; }
+    public void setType(String type) { this.type = type; }
+
+    public long getAccountId() { return accountId; }
+    public void setAccountId(long accountId) { this.accountId = accountId; }
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }

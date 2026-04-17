@@ -1,6 +1,7 @@
 package com.inc.fcr;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.inc.fcr.auth.Account;
 import com.inc.fcr.auth.AuthController;
 import com.inc.fcr.car.Car;
 import com.inc.fcr.payment.Payment;
@@ -10,7 +11,6 @@ import com.inc.fcr.reservation.Reservation;
 import com.inc.fcr.user.User;
 import com.inc.fcr.utils.APIController;
 import com.inc.fcr.car.enums.EnumController;
-import com.inc.fcr.utils.DatabaseController;
 import com.inc.fcr.utils.HibernateUtil;
 
 import io.javalin.Javalin;
@@ -20,28 +20,36 @@ import static io.javalin.apibuilder.ApiBuilder.*;
 /**
  * Application entry point for the FCR Inc car rental REST API.
  *
- * <p>
- * Bootstraps Hibernate, configures a Javalin HTTP server with
- * documentation, CORS, and role-based access control, then registers all API
- * routes.
- * </p>
+ * <p>Bootstraps Hibernate, configures a Javalin HTTP server with role-based access
+ * control, then registers all API routes.</p>
  *
- * <p>
- * The server port is read from the {@code PORT} environment variable,
- * defaulting to {@code 8080} if not set.
- * </p>
+ * <p>The server port is read from the {@code PORT} environment variable,
+ * defaulting to {@code 8080} if not set.</p>
  *
- * <p>
- * <strong>Route overview:</strong>
- * </p>
+ * <p><strong>Route overview:</strong></p>
  * <ul>
- * <li>{@code /cars} — CRUD for vehicle inventory</li>
- * <li>{@code /reservations} — CRUD for reservations</li>
- * <li>{@code /users} — CRUD for users</li>
- * <li>{@code /payments} — CRUD for payment records</li>
- * <li>{@code /stripe} — Stripe checkout / webhook integration</li>
- * <li>{@code /enums} — Enum metadata for UI dropdowns</li>
- * <li>{@code /auth/validate}— Credential validation</li>
+ *   <li>{@code GET  /auth/validate}                  — validate a Bearer session token</li>
+ *   <li>{@code POST /auth/register}                  — create an account (optionally creates a linked user)</li>
+ *   <li>{@code GET  /auth/confirm/{token}}            — confirm email and receive a session token</li>
+ *   <li>{@code POST /auth/send-link}                 — send a magic login link to a confirmed account</li>
+ *   <li>{@code GET  /auth/account-exists?email=...}  — check if an account exists (200 or 404)</li>
+ *   <li>{@code GET|PATCH|DELETE /accounts/{id}}      — manage accounts (READ/WRITE/ADMIN)</li>
+ *   <li>{@code GET /accounts}                        — list/search accounts (READ)</li>
+ *   <li>{@code GET|POST /cars}                       — list or create vehicles</li>
+ *   <li>{@code GET /cars/makes}                      — distinct car makes</li>
+ *   <li>{@code GET|PATCH|DELETE /cars/{id}}          — manage a vehicle</li>
+ *   <li>{@code GET|POST /reservations}               — list or create reservations</li>
+ *   <li>{@code GET|PATCH|DELETE /reservations/{id}}  — manage a reservation</li>
+ *   <li>{@code GET|POST /users}                      — list or create users</li>
+ *   <li>{@code GET|PATCH|DELETE /users/{id}}         — manage a user</li>
+ *   <li>{@code GET|POST /payments}                   — list or create payments</li>
+ *   <li>{@code GET|PATCH|DELETE /payments/{id}}      — manage a payment</li>
+ *   <li>{@code POST /stripe/user}                    — find or create a user by email</li>
+ *   <li>{@code POST /stripe/checkout}                — create a hosted Stripe Checkout session</li>
+ *   <li>{@code POST /stripe/payment-intent}          — create a Stripe PaymentIntent</li>
+ *   <li>{@code POST /stripe/webhook}                 — handle Stripe payment events</li>
+ *   <li>{@code GET  /enums}                          — all enum metadata for UI dropdowns</li>
+ *   <li>{@code GET  /enums/{enum}}                   — metadata for a specific enum</li>
  * </ul>
  */
 public class Main {
@@ -62,6 +70,7 @@ public class Main {
         Javalin app = Javalin.create(config -> {
 
             // Create controllers
+            APIController accounts = new APIController(Account.class, Long.class);
             APIController cars = new APIController(Car.class, String.class);
             APIController reservations = new APIController(Reservation.class, Long.class);
             APIController users = new APIController(User.class, Long.class);
@@ -78,11 +87,23 @@ public class Main {
                 get("/auth/validate", Auth::validateCredentials, Role.ANYONE);
 
                 path("auth", () -> {
-                    // Magic-link login: POST /auth/magic-link { "email": "..." }
-                    post("/magic-link", AuthController::requestMagicLink, Role.ANYONE);
-                    // Verify link from email: GET /auth/verify/{token}
-                    path("/verify/{token}", () -> {
-                        get(AuthController::verifyToken, Role.ANYONE);
+                    // POST /auth/register   { "email", "role"?, ...user fields }
+                    post("/register", AuthController::register, Role.ANYONE);
+                    // GET  /auth/confirm/{token}
+                    path("/confirm/{token}", () -> get(AuthController::confirmEmail, Role.ANYONE));
+                    // POST /auth/send-link  { "email" }
+                    post("/send-link", AuthController::sendLink, Role.ANYONE);
+                    // GET  /auth/account-exists?email=...  → 200 or 404, no body
+                    get("/account-exists", AuthController::accountExists, Role.ANYONE);
+                });
+
+                // Accounts — created via POST /auth/register; managed here
+                path("accounts", () -> {
+                    get(accounts::getAll, Role.READ);
+                    path("{id}", () -> {
+                        get(accounts::getOne, Role.READ);
+                        patch(accounts::update, Role.WRITE);
+                        delete(accounts::delete, Role.ADMIN);
                     });
                 });
 
@@ -103,14 +124,9 @@ public class Main {
                     get(reservations::getAll, Role.ANYONE);
                     post(reservations::create, Role.WRITE);
                     path("{id}", () -> {
-                        // Need to only require the READ role (not WRITE/ADMIN) because
-                        // users need to be able to edit or "cancel" their own reservation.
-                        // THIS IS A MASSIVE SECURITY VULNERABILITY!!! and should not be done in prod.
-                        // Due to the scope of this project, implementing this further might not be
-                        // worth it.
-                        get(reservations::getOne, Role.READ);
-                        patch(reservations::update, Role.READ);
-                        delete(reservations::delete, Role.READ);
+                        get(reservations::getOne, Role.ANYONE);
+                        patch(reservations::update, Role.WRITE);
+                        delete(reservations::delete, Role.ADMIN);
                     });
                 });
 

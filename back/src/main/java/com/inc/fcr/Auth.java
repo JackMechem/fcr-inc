@@ -1,5 +1,7 @@
 package com.inc.fcr;
 
+import com.inc.fcr.auth.Account;
+import com.inc.fcr.auth.AccountRole;
 import com.inc.fcr.auth.LoginToken;
 import com.inc.fcr.utils.HibernateUtil;
 import io.javalin.http.Context;
@@ -44,6 +46,7 @@ public class Auth {
         if (permittedRoles.contains(Role.ANYONE)) {
             return;
         } // anyone can access
+        ApiKeyAuth.check(ctx);
         if (userRoles(ctx).stream().anyMatch(permittedRoles::contains)) {
             return;
         } // user has required role
@@ -85,14 +88,17 @@ public class Auth {
                 .orElse(List.of());
         if (!basicRoles.isEmpty()) return basicRoles;
 
-        // Fall through to Bearer token auth (magic-link sessions)
+        // Fall through to Bearer token (Account sessions)
         return bearerTokenRoles(ctx);
     }
 
     /**
      * Checks the {@code Authorization: Bearer <token>} header against the
-     * {@code auth_login_tokens} table. Returns {@link Role#READ} if the token
-     * has been verified and its session has not yet expired.
+     * {@code auth_login_tokens} table. Returns roles based on the linked
+     * {@link Account}'s {@link AccountRole} if the session is valid.
+     *
+     * @param ctx the Javalin request context
+     * @return a non-null list of roles, empty if the token is absent or invalid
      */
     private static List<Role> bearerTokenRoles(Context ctx) {
         String authHeader = ctx.header(Header.AUTHORIZATION);
@@ -101,17 +107,35 @@ public class Auth {
         if (tokenStr.isBlank()) return List.of();
 
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            LoginToken lt = session.createQuery("FROM LoginToken WHERE token = :token", LoginToken.class)
-                    .setParameter("token", tokenStr)
-                    .uniqueResult();
+            LoginToken lt = session.createQuery(
+                    "FROM LoginToken WHERE token = :t AND type = 'ACCOUNT_SESSION'", LoginToken.class)
+                    .setParameter("t", tokenStr).uniqueResult();
 
-            if (lt != null && lt.getVerifiedAt() != null && Instant.now().isBefore(lt.getSessionExpiresAt())) {
-                return List.of(Role.READ);
+            if (lt == null || Instant.now().isAfter(lt.getSessionExpiresAt())) return List.of();
+
+            Account account = session.get(Account.class, lt.getAccountId());
+
+            if (account != null && account.getDateEmailConfirmed() != null) {
+                return rolesForAccountRole(account.getRole());
             }
         } catch (Exception e) {
-            System.err.println("Auth: Bearer token lookup failed, " + e.getMessage());
+            System.err.println("Auth: Bearer token lookup failed — " + e.getMessage());
         }
         return List.of();
+    }
+
+    /**
+     * Maps an {@link AccountRole} to the set of Javalin {@link Role} route permissions it grants.
+     *
+     * @param accountRole the role assigned to an {@link Account}
+     * @return a non-null, non-empty list of permitted {@link Role}s
+     */
+    static List<Role> rolesForAccountRole(AccountRole accountRole) {
+        return switch (accountRole) {
+            case CUSTOMER -> List.of(Role.READ);
+            case STAFF    -> List.of(Role.READ, Role.WRITE);
+            case ADMIN    -> List.of(Role.READ, Role.WRITE, Role.ADMIN);
+        };
     }
 
     // ---- TEMP ----

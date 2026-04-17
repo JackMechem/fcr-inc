@@ -33,6 +33,48 @@ public class MailController {
      * @param reservationIds list of created reservation IDs
      * @param cars           list of maps with keys: vin, make, model, year, pickUpTime, dropOffTime
      */
+    /**
+     * Sends an account confirmation / magic-link login email.
+     *
+     * <p>The link is built as {@code <APP_URL>/auth/confirm/<token>}.
+     * {@code APP_URL} defaults to {@code http://localhost:8080} if not set.</p>
+     *
+     * @param toEmail   recipient email address
+     * @param firstName recipient first name (may be {@code null} for new accounts)
+     * @param token     the UUID confirmation token
+     */
+    public static void sendAccountConfirmation(String toEmail, String firstName, String token) {
+        if (API_KEY == null || API_KEY.isBlank()) {
+            System.err.println("Mail: RESEND_API_KEY not set — skipping account confirmation email");
+            return;
+        }
+        String appUrl = System.getenv("APP_URL");
+        if (appUrl == null || appUrl.isBlank()) appUrl = "http://localhost:8080";
+        String link = appUrl + "/auth/confirm/" + token;
+        String greeting = (firstName != null && !firstName.isBlank()) ? "Hi " + firstName + "," : "Hi,";
+
+        try {
+            Resend resend = new Resend(API_KEY);
+            CreateEmailOptions email = CreateEmailOptions.builder()
+                    .from(MAIL_FROM != null ? MAIL_FROM : "onboarding@resend.dev")
+                    .to(toEmail)
+                    .subject("Sign in to FCR Inc")
+                    .html("<div style='font-family:sans-serif;max-width:600px;margin:auto'>"
+                            + "<h2>Sign in to FCR Inc</h2><p>" + greeting + "</p>"
+                            + "<p>Click below to confirm your email and log in. This link expires in 24 hours.</p>"
+                            + "<p><a href='" + link + "' style='display:inline-block;padding:12px 24px;"
+                            + "background:#0070f3;color:#fff;text-decoration:none;border-radius:6px;"
+                            + "font-weight:bold'>Sign in</a></p>"
+                            + "<p>If you did not request this, you can safely ignore it.</p></div>")
+                    .build();
+            resend.emails().send(email);
+            System.out.println("Mail: confirmation sent to " + toEmail);
+        } catch (Exception e) {
+            System.err.println("Mail: failed to send confirmation email — " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
     public static void sendReservationConfirmation(String toEmail, String firstName, long userId, String paymentId, List<Long> reservationIds, List<Map<String, String>> cars) {
         if (API_KEY == null || API_KEY.isBlank()) {
             System.err.println("Mail: RESEND_API_KEY not set — skipping confirmation email");
@@ -56,57 +98,6 @@ public class MailController {
             System.err.println("Mail: failed to send confirmation email — " + e.getMessage());
             e.printStackTrace();
         }
-    }
-
-    /**
-     * Sends a magic-link login email via Resend.
-     *
-     * <p>The link destination is built from the {@code APP_URL} environment variable
-     * (e.g. {@code https://app.example.com}). If {@code APP_URL} is not set the link
-     * points to {@code http://localhost:8080}.</p>
-     *
-     * @param toEmail   recipient email address
-     * @param firstName recipient first name
-     * @param token     the UUID login token
-     */
-    public static void sendMagicLink(String toEmail, String firstName, String token) {
-        if (API_KEY == null || API_KEY.isBlank()) {
-            System.err.println("Mail: RESEND_API_KEY not set — skipping magic link email");
-            return;
-        }
-
-        String appUrl = System.getenv("APP_URL");
-        if (appUrl == null || appUrl.isBlank()) appUrl = "http://localhost:8080";
-        String link = appUrl + "/auth/verify/" + token;
-
-        try {
-            Resend resend = new Resend(API_KEY);
-
-            CreateEmailOptions email = CreateEmailOptions.builder()
-                    .from(MAIL_FROM != null ? MAIL_FROM : "onboarding@resend.dev")
-                    .to(toEmail)
-                    .subject("Your Login Link — FCR Inc")
-                    .html(buildMagicLinkHtml(firstName, link))
-                    .build();
-
-            resend.emails().send(email);
-            System.out.println("Mail: magic link sent to " + toEmail);
-
-        } catch (Exception e) {
-            System.err.println("Mail: failed to send magic link email — " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    private static String buildMagicLinkHtml(String firstName, String link) {
-        return "<div style='font-family: sans-serif; max-width: 600px; margin: auto;'>"
-                + "<h2>Sign in to FCR Inc</h2>"
-                + "<p>Hi " + firstName + ",</p>"
-                + "<p>Click the button below to log in. This link expires in 15 minutes and can only be used once.</p>"
-                + "<p><a href='" + link + "' style='display:inline-block; padding:12px 24px; background:#0070f3;"
-                + " color:#fff; text-decoration:none; border-radius:6px; font-weight:bold;'>Log in to FCR Inc</a></p>"
-                + "<p>If you did not request this link you can safely ignore this email.</p>"
-                + "</div>";
     }
 
     /**
