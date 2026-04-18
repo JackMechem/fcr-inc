@@ -3,9 +3,8 @@
 .container {
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 16px;
     padding-bottom: 40px;
-    margin-top: 40px;
 }
 
 .header {
@@ -76,9 +75,9 @@
 .searchInput {
     box-sizing: border-box;
     width: 100%;
-    background-color: var(--color-primary);
+    background-color: var(--color-primary-dark);
     border: 1px solid var(--color-third);
-    border-radius: 12px;
+    border-radius: 10px;
     padding: 10px 14px 10px 40px;
     font-size: 10.5pt;
     color: var(--color-foreground);
@@ -92,9 +91,8 @@
 
 /* Table */
 .tableContainer {
-    background-color: var(--color-primary);
     border: 1px solid var(--color-third);
-    border-radius: 16px;
+    border-radius: 12px;
     overflow: hidden;
 }
 
@@ -104,7 +102,6 @@
     gap: 16px;
     padding: 12px 20px;
     border-bottom: 1px solid var(--color-third);
-    background-color: var(--color-primary-dark);
 }
 
 @media (min-width: 768px) {
@@ -126,7 +123,7 @@
     gap: 16px;
     padding: 14px 20px;
     align-items: center;
-    transition: background-color 0.2s;
+    transition: background-color 0.15s;
     cursor: pointer;
 }
 
@@ -218,7 +215,7 @@
 /* Expanded Section */
 .expandedSection {
     padding: 20px;
-    background-color: var(--color-primary-dark);
+    background-color: color-mix(in srgb, var(--color-primary-dark) 60%, var(--color-primary));
     border-top: 1px solid var(--color-third);
     display: grid;
     grid-template-columns: 1fr;

@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAdminSidebarStore, AdminView } from "@/stores/adminSidebarStore";
 import { useWindowSize } from "@/app/hooks/useWindowSize";
 import {
-    BiCar, BiChevronLeft, BiChevronRight,
+    BiCar, BiChevronLeft, BiChevronRight, BiChevronDown,
     BiPlus, BiEdit, BiTable, BiGridAlt, BiX, BiCalendar, BiUser,
 } from "react-icons/bi";
 import styles from "./adminSidebar.module.css";
@@ -136,10 +136,14 @@ const DesktopSidebar = () => {
     const [flyout, setFlyout] = useState<Section | null>(null);
     const flyoutTimer = useState<ReturnType<typeof setTimeout> | null>(null);
 
+    // Auto-open the section containing the active view (e.g. triggered from outside)
+    useEffect(() => {
+        const sectionId = SECTIONS.find((s) => s.items.some((i) => i.view === activeView))?.id;
+        if (sectionId) setOpenSection(sectionId);
+    }, [activeView]);
+
     const handleDashboard = () => { setActiveView(null); setOpenSection(null); };
     const handleSection   = (id: Section) => setOpenSection((prev) => (prev === id ? null : id));
-
-    const activeSection = SECTIONS.find((s) => s.id === openSection);
 
     const openFlyout  = (id: Section) => {
         if (flyoutTimer[0]) clearTimeout(flyoutTimer[0]);
@@ -159,7 +163,6 @@ const DesktopSidebar = () => {
             {collapsed ? (
                 /* Collapsed: icon stack with hover flyouts */
                 <div className={styles.collapsedStack}>
-                    {/* Dashboard */}
                     <button
                         onClick={handleDashboard}
                         title="Dashboard"
@@ -168,7 +171,6 @@ const DesktopSidebar = () => {
                         <BiGridAlt className={styles.collapsedBtnIcon} />
                     </button>
 
-                    {/* Section icons */}
                     {SECTIONS.map((s) => {
                         const sectionActive = s.items.some((i) => i.view === activeView);
                         return (
@@ -182,7 +184,6 @@ const DesktopSidebar = () => {
                                     <span className={styles.collapsedBtnIcon}>{s.icon}</span>
                                 </button>
 
-                                {/* Flyout panel */}
                                 {flyout === s.id && flyoutSection && (
                                     <div
                                         className={styles.flyout}
@@ -212,52 +213,58 @@ const DesktopSidebar = () => {
                     })}
                 </div>
             ) : (
-                /* Expanded: horizontal icon strip + sub-items */
+                /* Expanded: traditional collapsible nav */
                 <div className={styles.expandedInner}>
-                    <div className={styles.expandedIconStrip}>
+                    <div className={styles.navTop}>
                         <button
                             onClick={handleDashboard}
-                            title="Dashboard"
-                            className={`${styles.expandedIconBtn} ${
-                                activeView === null && openSection === null ? styles.expandedIconBtnActive : ""
-                            }`}
+                            className={`${styles.dashBtn} ${activeView === null ? styles.dashBtnActive : ""}`}
                         >
-                            <BiGridAlt />
+                            <BiGridAlt className={styles.dashBtnIcon} />
+                            <span className={styles.dashBtnLabel}>Dashboard</span>
                         </button>
+                    </div>
+
+                    <div className={styles.navDivider} />
+
+                    <div className={styles.navSections}>
                         {SECTIONS.map((s) => {
                             const isOpen = openSection === s.id;
+                            const hasActive = s.items.some((i) => i.view === activeView);
                             return (
-                                <button
-                                    key={s.id}
-                                    onClick={() => handleSection(s.id)}
-                                    title={s.label}
-                                    className={`${styles.expandedIconBtn} ${isOpen ? styles.expandedIconBtnActive : ""}`}
-                                >
-                                    <span>{s.icon}</span>
-                                </button>
+                                <div key={s.id} className={styles.navSection}>
+                                    <button
+                                        onClick={() => handleSection(s.id)}
+                                        className={`${styles.sectionBtn} ${isOpen || hasActive ? styles.sectionBtnOpen : ""}`}
+                                    >
+                                        <span className={styles.sectionBtnIcon}>{s.icon}</span>
+                                        <span className={styles.sectionBtnLabel}>{s.label}</span>
+                                        <BiChevronDown className={`${styles.sectionChevron} ${isOpen ? styles.sectionChevronOpen : ""}`} />
+                                    </button>
+
+                                    {isOpen && (
+                                        <div className={styles.subItems}>
+                                            {s.items.map((item) => {
+                                                const isActive = activeView === item.view;
+                                                return (
+                                                    <button
+                                                        key={String(item.view)}
+                                                        onClick={() => setActiveView(item.view)}
+                                                        className={`${styles.subItem} ${isActive ? styles.subItemActive : ""}`}
+                                                    >
+                                                        <span className={`${styles.subItemIcon} ${isActive ? styles.subItemIconActive : ""}`}>
+                                                            {item.icon}
+                                                        </span>
+                                                        <span className={styles.subItemLabel}>{item.label}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
                             );
                         })}
                     </div>
-
-                    {activeSection && (
-                        <div className={styles.expandedItems}>
-                            {activeSection.items.map((item) => {
-                                const isActive = activeView === item.view;
-                                return (
-                                    <button
-                                        key={item.view}
-                                        onClick={() => setActiveView(item.view)}
-                                        className={`${styles.expandedItem} ${isActive ? styles.expandedItemActive : ""}`}
-                                    >
-                                        <span className={`${styles.expandedItemIcon} ${isActive ? styles.expandedItemIconActive : ""}`}>
-                                            {item.icon}
-                                        </span>
-                                        <span className={styles.expandedItemLabel}>{item.label}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    )}
                 </div>
             )}
 

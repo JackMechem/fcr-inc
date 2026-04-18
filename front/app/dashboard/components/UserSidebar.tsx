@@ -50,40 +50,38 @@ const DesktopSidebar = () => {
             ) : (
                 <div className={styles.expandedInner}>
                     {/* Identity header */}
-                    <div style={{ padding: "16px 16px 8px", borderBottom: "1px solid var(--color-third)", marginBottom: 8 }}>
-                        <p style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-foreground-light)", marginBottom: 2 }}>
+                    <div className={styles.navTop} style={{ borderBottom: "1px solid var(--color-third)", paddingBottom: 12, marginBottom: 0 }}>
+                        <p style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--color-foreground-light)", marginBottom: 4, padding: "0 4px" }}>
                             Signed in as
                         </p>
-                        <p style={{ fontSize: 13, color: "var(--color-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                        <p style={{ fontSize: 12, color: "var(--color-foreground)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", padding: "0 4px" }}>
                             {userEmail ?? "—"}
                         </p>
                     </div>
 
-                    <div className={styles.expandedItems}>
+                    <div className={styles.navDivider} />
+
+                    <div className={styles.navSections}>
                         {NAV_ITEMS.map((item) => (
                             <button
                                 key={item.view}
                                 onClick={() => setActiveView(item.view)}
-                                className={`${styles.expandedItem} ${activeView === item.view ? styles.expandedItemActive : ""}`}
+                                className={`${styles.dashBtn} ${activeView === item.view ? styles.dashBtnActive : ""}`}
                             >
-                                <span className={`${styles.expandedItemIcon} ${activeView === item.view ? styles.expandedItemIconActive : ""}`}>
-                                    {item.icon}
-                                </span>
-                                <span className={styles.expandedItemLabel}>{item.label}</span>
+                                <span className={styles.dashBtnIcon}>{item.icon}</span>
+                                <span className={styles.dashBtnLabel}>{item.label}</span>
                             </button>
                         ))}
                     </div>
 
                     {/* Sign out */}
-                    {!collapsed && (
-                        <button
-                            onClick={handleSignOut}
-                            style={{ display: "flex", alignItems: "center", gap: 8, margin: "8px 12px 0", padding: "8px 12px", borderRadius: 8, fontSize: 13, color: "var(--color-foreground-light)", background: "none", border: "none", cursor: "pointer", width: "calc(100% - 24px)" }}
-                        >
-                            <BiLogOut />
-                            Sign Out
+                    <div style={{ padding: "0 10px 12px", marginTop: "auto" }}>
+                        <div className={styles.navDivider} style={{ marginBottom: 8 }} />
+                        <button onClick={handleSignOut} className={styles.dashBtn}>
+                            <BiLogOut className={styles.dashBtnIcon} />
+                            <span className={styles.dashBtnLabel}>Sign Out</span>
                         </button>
-                    )}
+                    </div>
                 </div>
             )}
             <button onClick={toggle} className={styles.toggleBtn}>
