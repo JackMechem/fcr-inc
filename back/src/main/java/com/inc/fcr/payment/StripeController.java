@@ -30,6 +30,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * HTTP handlers for Stripe payment integration endpoints.
@@ -56,6 +58,9 @@ public class StripeController {
     static {
         Stripe.apiKey = System.getenv("STRIPE_SECRET_KEY");
     }
+
+    // Guards against concurrent webhook calls for the same payment (TOCTOU race condition)
+    private static final Set<String> processingPayments = ConcurrentHashMap.newKeySet();
 
     /**
      * POST /stripe/user
@@ -426,6 +431,19 @@ public class StripeController {
     private static void createPaymentAndReservations(String paymentId, long amountCents, Map<String, String> metadata) throws Exception {
         System.out.println("Webhook metadata: " + metadata);
 
+        // Prevent concurrent webhook calls for the same payment from both creating reservations
+        if (!processingPayments.add(paymentId)) {
+            System.out.println("Webhook: payment " + paymentId + " already being processed concurrently, skipping");
+            return;
+        }
+        try {
+            createPaymentAndReservationsInternal(paymentId, amountCents, metadata);
+        } finally {
+            processingPayments.remove(paymentId);
+        }
+    }
+
+    private static void createPaymentAndReservationsInternal(String paymentId, long amountCents, Map<String, String> metadata) throws Exception {
         int carCount = Integer.parseInt(metadata.get("carCount"));
         long userId  = Long.parseLong(metadata.get("userId"));
         System.out.println("Webhook: paymentId=" + paymentId + ", userId=" + userId + ", carCount=" + carCount);
@@ -454,6 +472,22 @@ public class StripeController {
 
             Car car = (Car) DatabaseController.getOne(Car.class, vin);
             if (car == null) throw new RuntimeException("Car not found: " + vin);
+
+            // Guard against duplicate reservations (e.g. double-submitted payment intents with identical metadata)
+            try (org.hibernate.Session dbSession = HibernateUtil.getSessionFactory().openSession()) {
+                Long existing = dbSession.createQuery(
+                        "SELECT COUNT(r) FROM Reservation r WHERE r.car.vin = :vin AND r.user.userId = :userId AND r.pickUpTime = :pickUp AND r.dropOffTime = :dropOff",
+                        Long.class)
+                        .setParameter("vin", vin)
+                        .setParameter("userId", userId)
+                        .setParameter("pickUp", pickUp)
+                        .setParameter("dropOff", dropOff)
+                        .getSingleResult();
+                if (existing > 0) {
+                    System.out.println("Webhook: reservation already exists for VIN=" + vin + " with same dates, skipping");
+                    continue;
+                }
+            }
 
             Reservation reservation = new Reservation(car, user, new ArrayList<>(payments), pickUp, dropOff, Instant.now());
             DatabaseController.insert(reservation);
