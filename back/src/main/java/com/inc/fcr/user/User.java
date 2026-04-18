@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.inc.fcr.database.Converters;
 import com.inc.fcr.database.SearchField;
 import com.inc.fcr.reservation.Reservation;
+import com.inc.fcr.reviews.Review;
 import com.inc.fcr.utils.APIEntity;
 import com.inc.fcr.utils.DatabaseController;
 import com.inc.fcr.utils.EntityController;
@@ -49,6 +50,8 @@ public class User extends APIEntity {
     private DriversLicense driversLicense;
     @OneToMany(mappedBy = "user") @JsonManagedReference("user-reservation") @JsonIgnore
     private List<Reservation> reservations = new ArrayList<>();
+    @OneToMany(mappedBy = "reviewId") @JsonIgnore
+    private List<Review> reviews = new ArrayList<>();
     @Column(nullable = false)
     private Instant dateCreated;
 
@@ -164,7 +167,14 @@ public class User extends APIEntity {
     public Object getReservationsParse() {
         if (parseFullObjects) return reservations;
         else return reservations.stream().map(Reservation::getReservationId).toList();
+    }
 
+    @JsonIgnore
+    public List<Review> getReviews() { return reviews; }
+    @JsonProperty("reviews")
+    public Object getReviewsParse() {
+        if(parseFullObjects) return reviews;
+        else return reviews.stream().map(Review::getReviewId).toList();
     }
 }
 

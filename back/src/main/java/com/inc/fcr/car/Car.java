@@ -6,6 +6,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.inc.fcr.database.Converters;
 import com.inc.fcr.database.SearchField;
 import com.inc.fcr.reservation.Reservation;
+import com.inc.fcr.reviews.Review;
 import com.inc.fcr.utils.APIEntity;
 import com.inc.fcr.utils.DatabaseController;
 import com.inc.fcr.utils.EntityController;
@@ -77,6 +78,8 @@ public class Car extends APIEntity {
     private VehicleClass vehicleClass;
     @OneToMany(mappedBy = "car") @JsonManagedReference("car-reservation") @JsonIgnore
     private List<Reservation> reservations = new ArrayList<>();
+    @OneToMany(mappedBy = "car") @JsonManagedReference("car-review") @JsonIgnore
+    private List<Review> reviews = new ArrayList<>();
 
     // --- CONSTRUCTORS ---
 
@@ -152,58 +155,39 @@ public class Car extends APIEntity {
     // --- GETTERS & SETTERS ---
 
     public String getVin() { return vin; }
-    public void setVin(String vin) { this.vin = vin; }
-
     public String getMake() { return make; }
-    public void setMake(String make) { this.make = make; }
-
     public String getModel() { return model; }
-    public void setModel(String model) { this.model = model; }
-
     public int getModelYear() { return modelYear; }
-
     public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
-
     public int getCylinders() { return cylinders; }
-
     public int getGears() { return gears; }
-
     public int getHorsepower() { return horsepower; }
-
     public int getTorque() { return torque; }
-
     public int getSeats() { return seats; }
-
     public double getPricePerDay() { return pricePerDay; }
-
     public double getMpg() { return mpg; }
-
     public ArrayList<String> getFeatures() { return features; }
-    public void setFeatures(ArrayList<String> features) { this.features = features; }
-
     public ArrayList<String> getImages() { return images; }
-    public void setImages(ArrayList<String> images) { this.images = images; }
-
     public TransmissionType getTransmission() { return transmission; }
-    public void setTransmission(TransmissionType transmission) { this.transmission = transmission; }
-
     public FuelType getFuel() { return fuel; }
-    public void setFuel(FuelType fuel) { this.fuel = fuel; }
-
     public Drivetrain getDrivetrain() { return drivetrain; }
-    public void setDrivetrain(Drivetrain drivetrain) { this.drivetrain = drivetrain; }
-
     public EngineLayout getEngineLayout() { return engineLayout; }
-    public void setEngineLayout(EngineLayout engineLayout) { this.engineLayout = engineLayout; }
-
     public BodyType getBodyType() { return bodyType; }
-    public void setBodyType(BodyType bodyType) { this.bodyType = bodyType; }
-
     public RoofType getRoofType() { return roofType; }
-    public void setRoofType(RoofType roofType) { this.roofType = roofType; }
-
     public VehicleClass getVehicleClass() { return vehicleClass; }
+
+    public void setVin(String vin) { this.vin = vin; }
+    public void setMake(String make) { this.make = make; }
+    public void setModel(String model) { this.model = model; }
+    public void setDescription(String description) { this.description = description; }
+    public void setFeatures(ArrayList<String> features) { this.features = features; }
+    public void setImages(ArrayList<String> images) { this.images = images; }
+    public void setTransmission(TransmissionType transmission) { this.transmission = transmission; }
+    public void setFuel(FuelType fuel) { this.fuel = fuel; }
+    public void setDrivetrain(Drivetrain drivetrain) { this.drivetrain = drivetrain; }
+    public void setEngineLayout(EngineLayout engineLayout) { this.engineLayout = engineLayout; }
+    public void setBodyType(BodyType bodyType) { this.bodyType = bodyType; }
+    public void setRoofType(RoofType roofType) { this.roofType = roofType; }
     public void setVehicleClass(VehicleClass vehicleClass) { this.vehicleClass = vehicleClass; }
 
     @JsonIgnore
@@ -212,6 +196,14 @@ public class Car extends APIEntity {
     public Object getReservationsParse() {
         if (parseFullObjects) return reservations;
         else return reservations.stream().map(Reservation::getReservationId).toList();
+    }
+
+    @JsonIgnore
+    public List<Review> getReviews() { return reviews; }
+    @JsonProperty("reviews")
+    public Object getReviewsParse() {
+        if(parseFullObjects) return reviews;
+        else return reviews.stream().map(Review::getReviewId).toList();
     }
 
     // Setters with Validation

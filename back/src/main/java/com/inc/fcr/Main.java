@@ -8,6 +8,7 @@ import com.inc.fcr.payment.Payment;
 import com.inc.fcr.payment.StripeController;
 import com.inc.fcr.car.CarMakeController;
 import com.inc.fcr.reservation.Reservation;
+import com.inc.fcr.reviews.Review;
 import com.inc.fcr.user.User;
 import com.inc.fcr.utils.APIController;
 import com.inc.fcr.car.enums.EnumController;
@@ -75,6 +76,8 @@ public class Main {
             APIController reservations = new APIController(Reservation.class, Long.class);
             APIController users = new APIController(User.class, Long.class);
             APIController payments = new APIController(Payment.class, String.class);
+            APIController reviews = new APIController(Review.class, Long.class);
+
 
             // Initialize endpoints
             config.router.mount(router -> {
@@ -147,6 +150,16 @@ public class Main {
                         get(payments::getOne, Role.ANYONE);
                         patch(payments::update, Role.WRITE);
                         delete(payments::delete, Role.ADMIN);
+                    });
+                });
+
+                path("reviews", () -> {
+                    get(reviews::getAll, Role.ANYONE);
+                    post(reviews::create, Role.WRITE);
+                    path("{id}", () -> {
+                        get(reviews::getOne, Role.ANYONE);
+                        patch(reviews::update, Role.WRITE);
+                        delete(reviews::delete, Role.ADMIN);
                     });
                 });
 
