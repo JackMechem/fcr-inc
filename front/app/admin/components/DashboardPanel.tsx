@@ -2,7 +2,7 @@
 
 import { Car } from "@/app/types/CarTypes";
 import { useAdminSidebarStore, AdminView } from "@/stores/adminSidebarStore";
-import { BiCar, BiPlus, BiEdit, BiTable, BiCalendar } from "react-icons/bi";
+import { BiCar, BiPlus, BiEdit, BiTable, BiCalendar, BiUser } from "react-icons/bi";
 import { MdAttachMoney, MdSpeed, MdDirectionsCar } from "react-icons/md";
 import styles from "./dashboardPanel.module.css";
 
@@ -66,6 +66,14 @@ const NAV_SECTIONS = [
       { icon: <BiTable />, label: "View Data", view: "view-reservations" as AdminView },
     ],
   },
+  {
+    id: "users",
+    icon: <BiUser />,
+    label: "Users",
+    items: [
+      { icon: <BiTable />, label: "View Accounts", view: "view-users" as AdminView },
+    ],
+  },
 ];
 
 const SectionTitle = ({ children }: { children: React.ReactNode }) => (
@@ -73,13 +81,11 @@ const SectionTitle = ({ children }: { children: React.ReactNode }) => (
 );
 
 interface Props {
-  initialCars: Car[];
+  cars: Car[];
 }
 
-const DashboardPanel = ({ initialCars }: Props) => {
+const DashboardPanel = ({ cars }: Props) => {
   const { setActiveView } = useAdminSidebarStore();
-  const cars = initialCars;
-  const totalItems = initialCars.length;
 
   const prices = cars.map((c) => c.pricePerDay).filter(Boolean);
   const hps = cars.map((c) => c.horsepower).filter(Boolean);
@@ -93,10 +99,15 @@ const DashboardPanel = ({ initialCars }: Props) => {
       </div>
 
       <div className={styles.statsGrid}>
-        <StatCard icon={<BiCar />} label="Total Vehicles" value={totalItems} />
+        <StatCard icon={<BiCar />} label="Total Vehicles" value={cars.length} />
         <StatCard icon={<MdDirectionsCar />} label="Unique Makes" value={new Set(cars.map(c => c.make)).size} />
-        <StatCard icon={<MdAttachMoney />} label="Avg Price / Day" value={`$${avg(prices)}`} sub={`Range: $${Math.min(...prices)} – $${Math.max(...prices)}`} />
-        <StatCard icon={<MdSpeed />} label="Avg Horsepower" value={`${avg(hps)} hp`} />
+        <StatCard
+          icon={<MdAttachMoney />}
+          label="Avg Price / Day"
+          value={prices.length ? `$${avg(prices)}` : "—"}
+          sub={prices.length ? `Range: $${Math.min(...prices)} – $${Math.max(...prices)}` : undefined}
+        />
+        <StatCard icon={<MdSpeed />} label="Avg Horsepower" value={hps.length ? `${avg(hps)} hp` : "—"} />
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(250px, 1fr))", gap: "24px" }}>

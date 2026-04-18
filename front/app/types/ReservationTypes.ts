@@ -11,7 +11,8 @@ export interface Payment {
 
 export interface Reservation {
     reservationId: number;
-    car: Car;
+    /** Full Car object after hydration, or raw VIN string as returned by the backend */
+    car: Car | string;
     user: number | { userId: number; [key: string]: unknown };
     payments: Payment[] | string[];
     pickUpTime: number;

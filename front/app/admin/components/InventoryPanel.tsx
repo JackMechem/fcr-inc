@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { getAllCars, deleteCar } from "@/app/lib/AdminApiCalls";
+import { useState, useEffect } from "react";
+import { deleteCar } from "@/app/lib/AdminApiCalls";
+import BulkActionsBar from "./BulkActionsBar";
 import { Car } from "@/app/types/CarTypes";
 import { useAdminSidebarStore } from "@/stores/adminSidebarStore";
 import Image from "next/image";
@@ -16,6 +17,7 @@ import {
 } from "react-icons/bi";
 
 import styles from "./inventoryPanel.module.css";
+import { LoadingSkeleton, EmptyState } from "./PanelLoading";
 
 // ── Expanded detail row ───────────────────────────────────────────────────────
 
@@ -91,29 +93,34 @@ const ExpandedRow = ({ car }: { car: Car }) => {
 // ── Main panel ────────────────────────────────────────────────────────────────
 
 interface Props {
-    initialCars: Car[];
+    cars: Car[];
+    onRefresh: () => Promise<void>;
 }
 
-const InventoryPanel = ({ initialCars }: Props) => {
+const InventoryPanel = ({ cars: initialCars, onRefresh }: Props) => {
     const { openEditCar } = useAdminSidebarStore();
     const [cars, setCars] = useState<Car[]>(initialCars);
     const [loading, setLoading] = useState(false);
-    const [hasFetched, setHasFetched] = useState(true);
     const [query, setQuery] = useState("");
     const [expandedVin, setExpandedVin] = useState<string | null>(null);
     const [deletingVin, setDeletingVin] = useState<string | null>(null);
     const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set());
     const [checkingImages, setCheckingImages] = useState(false);
     const [imageCheckDone, setImageCheckDone] = useState(false);
+    const [selected, setSelected] = useState<Set<string>>(new Set());
+    const [bulkDeleting, setBulkDeleting] = useState(false);
+
+    // Sync when parent re-fetches
+    useEffect(() => {
+        setCars(initialCars);
+        setBrokenImages(new Set());
+        setImageCheckDone(false);
+    }, [initialCars]);
 
     const fetchCars = async () => {
         setLoading(true);
         try {
-            const res = await getAllCars({ pageSize: 100 });
-            setCars(res.data);
-            setHasFetched(true);
-            setBrokenImages(new Set());
-            setImageCheckDone(false);
+            await onRefresh(); // parent updates initialCars → useEffect above syncs
         } catch (e) {
             alert("Fetch failed: " + e);
         } finally {
@@ -154,12 +161,29 @@ const InventoryPanel = ({ initialCars }: Props) => {
         try {
             await deleteCar(vin);
             setCars((prev) => prev.filter((c) => c.vin !== vin));
+            setSelected((prev) => { const n = new Set(prev); n.delete(vin); return n; });
         } catch (e) {
             alert("Error: " + e);
         } finally {
             setDeletingVin(null);
         }
     };
+
+    const handleBulkDelete = async () => {
+        if (!window.confirm(`Delete ${selected.size} vehicle${selected.size !== 1 ? "s" : ""}? This cannot be undone.`)) return;
+        setBulkDeleting(true);
+        const vins = [...selected];
+        const results = await Promise.allSettled(vins.map((vin) => deleteCar(vin)));
+        const deleted = vins.filter((_, i) => results[i].status === "fulfilled");
+        const failed = vins.filter((_, i) => results[i].status === "rejected");
+        setCars((prev) => prev.filter((c) => !deleted.includes(c.vin)));
+        setSelected(new Set(failed));
+        setBulkDeleting(false);
+        if (failed.length) alert(`${failed.length} deletion(s) failed.`);
+    };
+
+    const toggleSelect = (vin: string) =>
+        setSelected((prev) => { const n = new Set(prev); n.has(vin) ? n.delete(vin) : n.add(vin); return n; });
 
     const filtered = cars.filter((c) =>
         `${c.make} ${c.model} ${c.vin} ${c.vehicleClass}`
@@ -172,16 +196,14 @@ const InventoryPanel = ({ initialCars }: Props) => {
             <div className={styles.header}>
                 <div>
                     <h2 className="page-title">Live Inventory</h2>
-                    {hasFetched && (
-                        <p className="page-subtitle">
-                            {filtered.length} of {cars.length} vehicles
-                        </p>
-                    )}
+                    <p className="page-subtitle">
+                        {filtered.length} of {cars.length} vehicles
+                    </p>
                 </div>
                 <div className={styles.buttonGroup}>
                     <button
                         onClick={checkImages}
-                        disabled={checkingImages || !hasFetched}
+                        disabled={checkingImages}
                         className={`${styles.btn} ${styles.btnCheck}`}
                     >
                         {checkingImages ? (
@@ -216,27 +238,54 @@ const InventoryPanel = ({ initialCars }: Props) => {
                 />
             </div>
 
+            {selected.size > 0 && (
+                <BulkActionsBar
+                    count={selected.size}
+                    deleting={bulkDeleting}
+                    onDelete={handleBulkDelete}
+                    onClear={() => setSelected(new Set())}
+                />
+            )}
+
             <div className={styles.tableContainer}>
-                <div className={styles.tableHeader}>
+                <div className={styles.tableHeader} style={{ gridTemplateColumns: "28px 2fr 1fr 1fr 1fr auto" }}>
+                    <div className={styles.cbCell}>
+                        <input
+                            type="checkbox"
+                            className={styles.cb}
+                            checked={filtered.length > 0 && filtered.every((c) => selected.has(c.vin))}
+                            onChange={(e) => setSelected(e.target.checked ? new Set(filtered.map((c) => c.vin)) : new Set())}
+                        />
+                    </div>
                     {["Vehicle", "VIN", "Class", "Price / Day", ""].map((h) => (
-                        <p key={h} className={styles.columnLabel}>
-                            {h}
-                        </p>
+                        <p key={h} className={styles.columnLabel}>{h}</p>
                     ))}
                 </div>
 
                 <div className={styles.rowList}>
-                    {filtered.map((car) => {
+                    {loading ? (
+                        <LoadingSkeleton label="Refreshing inventory…" />
+                    ) : filtered.length === 0 ? (
+                        <EmptyState icon={<BiCar />} message="No vehicles match your search." />
+                    ) : filtered.map((car) => {
                         const isExpanded = expandedVin === car.vin;
-                        const hasImageIssue =
-                            !car.images?.length || brokenImages.has(car.vin);
+                        const hasImageIssue = !car.images?.length || brokenImages.has(car.vin);
 
                         return (
                             <div key={car.vin}>
                                 <div
                                     className={styles.summaryRow}
+                                    style={{ gridTemplateColumns: "28px 2fr 1fr 1fr 1fr auto" }}
                                     onClick={() => setExpandedVin(isExpanded ? null : car.vin)}
                                 >
+                                    <div className={styles.cbCell} onClick={(e) => e.stopPropagation()}>
+                                        <input
+                                            type="checkbox"
+                                            className={styles.cb}
+                                            checked={selected.has(car.vin)}
+                                            onChange={() => toggleSelect(car.vin)}
+                                        />
+                                    </div>
                                     <div className={styles.vehicleCell}>
                                         <div
                                             className={styles.thumbnail}
@@ -315,6 +364,7 @@ const InventoryPanel = ({ initialCars }: Props) => {
                         );
                     })}
                 </div>
+
             </div>
         </div>
     );

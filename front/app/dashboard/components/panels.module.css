@@ -45,7 +45,7 @@
 }
 
 .card {
-    background: var(--color-primary);
+    background: var(--color-primary-dark);
     border: 1px solid var(--color-third);
     border-radius: 14px;
     overflow: hidden;
@@ -57,7 +57,7 @@
     align-items: center;
     padding: 13px 20px;
     border-bottom: 1px solid var(--color-third);
-    background: color-mix(in srgb, var(--color-primary) 60%, var(--color-third));
+    background: var(--color-primary);
 }
 
 .cardId {
@@ -201,6 +201,95 @@
 .cancelBtn:hover {
     border-color: var(--color-accent);
     color: var(--color-accent);
+}
+
+/* ── Confirm Modal ─────────────────────────────────────────────────────────── */
+
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    padding: 16px;
+}
+
+.modal {
+    background: var(--color-primary);
+    border: 1px solid var(--color-third);
+    border-radius: 16px;
+    padding: 28px 28px 24px;
+    max-width: 420px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.modalTitle {
+    font-size: 14pt;
+    font-weight: 700;
+    color: var(--color-foreground);
+}
+
+.modalBody {
+    font-size: 10.5pt;
+    color: var(--color-foreground-light);
+    line-height: 1.6;
+}
+
+.modalWarning {
+    font-size: 10pt;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    border-radius: 8px;
+    padding: 10px 14px;
+}
+
+.modalActions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 4px;
+}
+
+.modalCancelBtn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 10pt;
+    border: 1px solid var(--color-third);
+    background: transparent;
+    color: var(--color-foreground);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.modalCancelBtn:hover {
+    background: var(--color-primary-dark);
+}
+
+.modalConfirmBtn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 10pt;
+    border: none;
+    background: #ef4444;
+    color: #fff;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.15s;
+}
+
+.modalConfirmBtn:hover:not(:disabled) {
+    background: #dc2626;
+}
+
+.modalConfirmBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 /* ── Forms ─────────────────────────────────────────────────────────────────── */

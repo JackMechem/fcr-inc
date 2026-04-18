@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useUserDashboardStore } from "@/stores/userDashboardStore";
 import { BiUser, BiPhone, BiMap, BiIdCard, BiEnvelope } from "react-icons/bi";
 import styles from "./panels.module.css";
@@ -50,27 +50,12 @@ export default function UserDetailsPanel({ initialUser }: Props) {
     const { stripeUserId } = useUserDashboardStore();
     const [form, setForm] = useState<UserForm>(initialUser ? mapUserToForm(initialUser) : defaultForm);
     const [email, setEmail] = useState(initialUser ? String(initialUser.email ?? "") : "");
-    const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState(false);
 
     const set = (key: keyof UserForm) => (e: React.ChangeEvent<HTMLInputElement>) =>
         setForm((prev) => ({ ...prev, [key]: e.target.value }));
-
-    useEffect(() => {
-        // Skip fetch if server pre-loaded the user
-        if (initialUser || !stripeUserId) return;
-        setLoading(true);
-        fetch(`/api/users/${stripeUserId}`)
-            .then((r) => r.json())
-            .then((user) => {
-                setEmail(user.email ?? "");
-                setForm(mapUserToForm(user));
-            })
-            .catch(() => setError("Failed to load user details."))
-            .finally(() => setLoading(false));
-    }, [stripeUserId]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -111,8 +96,6 @@ export default function UserDetailsPanel({ initialUser }: Props) {
             setSaving(false);
         }
     };
-
-    if (loading) return <div className={styles.loading}>Loading user details...</div>;
 
     return (
         <div className={styles.container}>

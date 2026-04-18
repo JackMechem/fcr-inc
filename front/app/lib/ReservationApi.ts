@@ -12,6 +12,10 @@ export const getAllReservations = async ({
     if (pageSize) params.set("pageSize", String(pageSize));
 
     const res = await fetch(`/api/reservations?${params.toString()}`, { cache: "no-store" });
-    if (!res.ok) throw new Error(`Failed to fetch reservations`);
+    if (!res.ok) {
+        const body = await res.text();
+        console.error(`[getAllReservations] ${res.status}:`, body);
+        throw new Error(`Failed to fetch reservations (${res.status}): ${body}`);
+    }
     return res.json();
 };

@@ -3,15 +3,32 @@ import { getBearerHeader, getApiKeyHeader } from "@/app/lib/serverAuth";
 
 export async function GET(req: NextRequest) {
     const userId = req.nextUrl.searchParams.get("userId");
+    const pageSize = req.nextUrl.searchParams.get("pageSize") ?? "500";
+    const page = req.nextUrl.searchParams.get("page") ?? "1";
     const authHeader = await getBearerHeader();
 
+    const backendUrl = `${process.env.API_BASE_URL}/reservations?pageSize=${pageSize}&page=${page}`;
+    console.log("[GET /api/reservations] →", backendUrl);
+
     const headers: HeadersInit = { ...getApiKeyHeader(), ...(authHeader ? { Authorization: authHeader } : {}) };
-    const res = await fetch(
-        `${process.env.API_BASE_URL}/reservations?pageSize=500&parseFullObjects=true`,
-        { headers, cache: "no-store", signal: AbortSignal.timeout(10000) }
-    );
+
+    let res: Response;
+    try {
+        res = await fetch(backendUrl, { headers, cache: "no-store", signal: AbortSignal.timeout(30000) });
+    } catch (err) {
+        console.error("[GET /api/reservations] fetch threw:", err);
+        return NextResponse.json({ error: "Request to backend timed out or failed" }, { status: 502 });
+    }
+
+    if (!res.ok) {
+        const body = await res.text();
+        console.error(`[GET /api/reservations] backend returned ${res.status}:`, body);
+        return NextResponse.json({ error: body }, { status: res.status });
+    }
 
     const result = await res.json();
+    console.log(`[GET /api/reservations] backend ok — totalItems: ${result.totalItems ?? "?"}`);
+
     const all: Record<string, unknown>[] = Array.isArray(result) ? result : (result.data ?? []);
 
     if (userId) {
@@ -25,6 +42,5 @@ export async function GET(req: NextRequest) {
         return NextResponse.json(filtered);
     }
 
-    // Admin: return full paginated shape
     return NextResponse.json(result);
 }

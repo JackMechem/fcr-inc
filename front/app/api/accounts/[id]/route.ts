@@ -1,6 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getBearerHeader, getApiKeyHeader } from "@/app/lib/serverAuth";
 
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
+    const authHeader = await getBearerHeader();
+
+    const qs = req.nextUrl.searchParams.toString();
+    const url = `${process.env.API_BASE_URL}/accounts/${id}${qs ? `?${qs}` : ""}`;
+
+    const headers: HeadersInit = { ...getApiKeyHeader(), ...(authHeader ? { Authorization: authHeader } : {}) };
+    const res = await fetch(url, { headers, cache: "no-store" });
+    return NextResponse.json(await res.json(), { status: res.status });
+}
+
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
     const authHeader = await getBearerHeader();
@@ -9,12 +21,12 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const headers: HeadersInit = { "Content-Type": "application/json", ...getApiKeyHeader() };
     if (authHeader) headers["Authorization"] = authHeader;
 
-    const res = await fetch(`${process.env.API_BASE_URL}/reservations/${id}`, {
+    const res = await fetch(`${process.env.API_BASE_URL}/accounts/${id}`, {
         method: "PATCH",
         headers,
         body: JSON.stringify(body),
     });
-
+    if (res.status === 204) return new NextResponse(null, { status: 204 });
     const text = await res.text();
     return new NextResponse(text, { status: res.status });
 }
@@ -23,25 +35,12 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params;
     const authHeader = await getBearerHeader();
 
-    const backendUrl = `${process.env.API_BASE_URL}/reservations/${id}`;
-    console.log(`[DELETE /api/reservations/${id}] → ${backendUrl}`);
-
     const headers: HeadersInit = { ...getApiKeyHeader(), ...(authHeader ? { Authorization: authHeader } : {}) };
-
-    let res: Response;
-    try {
-        res = await fetch(backendUrl, { method: "DELETE", headers });
-    } catch (err) {
-        console.error(`[DELETE /api/reservations/${id}] fetch threw:`, err);
-        return NextResponse.json({ error: "Request to backend failed" }, { status: 502 });
-    }
-
-    if (res.status === 204) {
-        return new NextResponse(null, { status: 204 });
-    }
+    const res = await fetch(`${process.env.API_BASE_URL}/accounts/${id}`, {
+        method: "DELETE",
+        headers,
+    });
+    if (res.status === 204) return new NextResponse(null, { status: 204 });
     const text = await res.text();
-    if (!res.ok) {
-        console.error(`[DELETE /api/reservations/${id}] backend returned ${res.status}:`, text);
-    }
     return new NextResponse(text, { status: res.status });
 }

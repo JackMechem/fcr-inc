@@ -1,13 +1,33 @@
 "use client";
 
-import { Suspense, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import NavHeader from "../components/headers/navHeader";
 import styles from "./login.module.css";
+import { useUserDashboardStore } from "@/stores/userDashboardStore";
 
 function LoginInner() {
     const searchParams = useSearchParams();
+    const router = useRouter();
+    const { isAuthenticated } = useUserDashboardStore();
+
+    const nextParam = searchParams.get("next");
+
+    useEffect(() => {
+        if (!isAuthenticated) return;
+        if (nextParam && nextParam !== "/login") {
+            router.replace(nextParam);
+            return;
+        }
+        const saved = sessionStorage.getItem("pre-login-path");
+        sessionStorage.removeItem("pre-login-path");
+        if (saved && saved !== "/login") {
+            router.replace(saved);
+        } else {
+            router.replace("/dashboard");
+        }
+    }, [isAuthenticated, router, nextParam]);
     const reason = searchParams.get("reason");
     const prefillEmail = searchParams.get("email") ?? "";
 

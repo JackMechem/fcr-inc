@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type AdminView = "add-car" | "edit-car" | "view-data" | "view-reservations" | null;
+export type AdminView = "add-car" | "edit-car" | "view-data" | "view-reservations" | "view-accounts" | "view-users" | null;
 
 interface AdminSidebarStore {
     collapsed: boolean;

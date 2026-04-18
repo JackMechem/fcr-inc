@@ -1,0 +1,97 @@
+.bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background-color: var(--color-primary);
+    border: 1px solid var(--color-accent);
+    border-radius: 12px;
+    gap: 12px;
+}
+
+.count {
+    font-size: 10pt;
+    font-weight: 600;
+    color: var(--color-foreground);
+}
+
+.actionsBtn {
+    display: flex;
+    align-items: center;
+    font-size: 10pt;
+    padding: 7px 12px;
+    border-radius: 10px;
+    background: transparent;
+    border: 1px solid var(--color-third);
+    color: var(--color-foreground);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.actionsBtn:hover:not(:disabled) {
+    border-color: var(--color-accent);
+    background-color: rgba(153, 53, 55, 0.05);
+}
+
+.dropdownWrap {
+    position: relative;
+}
+
+.dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    min-width: 180px;
+    background-color: var(--color-primary);
+    border: 1px solid var(--color-third);
+    border-radius: 10px;
+    overflow: hidden;
+    z-index: 50;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.dropdownItem {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 11px 16px;
+    background: transparent;
+    border: none;
+    font-size: 10pt;
+    color: var(--color-foreground);
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s;
+}
+
+.dropdownItem:hover:not(:disabled) {
+    background-color: var(--color-primary-dark);
+}
+
+.dropdownItem:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.clearBtn {
+    font-size: 9.5pt;
+    color: var(--color-foreground-light);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: color 0.15s;
+}
+
+.clearBtn:hover:not(:disabled) {
+    color: var(--color-foreground);
+}
+
+/* Checkbox styling shared across panels */
+.cbWrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

@@ -26,6 +26,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ vi
         headers,
         body: JSON.stringify(body),
     });
+    if (res.status === 204) return new NextResponse(null, { status: 204 });
     const text = await res.text();
     return new NextResponse(text, { status: res.status });
 }
@@ -39,6 +40,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
         method: "DELETE",
         headers,
     });
+    if (res.status === 204) return new NextResponse(null, { status: 204 });
     const text = await res.text();
     return new NextResponse(text, { status: res.status });
 }
