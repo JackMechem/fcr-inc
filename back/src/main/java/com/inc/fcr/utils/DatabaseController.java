@@ -57,11 +57,11 @@ public class DatabaseController {
 
         Session session = HibernateUtil.getSessionFactory().openSession();
         // Get total items in database and calculate total pages
-        long totalItems = (long) params.setPotentialSearchParams(session.createQuery(countString, Long.class)).getSingleResult();
+        long totalItems = (long) params.setPotentialParams(session.createQuery(countString, Long.class)).getSingleResult();
         int totalPages  = (int) Math.ceil((double) totalItems / limit);
 
         // Get entities
-        List<?> entities = params.setPotentialSearchParams(session.createQuery(queryString, clazz))
+        List<?> entities = params.setPotentialParams(session.createQuery(queryString, clazz))
                 .setFirstResult(offset).setMaxResults(limit).getResultList();
         if (params.getParseFullObjects()) entities.stream().forEach(c -> ((APIEntity) c).parseFullObjects = true);
 

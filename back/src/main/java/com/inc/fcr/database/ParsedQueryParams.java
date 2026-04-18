@@ -283,9 +283,9 @@ public class ParsedQueryParams {
                 } else if (field.startsWith("exact_")) {
                     sb.append(" AND c.").append(field.substring(6)).append(" = ").append(value);
                 } else if (field.startsWith("minT_")) {
-                    sb.append(" AND c.").append(field.substring(5)).append(" >= '").append(Instant.parse(value)).append("'");
+                    sb.append(" AND c.").append(field.substring(5)).append(" >= :").append(field);
                 } else if (field.startsWith("maxT_")) {
-                    sb.append(" AND c.").append(field.substring(5)).append(" <= '").append(Instant.parse(value)).append("'");
+                    sb.append(" AND c.").append(field.substring(5)).append(" <= :").append(field);
                 } else if (FILTER_PARSERS.containsKey(field)) {
                     if (FILTER_VALID_VALUES.get(field).contains(value.toUpperCase())) {
                         sb.append(" AND c.").append(field).append(" = ");
@@ -332,15 +332,20 @@ public class ParsedQueryParams {
     }
 
     /** Fills out search parameter fields on given query expected to be generated from the same */
-    public Query setPotentialSearchParams(Query q) {
-        if (parsedSearchText == null) return q;
-        // fill in parsed search text safely
-        var i = new AtomicInteger();
-        parsedSearchText.forEach(e -> q.setParameter("searchText" + i.getAndIncrement(), e));
+    public Query setPotentialParams(Query q) {
+        if (parsedSearchText != null) {
+            // fill in parsed search text safely
+            var i = new AtomicInteger();
+            parsedSearchText.forEach(e -> q.setParameter("searchText" + i.getAndIncrement(), e));
+        }
+        if (filterFields != null) {
+            filterFields.keySet().stream().filter(k -> k.startsWith("T_", 3))
+                    .forEach(k -> q.setParameter(k, Instant.parse(filterFields.get(k))) );
+        }
         return q;
-    }
+     }
 
-    /**
+     /**
      * Builds the HQL {@code ORDER BY} clause.
      *
      * <p>When a search is active and no explicit {@code sortBy} was given,
