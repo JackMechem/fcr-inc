@@ -5,6 +5,7 @@ import com.inc.fcr.auth.LoginToken;
 import com.inc.fcr.car.Car;
 import com.inc.fcr.payment.Payment;
 import com.inc.fcr.reservation.Reservation;
+import com.inc.fcr.reviews.Review;
 import com.inc.fcr.user.User;
 import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
@@ -61,6 +62,8 @@ public class HibernateUtil {
             configuration.addAnnotatedClass(User.class);
             configuration.addAnnotatedClass(Reservation.class);
             configuration.addAnnotatedClass(Payment.class);
+            configuration.addAnnotatedClass(Review.class);
+
 
             return configuration.buildSessionFactory();
         } catch (Throwable ex) {
