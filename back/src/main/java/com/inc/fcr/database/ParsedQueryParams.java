@@ -166,7 +166,7 @@ public class ParsedQueryParams {
                         if (field != null && NUMERIC_FIELDS.contains(field)) {
                             if (filterFields != null)
                                 filterFields.remove("exact_" + field);
-                            parseFilter(field, val, key.substring(0,3));
+                            parseFilter(key.substring(3), val, key.substring(0,3));
                         }
                     } else if (FIELD_MAP.containsKey(key) && NUMERIC_FIELDS.contains(FIELD_MAP.get(key))) {
                         String field = FIELD_MAP.get(key);
