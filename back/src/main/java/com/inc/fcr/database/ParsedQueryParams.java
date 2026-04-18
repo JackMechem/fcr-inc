@@ -3,15 +3,14 @@ package com.inc.fcr.database;
 import java.beans.Transient;
 import java.lang.reflect.Field;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import com.inc.fcr.car.enums.*;
 import com.inc.fcr.errorHandling.QueryParamException;
 import com.inc.fcr.utils.APIEntity;
 import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToOne;
+import jakarta.persistence.Query;
 import joptsimple.internal.Strings;
 
 /**
@@ -113,6 +112,7 @@ public class ParsedQueryParams {
     private int page = 1;
     private int pageSize = DEFAULT_PAGE_SIZE;
     private String searchText;
+    private List<String> parsedSearchText;
 
     private final Class<?> clazz;
     private Set<String> SEARCH_FIELDS;
@@ -162,11 +162,11 @@ public class ParsedQueryParams {
                 case "search" -> searchText = parseSearchText(val);
                 default -> {
                     if (key.startsWith("min") || key.startsWith("max")) {
-                        String field = FIELD_MAP.get(key.substring(3).toLowerCase());
+                        String field = FIELD_MAP.get(key.substring(3));
                         if (field != null && NUMERIC_FIELDS.contains(field)) {
                             if (filterFields != null)
                                 filterFields.remove("exact_" + field);
-                            parseFilter(key.substring(3).toLowerCase(), val, key.startsWith("min") ? "min" : "max");
+                            parseFilter(field, val, key.substring(0,3));
                         }
                     } else if (FIELD_MAP.containsKey(key) && NUMERIC_FIELDS.contains(FIELD_MAP.get(key))) {
                         String field = FIELD_MAP.get(key);
@@ -226,10 +226,10 @@ public class ParsedQueryParams {
             filterFields.put(properKey, val);
     }
 
+    /** Parse and clean up raw search text and initialize parsedSearchText list */
     private String parseSearchText(String rawSearchText) {
         rawSearchText = rawSearchText.trim().toLowerCase();
-        if (rawSearchText.contains(";"))
-            rawSearchText = rawSearchText.substring(0, rawSearchText.indexOf(";"));
+        parsedSearchText = List.of(rawSearchText.replaceAll(" -"," ").split(" "));
         return rawSearchText;
     }
 
@@ -257,7 +257,7 @@ public class ParsedQueryParams {
      *
      * <p>Always starts with {@code WHERE 1=1} so additional {@code AND} conditions
      * can be appended safely. Handles min/max range filters, exact numeric matches,
-     * enum matches, string matches, and the full-text search clause.</p>
+     * enum matches, string matches, and the full-text search clause (requires populating search clause separately).</p>
      *
      * @return the complete WHERE clause string
      * @throws QueryParamException if an enum filter value is invalid and strict mode is on
@@ -291,19 +291,40 @@ public class ParsedQueryParams {
         return sb.toString();
     }
 
+    /**
+     * Builds the HQL search clause.
+     * Requires parameters to be set separately after query creation
+     * in order to avoid possible SQL injections.
+     *
+     * <p>Clause supports searching through {@code SEARCH_FIELDS} matching
+     * with regex exact text matches of each word separated by a space.
+     * Supports inverted matches, excluding matches starting with '-'.</p>
+     *
+     * @return the search clause string usable in ORDER and WHERE
+     */
     private String getSearchClause() {
         if (searchText == null) return "";
+        var i = new AtomicInteger(); // java stupidity equivalent to: int i = 0; and i++ below
         return Strings.join(Arrays.stream(searchText.split(" ")).map(e -> {
             boolean invertedMatch = e.startsWith("-");
             if (invertedMatch) e = e.substring(1);
-            return " CAST( REGEXP_LIKE(CONCAT_WS(' ', " + searchFieldsToStr() + "), '" + e + "', 'i') AS int) "
+            return " CAST( REGEXP_LIKE(CONCAT_WS(' ', " + searchFieldsToStr() + "), :searchText"+ i.getAndIncrement() +", 'i') AS int) "
                     + (invertedMatch ? "*-10" : ""); // large negative weight against inverted matches
         }).toList(), " + ");
     }
 
-    // Helper function for search field processing
+    /** Helper function for search field processing called by {@code getSearchClause()} */
     private String searchFieldsToStr() {
         return Strings.join(SEARCH_FIELDS.stream().map(e -> "c." + e).toList(), ", ");
+    }
+
+    /** Fills out search parameter fields on given query expected to be generated from the same */
+    public Query setPotentialSearchParams(Query q) {
+        if (parsedSearchText == null) return q;
+        // fill in parsed search text safely
+        var i = new AtomicInteger();
+        parsedSearchText.forEach(e -> q.setParameter("searchText" + i.getAndIncrement(), e));
+        return q;
     }
 
     /**

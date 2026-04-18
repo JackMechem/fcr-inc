@@ -57,11 +57,12 @@ public class DatabaseController {
 
         Session session = HibernateUtil.getSessionFactory().openSession();
         // Get total items in database and calculate total pages
-        long totalItems = session.createQuery(countString, Long.class).getSingleResult();
+        long totalItems = (long) params.setPotentialSearchParams(session.createQuery(countString, Long.class)).getSingleResult();
         int totalPages  = (int) Math.ceil((double) totalItems / limit);
 
         // Get entities
-        List<?> entities = session.createQuery(queryString, clazz).setFirstResult(offset).setMaxResults(limit).getResultList();
+        List<?> entities = params.setPotentialSearchParams(session.createQuery(queryString, clazz))
+                .setFirstResult(offset).setMaxResults(limit).getResultList();
         if (params.getParseFullObjects()) entities.stream().forEach(c -> ((APIEntity) c).parseFullObjects = true);
 
         if (!params.isSelecting()) {
@@ -75,6 +76,7 @@ public class DatabaseController {
             }).toList(), page, totalPages, totalItems);
         }
     }
+
     /**
      * Retrieves a single entity by primary key without field selection.
      *
@@ -82,8 +84,7 @@ public class DatabaseController {
      * @param id    the primary key value
      * @return the entity, or {@code null} if not found
      */
-
-    public static Object getOne(Class<?> clazz, Object id)  throws HibernateException {
+    public static Object getOne(Class<?> clazz, Object id) throws HibernateException {
         try { return getOne(clazz, id, null); }
         catch (QueryParamException impossible) { return null; }
     }
@@ -101,7 +102,6 @@ public class DatabaseController {
      * @return the full entity, a field-selected map, or {@code null} if not found
      * @throws HibernateException if the database query fails
      */
-
     public static Object getOne(Class<?> clazz, Object id, ParsedQueryParams params) throws HibernateException, QueryParamException {
         // Get entity
         Session session = HibernateUtil.getSessionFactory().openSession();
