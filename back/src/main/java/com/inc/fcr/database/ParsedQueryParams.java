@@ -57,8 +57,7 @@ public class ParsedQueryParams {
         Set<String> temporalSet = new LinkedHashSet<>();
         Map<String, String> fieldMap = new LinkedHashMap<>();
         Map<String, String> alphaFieldMap = new LinkedHashMap<>();
-        Map<String, Function<String, Object>> filterParsers = new HashMap<>();
-        Map<String, String> filterValidValues = new HashMap<>();
+        Map<String, List<String>> enumValues = new HashMap<>();
 
         if (!APIEntity.class.isAssignableFrom(clazz))
             throw new QueryParamException("Entity does not extend APIEntity.");
@@ -81,9 +80,8 @@ public class ParsedQueryParams {
             else alphaFieldMap.put(name.toLowerCase(), name);
 
             if (type.isEnum()) {
-                Class<? extends Enum> eType = (Class<? extends Enum>) type;
-                filterParsers.put(name, val -> Enum.valueOf(eType, val.toUpperCase()));
-                filterValidValues.put(name, String.join(",", Arrays.stream(eType.getEnumConstants()).map(Enum::name).toList()));
+                var eType = (Class<? extends Enum>) type;
+                enumValues.put(name, Arrays.stream(eType.getEnumConstants()).map(Enum::name).toList());
             }
         }
         SEARCH_FIELDS = Collections.unmodifiableSet(searchFields);
@@ -91,8 +89,7 @@ public class ParsedQueryParams {
         TEMPORAL_FIELDS = Collections.unmodifiableSet(temporalSet);
         FIELD_MAP = Collections.unmodifiableMap(fieldMap);
         ALPHA_FIELD_MAP = Collections.unmodifiableMap(alphaFieldMap);
-        FILTER_PARSERS = Collections.unmodifiableMap(filterParsers);
-        FILTER_VALID_VALUES = Collections.unmodifiableMap(filterValidValues);
+        ENUM_VALUES = Collections.unmodifiableMap(enumValues);
     }
 
     private static boolean isNumericClass(Class<?> clazz) {
@@ -126,8 +123,7 @@ public class ParsedQueryParams {
     private Set<String> TEMPORAL_FIELDS; // date type fields
     private Map<String, String> FIELD_MAP; // contains alpha & numeric
     private Map<String, String> ALPHA_FIELD_MAP; // strings only
-    private Map<String, Function<String, Object>> FILTER_PARSERS;
-    private Map<String, String> FILTER_VALID_VALUES;
+    private Map<String, List<String>> ENUM_VALUES;
 
     // Params Constructor
     // ------------------
@@ -286,14 +282,14 @@ public class ParsedQueryParams {
                     sb.append(" AND c.").append(field.substring(5)).append(" >= :").append(field);
                 } else if (field.startsWith("maxT_")) {
                     sb.append(" AND c.").append(field.substring(5)).append(" <= :").append(field);
-                } else if (FILTER_PARSERS.containsKey(field)) {
-                    if (FILTER_VALID_VALUES.get(field).contains(value.toUpperCase())) {
+                } else if (ENUM_VALUES.containsKey(field)) {
+                    if (ENUM_VALUES.get(field).contains(value.toUpperCase())) {
                         sb.append(" AND c.").append(field).append(" = ");
-                        sb.append(FILTER_PARSERS.get(field).apply(value));
+                        sb.append(value.toUpperCase());
                     } else if (STRICT_QUERY_PARAMS) {
                         throw new QueryParamException(
-                                "Invalid value '" + value + "' for '" + field + "'. Valid options: "
-                                        + FILTER_VALID_VALUES.get(field));
+                            "Invalid value '" + value + "' for '" + field + "'. Valid options: " + ENUM_VALUES.get(field)
+                        );
                     }
                 } else {
                     sb.append(" AND c.").append(field).append(" = '").append(value).append("'");
