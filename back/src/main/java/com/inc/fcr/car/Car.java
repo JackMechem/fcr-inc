@@ -76,6 +76,8 @@ public class Car extends APIEntity {
     private RoofType roofType;
     @Enumerated(EnumType.STRING)
     private VehicleClass vehicleClass;
+    @Enumerated(EnumType.STRING) @Column(nullable = false)
+    private CarStatus carStatus = CarStatus.AVAILABLE;
     @OneToMany(mappedBy = "car") @JsonManagedReference("car-reservation") @JsonIgnore
     private List<Reservation> reservations = new ArrayList<>();
     @OneToMany(mappedBy = "car") @JsonManagedReference("car-review") @JsonIgnore
@@ -121,13 +123,14 @@ public class Car extends APIEntity {
      * @param bodyType      body style
      * @param roofType      roof style
      * @param vehicleClass  vehicle market class
+     * @param carStatus     vehicle status
      * @throws ValidationException if any numeric field is out of its valid range
      */
     public Car(String vin, String make, String model, int modelYear, String description,
             int cylinders, int gears, int horsepower, int torque, int seats, double pricePerDay, double mpg,
             ArrayList<String> features, ArrayList<String> images,
             TransmissionType transmission, Drivetrain drivetrain, EngineLayout engineLayout, FuelType fuel,
-            BodyType bodyType, RoofType roofType, VehicleClass vehicleClass) throws ValidationException {
+            BodyType bodyType, RoofType roofType, VehicleClass vehicleClass, CarStatus carStatus) throws ValidationException {
 
         setVin(vin);
         setMake(make);
@@ -150,6 +153,7 @@ public class Car extends APIEntity {
         setBodyType(bodyType);
         setRoofType(roofType);
         setVehicleClass(vehicleClass);
+        setCarStatus(carStatus);
     }
 
     // --- GETTERS & SETTERS ---
@@ -175,6 +179,7 @@ public class Car extends APIEntity {
     public BodyType getBodyType() { return bodyType; }
     public RoofType getRoofType() { return roofType; }
     public VehicleClass getVehicleClass() { return vehicleClass; }
+    public CarStatus getCarStatus() { return carStatus; }
 
     public void setVin(String vin) { this.vin = vin; }
     public void setMake(String make) { this.make = make; }
@@ -189,6 +194,7 @@ public class Car extends APIEntity {
     public void setBodyType(BodyType bodyType) { this.bodyType = bodyType; }
     public void setRoofType(RoofType roofType) { this.roofType = roofType; }
     public void setVehicleClass(VehicleClass vehicleClass) { this.vehicleClass = vehicleClass; }
+    public void setCarStatus(CarStatus carStatus) { this.carStatus = carStatus; }
 
     @JsonIgnore
     public List<Reservation> getReservations() { return reservations; }

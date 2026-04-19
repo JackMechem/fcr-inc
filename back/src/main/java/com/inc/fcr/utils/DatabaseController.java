@@ -71,7 +71,7 @@ public class DatabaseController {
             return new PagesWrapper(entities.stream().map(entity -> {
                 // Filter down to selected fields
                 Map<String, Object> map = mapper.convertValue(entity, Map.class);
-                map.keySet().removeIf(k -> !params.getSelectFields().contains(k.toLowerCase()));
+                map.keySet().removeIf(k -> !params.getSelectFields().contains(k));
                 return map;
             }).toList(), page, totalPages, totalItems);
         }
@@ -114,7 +114,7 @@ public class DatabaseController {
         else {
             // Filter down to selected fields
             Map<String, Object> map = mapper.convertValue(entity, Map.class);
-            map.keySet().removeIf(k -> !params.getSelectFields().contains(k.toLowerCase()));
+            map.keySet().removeIf(k -> !params.getSelectFields().contains(k));
             return map;
         }
     }
