@@ -284,8 +284,15 @@ public class ParsedQueryParams {
                     sb.append(" AND c.").append(field.substring(5)).append(" <= :").append(field);
                 } else if (ENUM_VALUES.containsKey(field)) {
                     if (ENUM_VALUES.get(field).contains(value.toUpperCase())) {
-                        sb.append(" AND c.").append(field).append(" = ");
-                        sb.append(value.toUpperCase());
+                        sb.append(" AND c.").append(field).append(" = ").append(value.toUpperCase());
+                    } else if (value.contains(",")) {
+                        // try to parse as multiple enum values separated by commas
+                        sb.append(" AND (1=0 "); // start a new condition group that will be ORed together
+                        Arrays.stream(value.split(","))
+                                .map(String::trim).map(String::toUpperCase) // preprocessing
+                                .filter(v -> ENUM_VALUES.get(field).contains(v)) // validation
+                                .forEach(v -> sb.append(" OR c.").append(field).append(" = '").append(v).append("'"));
+                        sb.append(")"); // close the condition group
                     } else if (STRICT_QUERY_PARAMS) {
                         throw new QueryParamException(
                             "Invalid value '" + value + "' for '" + field + "'. Valid options: " + ENUM_VALUES.get(field)
