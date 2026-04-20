@@ -6,7 +6,6 @@ import java.time.Instant;
 import java.time.temporal.Temporal;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.inc.fcr.errorHandling.QueryParamException;
@@ -31,7 +30,8 @@ import joptsimple.internal.Strings;
  *   <li>{@code pageSize} — results per page (default: 10)</li>
  *   <li>{@code search}   — full-text search across {@link SearchField}-annotated fields</li>
  *   <li>{@code min<Field>} / {@code max<Field>} — range filter on numeric fields</li>
- *   <li>{@code <field>}  — exact or enum match filter</li>
+ *   <li>{@code <field>}  — exact field or enum match filter, supports multiple values as a comma-separated list</li>
+ *   <li>{@code <field>!}  — inverted exact field or enum match filter, supports multiple values as a comma-separated list</li>
  *   <li>{@code parseFullObjects} - determines if objects parse/return nested objects or just IDs (full car object vs just VIN). </li>
  * </ul>
  *
@@ -57,8 +57,7 @@ public class ParsedQueryParams {
         Set<String> temporalSet = new LinkedHashSet<>();
         Map<String, String> fieldMap = new LinkedHashMap<>();
         Map<String, String> alphaFieldMap = new LinkedHashMap<>();
-        Map<String, Function<String, Object>> filterParsers = new HashMap<>();
-        Map<String, String> filterValidValues = new HashMap<>();
+        Map<String, List<String>> enumValues = new HashMap<>();
 
         if (!APIEntity.class.isAssignableFrom(clazz))
             throw new QueryParamException("Entity does not extend APIEntity.");
@@ -81,9 +80,8 @@ public class ParsedQueryParams {
             else alphaFieldMap.put(name.toLowerCase(), name);
 
             if (type.isEnum()) {
-                Class<? extends Enum> eType = (Class<? extends Enum>) type;
-                filterParsers.put(name, val -> Enum.valueOf(eType, val.toUpperCase()));
-                filterValidValues.put(name, String.join(",", Arrays.stream(eType.getEnumConstants()).map(Enum::name).toList()));
+                var eType = (Class<? extends Enum>) type;
+                enumValues.put(name, Arrays.stream(eType.getEnumConstants()).map(Enum::name).toList());
             }
         }
         SEARCH_FIELDS = Collections.unmodifiableSet(searchFields);
@@ -91,8 +89,7 @@ public class ParsedQueryParams {
         TEMPORAL_FIELDS = Collections.unmodifiableSet(temporalSet);
         FIELD_MAP = Collections.unmodifiableMap(fieldMap);
         ALPHA_FIELD_MAP = Collections.unmodifiableMap(alphaFieldMap);
-        FILTER_PARSERS = Collections.unmodifiableMap(filterParsers);
-        FILTER_VALID_VALUES = Collections.unmodifiableMap(filterValidValues);
+        ENUM_VALUES = Collections.unmodifiableMap(enumValues);
     }
 
     private static boolean isNumericClass(Class<?> clazz) {
@@ -126,8 +123,7 @@ public class ParsedQueryParams {
     private Set<String> TEMPORAL_FIELDS; // date type fields
     private Map<String, String> FIELD_MAP; // contains alpha & numeric
     private Map<String, String> ALPHA_FIELD_MAP; // strings only
-    private Map<String, Function<String, Object>> FILTER_PARSERS;
-    private Map<String, String> FILTER_VALID_VALUES;
+    private Map<String, List<String>> ENUM_VALUES;
 
     // Params Constructor
     // ------------------
@@ -182,6 +178,8 @@ public class ParsedQueryParams {
                             parseFilter(key, val, "exact");
                     } else if (FIELD_MAP.containsKey(key)) {
                         parseFilter(key, val, null);
+                    } else if (key.endsWith("!") && FIELD_MAP.containsKey(key.substring(0, key.length()-1)) ) {
+                        parseFilter(key.substring(0, key.length()-1), val, "not");
                     }
                 }
             }
@@ -286,17 +284,31 @@ public class ParsedQueryParams {
                     sb.append(" AND c.").append(field.substring(5)).append(" >= :").append(field);
                 } else if (field.startsWith("maxT_")) {
                     sb.append(" AND c.").append(field.substring(5)).append(" <= :").append(field);
-                } else if (FILTER_PARSERS.containsKey(field)) {
-                    if (FILTER_VALID_VALUES.get(field).contains(value.toUpperCase())) {
-                        sb.append(" AND c.").append(field).append(" = ");
-                        sb.append(FILTER_PARSERS.get(field).apply(value));
-                    } else if (STRICT_QUERY_PARAMS) {
-                        throw new QueryParamException(
-                                "Invalid value '" + value + "' for '" + field + "'. Valid options: "
-                                        + FILTER_VALID_VALUES.get(field));
-                    }
+                } else if (ENUM_VALUES.containsKey(field) || field.startsWith("not_")
+                        && ENUM_VALUES.containsKey(field.substring(4))) {
+                    boolean inverted = field.startsWith("not_"); String _field;
+                    if (inverted) _field = field.substring(4);
+                    else _field = field; // all this bc java won't let you reassign the var...
+                    // start a new condition group that will be ORed together
+                    sb.append(" AND ").append(inverted ? "NOT ":"").append("(1=0 ");
+                    Arrays.stream(value.split(","))
+                            .map(String::trim).map(String::toUpperCase) // preprocessing
+                            .filter(v -> { // validation
+                                boolean isValid = ENUM_VALUES.get(_field).contains(v);
+                                if (STRICT_QUERY_PARAMS && !isValid) throw new IllegalArgumentException( // would be QueryParamException need runtime thrown here
+                                        "Invalid value '" + v + "' for '" + _field + "'. Valid options: " + ENUM_VALUES.get(_field));
+                                return isValid; })
+                            .forEach(v -> sb.append(" OR c.").append(_field).append(" = '").append(v).append("'"));
+                    sb.append(")");
+                    // close the condition group
                 } else {
-                    sb.append(" AND c.").append(field).append(" = '").append(value).append("'");
+                    boolean inverted = field.startsWith("not_"); String _field;
+                    if (inverted) _field = field.substring(4);
+                    else _field = field;
+                    sb.append(" AND ").append(inverted ? "NOT ":"").append("(1=0 "); // new condition group
+                    Arrays.stream(value.split(",")).forEach(v ->
+                            sb.append(" OR c.").append(_field).append(" like '%").append(v).append("%'"));
+                    sb.append(")"); // close the condition group
                 }
             }
         }

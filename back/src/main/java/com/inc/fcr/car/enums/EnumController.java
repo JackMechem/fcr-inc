@@ -1,9 +1,12 @@
 package com.inc.fcr.car.enums;
 
+import com.inc.fcr.car.Car;
 import com.inc.fcr.errorHandling.*;
 import io.javalin.http.Context;
 
+import java.lang.reflect.Field;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -18,15 +21,16 @@ import static com.inc.fcr.errorHandling.ApiErrors.notFound;
 public class EnumController {
 
     /** Registry of all vehicle enum types exposed via the API. */
-    private static final List<Class<? extends Enum<?>>> ENUMS = List.of(
-        BodyType.class,
-        Drivetrain.class,
-        EngineLayout.class,
-        FuelType.class,
-        RoofType.class,
-        TransmissionType.class,
-        VehicleClass.class
-    );
+    private static final List<Class<? extends Enum<?>>> ENUMS = getEnumClasses();
+
+    /** Generate list of all enum types used by the Car class. */
+    private static List<Class<? extends Enum<?>>> getEnumClasses() {
+        return Arrays.stream(Car.class.getDeclaredFields())
+            .map(Field::getType).filter(Class::isEnum)
+            .map(clazz -> (Class<? extends Enum<?>>) clazz)
+            .distinct().collect(Collectors.toList());
+    }
+
     /**
      * Returns the simple class name with its first character lowercased
      * (e.g., {@code "BodyType"} → {@code "bodyType"}) for use as a JSON map key.
