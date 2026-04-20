@@ -6,7 +6,6 @@ import java.time.Instant;
 import java.time.temporal.Temporal;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import com.inc.fcr.errorHandling.QueryParamException;
@@ -31,7 +30,8 @@ import joptsimple.internal.Strings;
  *   <li>{@code pageSize} — results per page (default: 10)</li>
  *   <li>{@code search}   — full-text search across {@link SearchField}-annotated fields</li>
  *   <li>{@code min<Field>} / {@code max<Field>} — range filter on numeric fields</li>
- *   <li>{@code <field>}  — exact or enum match filter</li>
+ *   <li>{@code <field>}  — exact or enum match filter (enum filters support multiple values as a comma-separated list)</li>
+ *   <li>{@code <field>!}  — inverted exact or enum match filter</li>
  *   <li>{@code parseFullObjects} - determines if objects parse/return nested objects or just IDs (full car object vs just VIN). </li>
  * </ul>
  *
@@ -178,6 +178,8 @@ public class ParsedQueryParams {
                             parseFilter(key, val, "exact");
                     } else if (FIELD_MAP.containsKey(key)) {
                         parseFilter(key, val, null);
+                    } else if (key.endsWith("!") && FIELD_MAP.containsKey(key.substring(0, key.length()-1)) ) {
+                        parseFilter(key.substring(0, key.length()-1), val, "not");
                     }
                 }
             }
@@ -282,24 +284,27 @@ public class ParsedQueryParams {
                     sb.append(" AND c.").append(field.substring(5)).append(" >= :").append(field);
                 } else if (field.startsWith("maxT_")) {
                     sb.append(" AND c.").append(field.substring(5)).append(" <= :").append(field);
-                } else if (ENUM_VALUES.containsKey(field)) {
-                    if (ENUM_VALUES.get(field).contains(value.toUpperCase())) {
-                        sb.append(" AND c.").append(field).append(" = ").append(value.toUpperCase());
-                    } else if (value.contains(",")) {
-                        // try to parse as multiple enum values separated by commas
-                        sb.append(" AND (1=0 "); // start a new condition group that will be ORed together
-                        Arrays.stream(value.split(","))
-                                .map(String::trim).map(String::toUpperCase) // preprocessing
-                                .filter(v -> ENUM_VALUES.get(field).contains(v)) // validation
-                                .forEach(v -> sb.append(" OR c.").append(field).append(" = '").append(v).append("'"));
-                        sb.append(")"); // close the condition group
-                    } else if (STRICT_QUERY_PARAMS) {
-                        throw new QueryParamException(
-                            "Invalid value '" + value + "' for '" + field + "'. Valid options: " + ENUM_VALUES.get(field)
-                        );
-                    }
+                } else if (ENUM_VALUES.containsKey(field) || field.startsWith("not_")
+                        && ENUM_VALUES.containsKey(field.substring(4))) {
+                    boolean inverted = field.startsWith("not_"); String _field;
+                    if (inverted) _field = field.substring(4);
+                    else _field = field; // all this bc java won't let you reassign the var...
+                    // start a new condition group that will be ORed together
+                    sb.append(" AND ").append(inverted ? "NOT ":"").append("(1=0 ");
+                    Arrays.stream(value.split(","))
+                            .map(String::trim).map(String::toUpperCase) // preprocessing
+                            .filter(v -> { // validation
+                                boolean isValid = ENUM_VALUES.get(_field).contains(v);
+                                if (STRICT_QUERY_PARAMS && !isValid) throw new IllegalArgumentException( // would be QueryParamException need runtime thrown here
+                                        "Invalid value '" + value + "' for '" + _field + "'. Valid options: " + ENUM_VALUES.get(_field));
+                                return isValid; })
+                            .forEach(v -> sb.append(" OR c.").append(_field).append(" = '").append(v).append("'"));
+                    sb.append(")");
+                    // close the condition group
                 } else {
-                    sb.append(" AND c.").append(field).append(" = '").append(value).append("'");
+                    boolean inverted = field.startsWith("not_");
+                    if (inverted) field = field.substring(4);
+                    sb.append(" AND c.").append(field).append(inverted ? " !" : " ").append("= '").append(value).append("'");
                 }
             }
         }
