@@ -33,11 +33,9 @@ public class Reservation extends APIEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long reservationId;
-    @ManyToOne
-    @JoinColumn(name = "vin", nullable = false)
+    @ManyToOne @JoinColumn(name = "vin", nullable = false)
     private Car car;
-    @ManyToOne
-    @JoinColumn(name = "userId", nullable = false)
+    @ManyToOne @JoinColumn(name = "userId", nullable = false)
     private User user;
     @ManyToMany
     @JoinTable(name = "stripe_reservation_payments",

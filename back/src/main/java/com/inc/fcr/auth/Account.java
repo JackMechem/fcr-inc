@@ -2,7 +2,6 @@ package com.inc.fcr.auth;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonSetter;
 import com.inc.fcr.car.Car;
 import com.inc.fcr.database.SearchField;
 import com.inc.fcr.user.User;
@@ -87,9 +86,7 @@ public class Account extends APIEntity {
     }
 
     @JsonIgnore
-    public User getUser() {
-        return user;
-    }
+    public User getUser() { return user; }
     @JsonProperty("user")
     public Object getUserParse() {
         if (user == null) return null;
@@ -122,6 +119,7 @@ public class Account extends APIEntity {
         this.email = email;
     }
 
+    @JsonProperty("user")
     public void setUser(User user) {
         this.user = user;
     }
@@ -134,26 +132,8 @@ public class Account extends APIEntity {
         this.dateEmailConfirmed = dateEmailConfirmed;
     }
 
+    @JsonProperty("bookmarkedCars")
     public void setBookmarkedCars(List<Car> bookmarkedCars) {
         this.bookmarkedCars = bookmarkedCars;
-    }
-
-    @JsonSetter("bookmarkedCars")
-    public void setBookmarkedCarsFromJson(List<String> vins) {
-        this.bookmarkedCars = new ArrayList<>();
-        if (vins == null) return;
-        for (String vin : vins) {
-            Car car = (Car) DatabaseController.getOne(Car.class, vin);
-            if (car != null) this.bookmarkedCars.add(car);
-        }
-    }
-
-    @JsonSetter("user")
-    public void setUserFromJson(Object userId) {
-        if (userId == null) {
-            this.user = null;
-            return;
-        }
-        this.user = (User) DatabaseController.getOne(User.class, ((Number) userId).longValue());
     }
 }

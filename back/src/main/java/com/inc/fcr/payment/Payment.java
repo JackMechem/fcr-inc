@@ -144,6 +144,7 @@ public class Payment extends APIEntity {
         this.paymentType = paymentType;
     }
 
+    @JsonProperty("reservations")
     public void setReservations(List<Reservation> reservations) {
         this.reservations = reservations;
     }

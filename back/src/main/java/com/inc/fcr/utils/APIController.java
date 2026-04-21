@@ -124,8 +124,8 @@ public class APIController {
         try {
             // Get from database
             Object id = ctx.pathParamAsClass("id", idClazz).get();
-            Object oldObj = DatabaseController.getOne(clazz, id);
-            if (oldObj == null) {
+            Object obj = DatabaseController.getOne(clazz, id);
+            if (obj == null) {
                 notFound(ctx);
                 return;
             }
@@ -134,10 +134,8 @@ public class APIController {
             ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
             // If set to true (default), changes to json objects will be appended to the existing content, not overridden
             mapper.setDefaultMergeable(false);
-            JsonNode objJson = mapper.valueToTree(oldObj);
             // NOTE: Shallow merge, nested trees overridden!
-            mapper.readerForUpdating(objJson).readTree(ctx.body());
-            Object obj = mapper.convertValue(objJson, clazz);
+            mapper.readerForUpdating(obj).readValue(ctx.body());
 
             // Update object
             DatabaseController.update(obj);

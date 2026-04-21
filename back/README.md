@@ -73,8 +73,7 @@ Follow these steps when creating a new entity endpoint
      - `@Convert(converter = Converters.JsonMYOBJECTConverter.class)`
      - `@Column(columnDefinition = "json", nullable = false)`
    - Foreign entity reference: (from the entity referencing another)
-     - `@ManyToOne`
-     - `@JoinColumn(name = "foreignKeyAttrName", nullable = false)`
+     - `@ManyToOne @JoinColumn(name = "foreignKeyAttrName", nullable = false)`
    - Foreign entity referencing this: (from the entity being referenced) 
      - `@OneToMany(mappedBy = "thisAttrNameOnMainEntity") @JsonManagedReference("yourUniqueSharedIdentifier")`
    - Foreign entity reference: (ManyToMany from the entity referencing)
@@ -101,17 +100,18 @@ Follow these steps when creating a new entity endpoint
      - Create extra getters for the API that return foreign entity IDs and objects if `parseFullObjects`
      - See example below, this allows the API to return IDs normally and objects if the above query param is set
    - Setters provided will be used by API create/update requests
-       - Don't create setters for values that are mapped by another entity or generated
+     - Don't create setters for values that are mapped by another entity or generated
+     - **Important:** Attributes that are `@JsonIgnore`ed directly must also be annotated `@JsonProperty("attrName")` on their setter
 ```java
       @JsonIgnore
-      public User getUser() {
-          return user;
-      }
+      public User getUser() { return user; }
       @JsonProperty("user")
       public Object getUserParse() {
           if (parseFullObjects) return user;
           else return user.getUserId();
       }
+      @JsonProperty("user")
+      public void setUser(User user) { this.user = user; }
 ```
 5. Register your entity in the file `utils/HibernateUtil`
    - `configuration.addAnnotatedClass(YourEntityClass.class);`
