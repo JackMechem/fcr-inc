@@ -23,7 +23,7 @@ import java.util.ArrayList;
 public class Converters {
 
     /** Shared Jackson mapper instance used by all converters in this class. */
-    public static final ObjectMapper mapper = new ObjectMapper();
+    public static final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
 
     /**
      * Converts an {@code ArrayList<String>} to/from a JSON array string for database storage.

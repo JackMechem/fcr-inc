@@ -131,8 +131,7 @@ public class APIController {
             }
 
             // Merge specified fields
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.findAndRegisterModules();
+            ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
             // If set to true (default), changes to json objects will be appended to the existing content, not overridden
             mapper.setDefaultMergeable(false);
             JsonNode objJson = mapper.valueToTree(oldObj);
