@@ -1,7 +1,7 @@
 package com.inc.fcr.reviews;
 
+import com.inc.fcr.auth.Account;
 import com.inc.fcr.car.Car;
-import com.inc.fcr.user.User;
 
 import com.inc.fcr.utils.APIEntity;
 import com.inc.fcr.utils.DatabaseController;
@@ -18,8 +18,8 @@ public class Review extends APIEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long reviewId;
-    @ManyToOne @JoinColumn(name = "userId", nullable = false)
-    private User user;
+    @ManyToOne @JoinColumn(name = "acctId", nullable = false)
+    private Account account;
     @Column(nullable = false)
     private String title;
     private String bodyOfText;
@@ -33,9 +33,9 @@ public class Review extends APIEntity {
 
     // Constructors
 
-    public Review(User user, String title, String bodyOfText, int stars,
+    public Review(Account account, String title, String bodyOfText, int stars,
                   int rentalDuration, Instant publishedDate) {
-        this.user = user;
+        this.account = account;
         this.title = title;
         this.bodyOfText = bodyOfText;
         this.stars = stars;
@@ -56,8 +56,8 @@ public class Review extends APIEntity {
         return reviewId;
     }
 
-    public User getUser() {
-        return user;
+    public Account getAccount() {
+        return account;
     }
 
     public String getTitle() {
@@ -86,8 +86,8 @@ public class Review extends APIEntity {
 
     // Setters
 
-    public void setUser(User user) {
-        this.user = user;
+    public void setAccount(Account account) {
+        this.account = account;
     }
 
     public void setTitle(String title) {
