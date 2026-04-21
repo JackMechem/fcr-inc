@@ -129,28 +129,3 @@ Follow these steps when creating a new entity endpoint
          });
       });
 ```
-
-# Versioning
-
-## Version Format
-This project follows [Semantic Versioning](https://semver.org/) with a pre-release tag: `MAJOR.MINOR.PATCH-alpha`
-
-Example: `0.3.1-alpha`
-
-## Single Source of Truth
-The version is defined in `version.json` at the project root. Maven includes it on the classpath at build time, and the API exposes it at `GET /version`. To change the version, edit the one `version.json` file — the API picks it up automatically.
-
-The frontend uses the same approach: `front/version.json` with the same format, versioned independently.
-
-## When to Increment
-
-| Change type | Bump | Example |
-|---|---|---|
-| Breaking API change (removed/renamed endpoint, changed request/response shape) | **MAJOR** | `0.x.x` → `1.0.0-alpha` |
-| New feature, endpoint, or entity added | **MINOR** | `0.3.0` → `0.4.0-alpha` |
-| Bug fix, small tweak, config change | **PATCH** | `0.3.0` → `0.3.1-alpha` |
-
-While in alpha (`0.x.x`), breaking changes can be a MINOR bump instead of MAJOR since the API is not yet stable.
-
-## Dropping the Alpha Tag
-Remove `-alpha` from the version in `pom.xml` when the API is stable and ready for production use.

@@ -75,3 +75,30 @@ _Note: Pushing changes directly to the main branch is disabled. Push your change
 4. Create a pull request
 5. Have someone review your changes
 6. Merge changes into main
+
+## Versioning
+
+### Version Format
+This project follows [Semantic Versioning](https://semver.org/) with a pre-release tag: `MAJOR.MINOR.PATCH-alpha`
+
+Example: `4.0.1-alpha`
+
+### Source of Truth
+Each project has its own `version.json` at its root, versioned independently:
+- **Backend:** `back/version.json` — exposed at `GET /version`
+- **Frontend:** `front/version.json`
+
+To change a version, edit the `version.json` in that project. The backend API picks it up automatically at build time.
+
+### When to Increment
+
+| Change type | Bump | Example |
+|---|---|---|
+| Breaking change (removed/renamed endpoint, changed request/response shape) | **MAJOR** | `4.0.1` → `5.0.0-alpha` |
+| New feature, endpoint, or entity added | **MINOR** | `4.0.1` → `4.1.0-alpha` |
+| Bug fix, small tweak, config change | **PATCH** | `4.0.1` → `4.0.2-alpha` |
+
+While in alpha, breaking changes can be a MINOR bump instead of MAJOR since the API is not yet stable.
+
+### Dropping the Alpha Tag
+Remove `-alpha` from the version in `version.json` when the project is stable and ready for production use.
