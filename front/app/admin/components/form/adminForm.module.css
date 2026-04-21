@@ -155,6 +155,36 @@
 	color: var(--color-accent);
 }
 
+.copyPickerSearchRow {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.copyPickerModeBtn {
+	flex-shrink: 0;
+	padding: 8px 12px;
+	border-radius: 0.75rem;
+	border: 1px solid var(--color-third);
+	background: none;
+	color: var(--color-foreground-light);
+	font-size: 9pt;
+	font-weight: 600;
+	cursor: pointer;
+	transition: border-color 150ms, color 150ms, background-color 150ms;
+}
+
+.copyPickerModeBtn:hover {
+	border-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
+	color: var(--color-foreground);
+}
+
+.copyPickerModeBtnActive {
+	border-color: var(--color-accent);
+	color: var(--color-accent);
+	background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
+}
+
 .copyPickerSearch {
 	position: relative;
     display: flex;
@@ -171,11 +201,29 @@
 	font-size: 13pt;
 }
 
+.copyPickerStripWrapper {
+	position: relative;
+	min-height: 140px;
+}
+
+.copyPickerLoadingOverlay {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	z-index: 2;
+	color: var(--color-foreground-light);
+	font-size: 10pt;
+	font-weight: 500;
+}
+
 .copyPickerStrip {
 	display: flex;
 	gap: 12px;
 	overflow-x: auto;
 	padding-bottom: 4px;
+	transition: opacity 150ms;
 }
 
 .copyPickerEmpty {
@@ -271,6 +319,44 @@
 	font-size: 8.5pt;
 	font-weight: 500;
 	margin-top: 2px;
+}
+
+.copyPickerPagination {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 12px;
+}
+
+.copyPickerPageBtn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border-radius: 0.5rem;
+	border: 1px solid var(--color-third);
+	background: none;
+	color: var(--color-foreground-light);
+	font-size: 14pt;
+	cursor: pointer;
+	transition: border-color 150ms, color 150ms;
+}
+
+.copyPickerPageBtn:hover:not(:disabled) {
+	border-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
+	color: var(--color-accent);
+}
+
+.copyPickerPageBtn:disabled {
+	opacity: 0.3;
+	cursor: not-allowed;
+}
+
+.copyPickerPageInfo {
+	font-size: 9pt;
+	color: var(--color-foreground-light);
+	font-weight: 500;
 }
 
 /* ── MarkdownEditor ──────────────────────────────────────────────────────────── */

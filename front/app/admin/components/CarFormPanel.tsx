@@ -3,7 +3,7 @@
 import { Car, CarStatus } from "@/app/types/CarTypes";
 import { CarEnums } from "@/app/types/CarEnums";
 import { useEffect, useState } from "react";
-import { addCar, editCar, getCarAdmin, getFilteredCarsAdmin } from "@/app/lib/AdminApiCalls";
+import { addCar, editCar, getCarAdmin } from "@/app/lib/AdminApiCalls";
 import { useUserDashboardStore } from "@/stores/userDashboardStore";
 import { callGemini } from "@/app/lib/gemini";
 import { formatEnum } from "@/app/lib/formatEnum";
@@ -13,7 +13,7 @@ import { BiX, BiPlus } from "react-icons/bi";
 import AiButton from "./form/AiButton";
 import Field, { formStyles } from "./form/Field";
 import SectionCard from "./form/SectionCard";
-import CopyPicker, { CopyOption } from "./form/CopyPicker";
+import CopyPicker from "./form/CopyPicker";
 import MarkdownEditor from "./form/MarkdownEditor";
 import FeatureTags from "./form/FeatureTags";
 
@@ -47,7 +47,6 @@ const CarFormPanel = ({ mode }: CarFormPanelProps) => {
 	const { editVin, setEditVin } = useUserDashboardStore();
 	const [isLoading, setIsLoading] = useState(false);
 	const [submitted, setSubmitted] = useState(false);
-	const [copyOptions, setCopyOptions] = useState<CopyOption[]>([]);
 	const [selectedVin, setSelectedVin] = useState<string | null>(
 		mode === "edit" ? editVin : null,
 	);
@@ -56,13 +55,6 @@ const CarFormPanel = ({ mode }: CarFormPanelProps) => {
 	const [aiLoading, setAiLoading] = useState<Record<string, boolean>>({});
 
 	useEffect(() => {
-		getFilteredCarsAdmin({
-			select: "vin,make,model,modelYear,images,vehicleClass,pricePerDay",
-			pageSize: 200,
-		})
-			.then((res) => setCopyOptions(res.data as CopyOption[]))
-			.catch(console.error);
-
 		fetch("/api/enums")
 			.then((r) => r.json())
 			.then(setEnums)
@@ -249,7 +241,6 @@ Reply with only the JSON object, no extra text.`,
 	return (
 		<div className={formStyles.formRoot}>
 			<CopyPicker
-				options={copyOptions}
 				selectedVin={selectedVin}
 				onSelect={setSelectedVin}
 				mode={mode}
