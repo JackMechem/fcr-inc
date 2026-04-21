@@ -87,9 +87,7 @@ public class Account extends APIEntity {
     }
 
     @JsonIgnore
-    public User getUser() {
-        return user;
-    }
+    public User getUser() { return user; }
     @JsonProperty("user")
     public Object getUserParse() {
         if (user == null) return null;
@@ -122,6 +120,7 @@ public class Account extends APIEntity {
         this.email = email;
     }
 
+    @JsonProperty("user")
     public void setUser(User user) {
         this.user = user;
     }
@@ -134,6 +133,7 @@ public class Account extends APIEntity {
         this.dateEmailConfirmed = dateEmailConfirmed;
     }
 
+    @JsonProperty("bookmarkedCars")
     public void setBookmarkedCars(List<Car> bookmarkedCars) {
         this.bookmarkedCars = bookmarkedCars;
     }
