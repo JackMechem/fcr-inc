@@ -2,6 +2,7 @@ package com.inc.fcr.database;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.inc.fcr.reservation.CartReservation;
 import com.inc.fcr.user.Address;
 import com.inc.fcr.user.DriversLicense;
 import jakarta.persistence.AttributeConverter;
@@ -18,6 +19,7 @@ import java.util.ArrayList;
  *   <li>{@link JsonListConverter}          — {@code ArrayList<String>} ↔ JSON array string</li>
  *   <li>{@link JsonDriversLicenseConverter}— {@link com.inc.fcr.user.DriversLicense} ↔ JSON object string</li>
  *   <li>{@link JsonAddressConverter}       — {@link com.inc.fcr.user.Address} ↔ JSON object string</li>
+ *   <li>{@link JsonCartReservationConverter} — {@link com.inc.fcr.reservation.CartReservation} ↔ JSON object string</li>
  * </ul>
  */
 public class Converters {
@@ -127,6 +129,42 @@ public class Converters {
         public Address convertToEntityAttribute(String dbData) {
             try {
                 return mapper.readValue(dbData, new TypeReference<Address>() {});
+            } catch (Exception e) {
+                return null;
+            }
+        }
+    }
+
+    /**
+     * Converts a {@link CartReservation} to/from a JSON object string.
+     *
+     * <p>Used for cart reservation data in database storage.</p>
+     */
+    @Converter
+    public static class JsonCartReservationConverter implements AttributeConverter<CartReservation, String> {
+        /**
+         * Serializes a {@link CartReservation} to JSON. Returns {@code "{}"} on error.
+         *
+         * @param obj the reservation object to serialize
+         * @return JSON representation of the reservation
+         */
+        public String convertToDatabaseColumn(CartReservation obj) {
+            try {
+                return mapper.writeValueAsString(obj);
+            } catch (Exception e) {
+                return "{}";
+            }
+        }
+
+        /**
+         * Deserializes a JSON string to a {@link CartReservation}. Returns {@code null} on error.
+         *
+         * @param dbData the JSON string from the database column
+         * @return the deserialized reservation, or {@code null} on failure
+         */
+        public CartReservation convertToEntityAttribute(String dbData) {
+            try {
+                return mapper.readValue(dbData, new TypeReference<CartReservation>() {});
             } catch (Exception e) {
                 return null;
             }
