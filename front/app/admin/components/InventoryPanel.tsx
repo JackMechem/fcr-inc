@@ -1,28 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { deleteCar, updateCarStatus } from "@/app/lib/AdminApiCalls";
-import { CarStatus } from "@/app/types/CarTypes";
-import BulkActionsBar from "./BulkActionsBar";
-import { Car } from "@/app/types/CarTypes";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { getAllCars, getCarAdmin, getFilteredCarsAdmin, deleteCar } from "@/app/lib/AdminApiCalls";
+import { Car, CarStatus } from "@/app/types/CarTypes";
 import { useUserDashboardStore } from "@/stores/userDashboardStore";
-import Image from "next/image";
-import {
-    BiSearch,
-    BiTrash,
-    BiEdit,
-    BiChevronDown,
-    BiChevronUp,
-    BiCar,
-    BiRefresh,
-} from "react-icons/bi";
+import SpreadsheetTable, { Column } from "./SpreadsheetTable";
+import styles from "./spreadsheetTable.module.css";
+import { BiSearch, BiX } from "react-icons/bi";
 
-import styles from "./inventoryPanel.module.css";
-import { LoadingSkeleton, EmptyState } from "./PanelLoading";
-
-// ── Status helpers ────────────────────────────────────────────────────────────
-
-const CAR_STATUSES: CarStatus[] = ["AVAILABLE", "DISABLED", "ARCHIVED", "LOANED", "SERVICE"];
+// ── Status badge ─────────────────────────────────────────────────────────────
 
 const STATUS_COLORS: Record<CarStatus, { bg: string; color: string }> = {
     AVAILABLE: { bg: "rgba(34,197,94,0.12)", color: "#22c55e" },
@@ -36,422 +22,280 @@ const StatusBadge = ({ status }: { status?: CarStatus }) => {
     const s = status ?? "AVAILABLE";
     const c = STATUS_COLORS[s] ?? STATUS_COLORS.AVAILABLE;
     return (
-        <span style={{
-            padding: "2px 10px", borderRadius: 9999, fontSize: "8pt",
-            fontWeight: 600, backgroundColor: c.bg, color: c.color,
-            textTransform: "uppercase", letterSpacing: "0.05em",
-        }}>
+        <span
+            className={styles.statusBadge}
+            style={{ backgroundColor: c.bg, color: c.color }}
+        >
             {s}
         </span>
     );
 };
 
-// ── Expanded detail row ───────────────────────────────────────────────────────
+// ── Column definitions ───────────────────────────────────────────────────────
 
-const SKIP = new Set([
-    "vin",
-    "make",
-    "model",
-    "modelYear",
-    "images",
-    "pricePerDay",
-    "vehicleClass",
-    "carStatus",
-    "description",
-]);
+const CAR_COLUMNS: Column<Car>[] = [
+    { key: "vin",          label: "VIN",          defaultVisible: true,  render: (c) => c.vin, minWidth: 170 },
+    { key: "make",         label: "Make",         defaultVisible: true,  render: (c) => c.make },
+    { key: "model",        label: "Model",        defaultVisible: true,  render: (c) => c.model },
+    { key: "modelYear",    label: "Year",         defaultVisible: true,  render: (c) => c.modelYear },
+    { key: "vehicleClass", label: "Class",        defaultVisible: true,  render: (c) => <span className={styles.badge}>{c.vehicleClass}</span> },
+    { key: "carStatus",    label: "Status",       defaultVisible: true,  render: (c) => <StatusBadge status={c.carStatus} /> },
+    { key: "pricePerDay",  label: "Price / Day",  defaultVisible: true,  render: (c) => <span style={{ color: "var(--color-accent)", fontWeight: 600 }}>${c.pricePerDay}</span> },
+    { key: "bodyType",     label: "Body Type",    defaultVisible: false, render: (c) => c.bodyType ? <span className={styles.badge}>{c.bodyType}</span> : "—" },
+    { key: "transmission", label: "Transmission", defaultVisible: false, render: (c) => c.transmission ? <span className={styles.badge}>{c.transmission}</span> : "—" },
+    { key: "drivetrain",   label: "Drivetrain",   defaultVisible: false, render: (c) => c.drivetrain ? <span className={styles.badge}>{c.drivetrain}</span> : "—" },
+    { key: "engineLayout", label: "Engine",       defaultVisible: false, render: (c) => c.engineLayout ? <span className={styles.badge}>{c.engineLayout}</span> : "—" },
+    { key: "fuel",         label: "Fuel",         defaultVisible: false, render: (c) => c.fuel ? <span className={styles.badge}>{c.fuel}</span> : "—" },
+    { key: "roofType",     label: "Roof",         defaultVisible: false, render: (c) => c.roofType ? <span className={styles.badge}>{c.roofType}</span> : "—" },
+    { key: "cylinders",    label: "Cylinders",    defaultVisible: false, render: (c) => c.cylinders ?? "—" },
+    { key: "gears",        label: "Gears",        defaultVisible: false, render: (c) => c.gears ?? "—" },
+    { key: "horsepower",   label: "HP",           defaultVisible: false, render: (c) => c.horsepower ?? "—" },
+    { key: "torque",       label: "Torque",       defaultVisible: false, render: (c) => c.torque ?? "—" },
+    { key: "seats",        label: "Seats",        defaultVisible: false, render: (c) => c.seats ?? "—" },
+    { key: "mpg",          label: "MPG",          defaultVisible: false, render: (c) => c.mpg ?? "—" },
+    { key: "features",     label: "Features",     defaultVisible: false, render: (c) => <span className={styles.truncatedCell}>{c.features?.join(", ") || "—"}</span>, minWidth: 160 },
+    { key: "images",       label: "Images",       defaultVisible: false, render: (c) => c.images?.length ?? 0 },
+    { key: "description",  label: "Description",  defaultVisible: false, render: (c) => <span className={styles.truncatedCell}>{c.description || "—"}</span>, minWidth: 200 },
+];
 
-interface ExpandedRowProps {
-    car: Car;
-    onStatusChange: (vin: string, status: CarStatus) => Promise<void>;
-}
+// ── Search modes ─────────────────────────────────────────────────────────────
 
-const ExpandedRow = ({ car, onStatusChange }: ExpandedRowProps) => {
-    const [changingStatus, setChangingStatus] = useState(false);
-    const details = Object.entries(car).filter(([k]) => !SKIP.has(k));
+type SearchMode = "search" | "vin";
 
-    const handleStatusChange = async (newStatus: CarStatus) => {
-        setChangingStatus(true);
-        try {
-            await onStatusChange(car.vin, newStatus);
-        } finally {
-            setChangingStatus(false);
-        }
-    };
-
-    return (
-        <div className={styles.expandedSection}>
-            <div className={styles.descriptionWrapper}>
-                {/* Status changer */}
-                <div style={{ marginBottom: 12 }}>
-                    <p className={styles.columnLabel}>Status</p>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
-                        <select
-                            style={{
-                                padding: "4px 10px", borderRadius: 8, fontSize: "10pt",
-                                border: "1px solid var(--color-third)",
-                                backgroundColor: "var(--color-primary)",
-                                color: "var(--color-foreground)",
-                                cursor: changingStatus ? "wait" : "pointer",
-                            }}
-                            value={car.carStatus ?? "AVAILABLE"}
-                            disabled={changingStatus}
-                            onChange={(e) => handleStatusChange(e.target.value as CarStatus)}
-                        >
-                            {CAR_STATUSES.map((s) => (
-                                <option key={s} value={s}>{s}</option>
-                            ))}
-                        </select>
-                        {changingStatus && <BiRefresh className={styles.spinning} style={{ fontSize: "14pt" }} />}
-                    </div>
-                </div>
-
-                {car.description && (
-                    <div>
-                        <p className={styles.columnLabel}>Description</p>
-                        <p className={styles.descriptionText}>{car.description}</p>
-                    </div>
-                )}
-                <div className={styles.detailsGrid}>
-                    {details.map(([key, val]) => (
-                        <div key={key}>
-                            <p className={styles.columnLabel}>
-                                {key.replace(/([A-Z])/g, " $1").toUpperCase()}
-                            </p>
-                            <p className={styles.detailValue}>
-                                {Array.isArray(val)
-                                    ? val.length
-                                        ? val.join(", ")
-                                        : "—"
-                                    : String(val ?? "—")}
-                            </p>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            <div>
-                <p className={styles.columnLabel}>Gallery</p>
-                {car.images?.length ? (
-                    <div className={styles.galleryScroll}>
-                        {car.images.map((url, i) => (
-                            <div
-                                key={i}
-                                className={styles.thumbnail}
-                                style={{ width: "110px", height: "74px" }}
-                            >
-                                <Image
-                                    src={url}
-                                    alt=""
-                                    fill
-                                    className={styles.objectCover}
-                                    sizes="110px"
-                                    onError={(e) => (e.currentTarget.style.display = "none")}
-                                />
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <p className={styles.subtitle}>No images.</p>
-                )}
-            </div>
-        </div>
-    );
-};
-
-// ── Main panel ────────────────────────────────────────────────────────────────
+// ── Panel ────────────────────────────────────────────────────────────────────
 
 interface Props {
-    cars: Car[];
-    onRefresh: () => Promise<void>;
     role: string;
 }
 
-const InventoryPanel = ({ cars: initialCars, onRefresh, role }: Props) => {
+const InventoryPanel = ({ role }: Props) => {
     const isAdmin = role === "ADMIN";
     const { openEditCar } = useUserDashboardStore();
-    const [cars, setCars] = useState<Car[]>(initialCars);
-    const [loading, setLoading] = useState(false);
+
+    // Data
+    const [cars, setCars] = useState<Car[]>([]);
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(25);
+    const [totalPages, setTotalPages] = useState(0);
+    const [totalItems, setTotalItems] = useState(0);
+    const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
+
+    // Search
+    const [searchMode, setSearchMode] = useState<SearchMode>("search");
     const [query, setQuery] = useState("");
-    const [expandedVin, setExpandedVin] = useState<string | null>(null);
-    const [deletingVin, setDeletingVin] = useState<string | null>(null);
-    const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set());
-    const [checkingImages, setCheckingImages] = useState(false);
-    const [imageCheckDone, setImageCheckDone] = useState(false);
-    const [selected, setSelected] = useState<Set<string>>(new Set());
+    const [activeSearch, setActiveSearch] = useState("");
+    const [vinResult, setVinResult] = useState<Car[] | null>(null);
+
+    // Selection
+    const [selected, setSelected] = useState<Set<string | number>>(new Set());
     const [bulkDeleting, setBulkDeleting] = useState(false);
 
-    // Sync when parent re-fetches
-    useEffect(() => {
-        setCars(initialCars);
-        setBrokenImages(new Set());
-        setImageCheckDone(false);
-    }, [initialCars]);
+    // Cancel any in-flight fetch when a new one starts
+    const fetchIdRef = useRef(0);
 
-    const fetchCars = async () => {
+    // Fetch paginated list
+    const fetchPage = useCallback(async (p: number, ps: number, search: string, isRefresh = false) => {
+        const id = ++fetchIdRef.current;
+        if (isRefresh) setRefreshing(true); else setLoading(true);
+        setVinResult(null);
+        try {
+            const params: Record<string, string | number | undefined> = {
+                page: p,
+                pageSize: ps,
+            };
+            if (search) params.search = search;
+            const res = await getFilteredCarsAdmin(params);
+            if (fetchIdRef.current !== id) return; // stale response
+            setCars(res.data);
+            setTotalPages(res.totalPages);
+            setTotalItems(res.totalItems);
+        } catch (e) {
+            if (fetchIdRef.current !== id) return;
+            alert("Failed to fetch inventory: " + e);
+        } finally {
+            if (fetchIdRef.current === id) {
+                setLoading(false);
+                setRefreshing(false);
+            }
+        }
+    }, []);
+
+    // Fetch by VIN
+    const fetchByVin = useCallback(async (vin: string) => {
+        const id = ++fetchIdRef.current;
         setLoading(true);
+        setVinResult(null);
         try {
-            await onRefresh(); // parent updates initialCars → useEffect above syncs
-        } catch (e) {
-            alert("Fetch failed: " + e);
+            const car = await getCarAdmin(vin.trim());
+            if (fetchIdRef.current !== id) return;
+            setVinResult([car]);
+            setCars([car]);
+            setTotalPages(1);
+            setTotalItems(1);
+        } catch {
+            if (fetchIdRef.current !== id) return;
+            setVinResult([]);
+            setCars([]);
+            setTotalPages(0);
+            setTotalItems(0);
         } finally {
-            setLoading(false);
+            if (fetchIdRef.current === id) {
+                setLoading(false);
+            }
+        }
+    }, []);
+
+    // Initial load
+    useEffect(() => { fetchPage(page, pageSize, ""); }, []);
+
+    const handlePageChange = (p: number) => {
+        setPage(p);
+        setSelected(new Set());
+        fetchPage(p, pageSize, activeSearch);
+    };
+
+    const handlePageSizeChange = (ps: number) => {
+        setPageSize(ps);
+        setPage(1);
+        setSelected(new Set());
+        fetchPage(1, ps, activeSearch);
+    };
+
+    const handleRefresh = () => {
+        if (vinResult !== null && searchMode === "vin" && activeSearch) {
+            fetchByVin(activeSearch);
+        } else {
+            fetchPage(page, pageSize, activeSearch, true);
         }
     };
 
-    const checkImages = async () => {
-        setCheckingImages(true);
-        const broken = new Set<string>();
-        await Promise.all(
-            cars.map(
-                (car) =>
-                    new Promise<void>((resolve) => {
-                        if (!car.images?.length) {
-                            broken.add(car.vin);
-                            return resolve();
-                        }
-                        const img = new window.Image();
-                        img.onload = () => resolve();
-                        img.onerror = () => {
-                            broken.add(car.vin);
-                            resolve();
-                        };
-                        img.src = car.images[0];
-                    }),
-            ),
-        );
-        setBrokenImages(broken);
-        setCheckingImages(false);
-        setImageCheckDone(true);
-    };
-
-
-    const handleStatusChange = async (vin: string, status: CarStatus) => {
-        try {
-            await updateCarStatus(vin, status);
-            setCars((prev) => prev.map((c) => c.vin === vin ? { ...c, carStatus: status } : c));
-        } catch (e) {
-            alert("Error updating status: " + e);
+    const handleSearchSubmit = () => {
+        const q = query.trim();
+        setActiveSearch(q);
+        setPage(1);
+        setSelected(new Set());
+        if (!q) {
+            fetchPage(1, pageSize, "");
+            return;
+        }
+        if (searchMode === "vin") {
+            fetchByVin(q);
+        } else {
+            fetchPage(1, pageSize, q);
         }
     };
 
-    const handleDelete = async (vin: string) => {
-        if (!window.confirm(`Delete vehicle ${vin}?`)) return;
-        setDeletingVin(vin);
-        try {
-            await deleteCar(vin);
-            setCars((prev) => prev.filter((c) => c.vin !== vin));
-            setSelected((prev) => { const n = new Set(prev); n.delete(vin); return n; });
-        } catch (e) {
-            alert("Error: " + e);
-        } finally {
-            setDeletingVin(null);
-        }
+    const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter") handleSearchSubmit();
     };
 
+    const handleClearSearch = () => {
+        setQuery("");
+        setActiveSearch("");
+        setVinResult(null);
+        setPage(1);
+        fetchPage(1, pageSize, "");
+    };
+
+    // Bulk delete
     const handleBulkDelete = async () => {
-        if (!window.confirm(`Delete ${selected.size} vehicle${selected.size !== 1 ? "s" : ""}? This cannot be undone.`)) return;
+        const vins = [...selected] as string[];
+        if (!window.confirm(`Delete ${vins.length} vehicle${vins.length !== 1 ? "s" : ""}? This cannot be undone.`)) return;
         setBulkDeleting(true);
-        const vins = [...selected];
         const results = await Promise.allSettled(vins.map((vin) => deleteCar(vin)));
-        const deleted = vins.filter((_, i) => results[i].status === "fulfilled");
         const failed = vins.filter((_, i) => results[i].status === "rejected");
-        setCars((prev) => prev.filter((c) => !deleted.includes(c.vin)));
-        setSelected(new Set(failed));
         setBulkDeleting(false);
         if (failed.length) alert(`${failed.length} deletion(s) failed.`);
+        setSelected(new Set(failed));
+        handleRefresh();
     };
 
-    const toggleSelect = (vin: string) =>
-        setSelected((prev) => { const n = new Set(prev); n.has(vin) ? n.delete(vin) : n.add(vin); return n; });
+    // Single delete
+    const handleDeleteOne = async (car: Car) => {
+        if (!window.confirm(`Delete vehicle ${car.vin}?`)) return;
+        try {
+            await deleteCar(car.vin);
+            handleRefresh();
+        } catch (e) {
+            alert("Delete failed: " + e);
+        }
+    };
 
-    const filtered = cars.filter((c) =>
-        `${c.make} ${c.model} ${c.vin} ${c.vehicleClass}`
-            .toLowerCase()
-            .includes(query.toLowerCase()),
-    );
+    // Edit
+    const handleEdit = (car: Car) => openEditCar(car.vin);
 
-    return (
-        <div className={styles.container}>
-            <div className={styles.header}>
-                <div>
-                    <h2 className="page-title">Live Inventory</h2>
-                    <p className="page-subtitle">
-                        {filtered.length} of {cars.length} vehicles
-                    </p>
-                </div>
-                <div className={styles.buttonGroup}>
-                    <button
-                        onClick={checkImages}
-                        disabled={checkingImages}
-                        className={`${styles.btn} ${styles.btnCheck}`}
-                    >
-                        {checkingImages ? (
-                            <BiRefresh className={`${styles.spinning} ${styles.textYellow}`} />
-                        ) : (
-                            <span className={styles.statusDot}>!</span>
-                        )}
-                        {checkingImages
-                            ? "Checking…"
-                            : imageCheckDone
-                                ? "Recheck Images"
-                                : "Check Images"}
-                    </button>
-                    <button
-                        onClick={fetchCars}
-                        disabled={loading}
-                        className={`${styles.btn} ${styles.btnRefresh}`}
-                    >
-                        <BiRefresh className={loading ? styles.spinning : ""} />
-                        Refresh
-                    </button>
-                </div>
+    // Custom search bar with mode dropdown
+    const searchBar = (
+        <div className={styles.searchCombo}>
+            <div className={styles.ctxSection}>Search</div>
+            <div className={styles.ctxDivider} />
+            <div className={styles.searchModeRow}>
+                <span className={styles.searchModeLabel}>By</span>
+                <select
+                    className={styles.searchModeSelect}
+                    value={searchMode}
+                    onChange={(e) => {
+                        setSearchMode(e.target.value as SearchMode);
+                        if (query) handleClearSearch();
+                    }}
+                >
+                    <option value="search">Make &amp; Model</option>
+                    <option value="vin">VIN</option>
+                </select>
             </div>
-
             <div className={styles.searchWrapper}>
                 <BiSearch className={styles.searchIcon} />
                 <input
-                    className={styles.searchInput}
-                    placeholder="Search by make, model, VIN or class…"
+                    autoFocus
+                    className={styles.searchInputCombo}
+                    placeholder={searchMode === "vin" ? "Enter full VIN…" : "Search make, model…"}
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={handleSearchKeyDown}
                 />
             </div>
-
-            {selected.size > 0 && isAdmin && (
-                <BulkActionsBar
-                    count={selected.size}
-                    deleting={bulkDeleting}
-                    onDelete={handleBulkDelete}
-                    onClear={() => setSelected(new Set())}
-                />
-            )}
-
-            <div className={styles.tableContainer}>
-                <div className={styles.tableHeader} style={{ gridTemplateColumns: "28px 2fr 1fr 0.8fr 0.8fr 0.8fr auto" }}>
-                    <div className={styles.cbCell}>
-                        <input
-                            type="checkbox"
-                            className={styles.cb}
-                            checked={filtered.length > 0 && filtered.every((c) => selected.has(c.vin))}
-                            onChange={(e) => setSelected(e.target.checked ? new Set(filtered.map((c) => c.vin)) : new Set())}
-                        />
-                    </div>
-                    {["Vehicle", "VIN", "Class", "Status", "Price / Day", ""].map((h) => (
-                        <p key={h} className={styles.columnLabel}>{h}</p>
-                    ))}
-                </div>
-
-                <div className={styles.rowList}>
-                    {loading ? (
-                        <LoadingSkeleton label="Refreshing inventory…" />
-                    ) : filtered.length === 0 ? (
-                        <EmptyState icon={<BiCar />} message="No vehicles match your search." />
-                    ) : filtered.map((car) => {
-                        const isExpanded = expandedVin === car.vin;
-                        const hasImageIssue = !car.images?.length || brokenImages.has(car.vin);
-
-                        return (
-                            <div key={car.vin}>
-                                <div
-                                    className={styles.summaryRow}
-                                    style={{ gridTemplateColumns: "28px 2fr 1fr 0.8fr 0.8fr 0.8fr auto" }}
-                                    onClick={() => setExpandedVin(isExpanded ? null : car.vin)}
-                                >
-                                    <div className={styles.cbCell} onClick={(e) => e.stopPropagation()}>
-                                        <input
-                                            type="checkbox"
-                                            className={styles.cb}
-                                            checked={selected.has(car.vin)}
-                                            onChange={() => toggleSelect(car.vin)}
-                                        />
-                                    </div>
-                                    <div className={styles.vehicleCell}>
-                                        <div
-                                            className={styles.thumbnail}
-                                            style={{ width: "52px", height: "36px" }}
-                                        >
-                                            {car.images?.[0] ? (
-                                                <Image
-                                                    src={car.images[0]}
-                                                    alt=""
-                                                    fill
-                                                    className={styles.objectCover}
-                                                    sizes="52px"
-                                                />
-                                            ) : (
-                                                <div className={styles.placeholderIconWrapper}>
-                                                    <BiCar />
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className={styles.imageInfoWrapper}>
-                                            <div className={styles.minWidthZero}>
-                                                <p className={styles.carTitle}>
-                                                    {car.make} {car.model}
-                                                </p>
-                                                <p className={styles.carYear}>
-                                                    {car.modelYear}
-                                                </p>
-                                            </div>
-                                            {hasImageIssue && (
-                                                <div className={styles.statusDot}>!</div>
-                                            )}
-                                        </div>
-                                    </div>
-
-                                    <p className={`${styles.carYear} ${styles.vinText}`}>
-                                        {car.vin}
-                                    </p>
-
-                                    <div className={styles.hideMobile}>
-                                        <span className={styles.badge}>{car.vehicleClass}</span>
-                                    </div>
-
-                                    <div className={styles.hideMobile}>
-                                        <StatusBadge status={car.carStatus} />
-                                    </div>
-
-                                    <p className={`${styles.priceText} ${styles.hideMobile}`}>
-                                        ${car.pricePerDay}
-                                        <span className={styles.perDay}>/day</span>
-                                    </p>
-
-                                    <div
-                                        className={styles.actionGroup}
-                                        onClick={(e) => e.stopPropagation()}
-                                    >
-                                        <button
-                                            onClick={() => openEditCar(car.vin)}
-                                            className={`${styles.actionBtn} ${styles.editBtn}`}
-                                        >
-                                            <BiEdit />
-                                        </button>
-                                        {isAdmin && (
-                                            <button
-                                                onClick={() => handleDelete(car.vin)}
-                                                disabled={deletingVin === car.vin}
-                                                className={`${styles.actionBtn} ${styles.deleteBtn}`}
-                                            >
-                                                {deletingVin === car.vin ? (
-                                                    <BiRefresh className={styles.spinning} />
-                                                ) : (
-                                                    <BiTrash />
-                                                )}
-                                            </button>
-                                        )}
-                                        <span className={styles.chevronIcon}>
-                                            {isExpanded ? <BiChevronUp /> : <BiChevronDown />}
-                                        </span>
-                                    </div>
-                                </div>
-                                {isExpanded && <ExpandedRow car={car} onStatusChange={handleStatusChange} />}
-                            </div>
-                        );
-                    })}
-                </div>
-
+            <div className={styles.searchComboActions}>
+                <button className={styles.btn} onClick={handleSearchSubmit}>
+                    <BiSearch /> Search
+                </button>
+                {activeSearch && (
+                    <button className={styles.btn} onClick={handleClearSearch}>
+                        <BiX /> Clear
+                    </button>
+                )}
             </div>
         </div>
+    );
+
+    return (
+        <SpreadsheetTable<Car>
+            columns={CAR_COLUMNS}
+            data={cars}
+            getRowId={(c) => c.vin}
+            page={vinResult !== null ? 1 : page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            pageSize={pageSize}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChange}
+            loading={loading}
+            refreshing={refreshing}
+            isAdmin={isAdmin}
+            selected={selected}
+            onSelectionChange={setSelected}
+            onBulkDelete={handleBulkDelete}
+            bulkDeleting={bulkDeleting}
+            onEdit={handleEdit}
+            onDeleteOne={handleDeleteOne}
+            onRefresh={handleRefresh}
+            title="Car Database"
+            subtitle={activeSearch ? (searchMode === "vin" ? `VIN lookup: ${activeSearch}` : `Search: "${activeSearch}"`) : undefined}
+            searchQuery={query}
+            onSearchChange={setQuery}
+            searchContent={searchBar}
+            emptyMessage={searchMode === "vin" && activeSearch ? "No vehicle found with that VIN." : "No vehicles found."}
+        />
     );
 };
 

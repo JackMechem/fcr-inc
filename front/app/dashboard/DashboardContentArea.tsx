@@ -3,29 +3,49 @@
 import { useUserDashboardStore } from "@/stores/userDashboardStore";
 import { useWindowSize } from "@/app/hooks/useWindowSize";
 
+const TABLE_VIEWS = new Set(["view-data", "view-reservations", "view-accounts", "view-users"]);
+
 export default function DashboardContentArea({ children }: { children: React.ReactNode }) {
-    const { collapsed } = useUserDashboardStore();
+    const { collapsed, activeView } = useUserDashboardStore();
     const { width } = useWindowSize();
     const isMobile = width !== undefined && width < 768;
+    const isTableView = TABLE_VIEWS.has(activeView);
+
+    const navH = 65;
+    const bottomH = isMobile ? 80 : 0;
+    const pad = isMobile ? 8 : 10;
 
     return (
         <div
             style={{
-                paddingLeft: isMobile ? 0 : collapsed ? 64 : 220,
-                paddingBottom: isMobile ? 80 : 0,
+                paddingLeft: isMobile ? 0 : collapsed ? 54 : 220,
                 backgroundColor: "var(--color-primary)",
-                minHeight: "calc(100vh - 65px)",
+                height: `calc(100vh - ${navH}px - ${bottomH}px)`,
+                display: "flex",
+                flexDirection: "column",
                 transition: "padding-left 300ms ease-in-out",
             }}
         >
-            <div style={{ padding: isMobile ? "8px" : "10px" }}>
+            <div style={{
+                padding: `${pad}px`,
+                flex: 1,
+                minHeight: 0,
+                display: "flex",
+                flexDirection: "column",
+                boxSizing: "border-box",
+            }}>
                 <div style={{
                     backgroundColor: "var(--color-primary)",
                     borderRadius: "16px",
                     border: "1px solid var(--color-third)",
-                    boxShadow: "0 2px 16px rgba(0, 0, 0, 0.06)",
-                    minHeight: "calc(100vh - 65px - 20px)",
-                    padding: isMobile ? "24px 16px 60px" : "36px 40px 60px",
+                    boxShadow: isTableView ? "none" : "0 2px 16px rgba(0, 0, 0, 0.06)",
+                    flex: 1,
+                    minHeight: 0,
+                    padding: isTableView ? 0 : isMobile ? "24px 16px" : "36px 40px",
+                    overflow: isTableView ? "hidden" : "auto",
+                    display: "flex",
+                    flexDirection: "column",
+                    boxSizing: "border-box",
                 }}>
                     {children}
                 </div>

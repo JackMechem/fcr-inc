@@ -1,8 +1,10 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Car } from "@/app/types/CarTypes";
+import { getAllCars } from "@/app/lib/AdminApiCalls";
 import { useUserDashboardStore, UserDashboardView } from "@/stores/userDashboardStore";
-import { BiCar, BiPlus, BiEdit, BiTable, BiCalendar, BiUser } from "react-icons/bi";
+import { BiCar, BiPlus, BiEdit, BiTable, BiCalendar, BiUser, BiRefresh } from "react-icons/bi";
 import { MdAttachMoney, MdSpeed, MdDirectionsCar } from "react-icons/md";
 import styles from "./dashboardPanel.module.css";
 
@@ -80,14 +82,29 @@ const SectionTitle = ({ children }: { children: React.ReactNode }) => (
   <p className={styles.sectionTitle}>{children}</p>
 );
 
-interface Props {
-  cars: Car[];
-  role: string;
-}
-
-const DashboardPanel = ({ cars, role }: Props) => {
-  const { setActiveView } = useUserDashboardStore();
+const DashboardPanel = () => {
+  const { setActiveView, role } = useUserDashboardStore();
   const isAdmin = role === "ADMIN";
+
+  const [cars, setCars] = useState<Car[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getAllCars({ pageSize: 500 })
+      .then((res) => setCars(res.data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "40vh", gap: 8, color: "var(--color-foreground-light)" }}>
+        <BiRefresh style={{ animation: "spin 1s linear infinite" }} />
+        Loading dashboard&hellip;
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
 
   const prices = cars.map((c) => c.pricePerDay).filter(Boolean);
   const hps = cars.map((c) => c.horsepower).filter(Boolean);

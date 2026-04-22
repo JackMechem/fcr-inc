@@ -6,6 +6,8 @@ export type EngineLayout = "V" | "INLINE" | "FLAT" | "SINGLE_MOTOR" | "DUAL_MOTO
 
 export type FuelType = "GASOLINE" | "DIESEL" | "ELECTRIC" | "HYBRID";
 
+export type CarStatus = "AVAILABLE" | "DISABLED" | "ARCHIVED" | "LOANED" | "SERVICE";
+
 export type RoofType = "SOFTTOP" | "HARDTOP" | "TARGA" | "SLICKTOP" | "SUNROOF" | "PANORAMIC";
 
 export type VehicleClass = "ECONOMY" | "LUXURY" | "PERFORMANCE" | "OFFROAD" | "FULL_SIZE" | "ELECTRIC";
@@ -18,6 +20,7 @@ export interface CarEnums {
     bodyType: BodyType[];
     engineLayout: EngineLayout[];
     fuelType: FuelType[];
+    carStatus: CarStatus[];
     roofType: RoofType[];
     vehicleClass: VehicleClass[];
     transmissionType: TransmissionType[];
