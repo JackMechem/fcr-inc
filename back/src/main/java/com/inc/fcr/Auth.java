@@ -198,7 +198,7 @@ public class Auth {
      * @see DatabaseController#getOne(Class, Object)
      **/
     public static void verifiedAccountObjAPIHandler(@NotNull Handler handler, Role role, Context ctx, APIController api) throws Exception {
-        Object objId = ctx.pathParamAsClass("id", api.idClazz);
+        Object objId = ctx.pathParamAsClass("id", api.idClazz).get();
         Object obj = DatabaseController.getOne(api.clazz, objId);
         if (obj == null) ApiErrors.notFound(ctx);
 
