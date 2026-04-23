@@ -335,6 +335,7 @@ public class Car extends APIEntity {
      *
      * @return a list of {@code [pickUpTime, dropOffTime]} pairs, or an empty list if none exist
      */
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
     public List<List<Instant>> getReservationDates() {
         if (reservations.isEmpty()) return List.of();
         else return reservations.stream().map(r -> List.of(r.getPickUpTime(), r.getDropOffTime()) ).toList();
