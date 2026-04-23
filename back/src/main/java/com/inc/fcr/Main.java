@@ -11,6 +11,7 @@ import com.inc.fcr.reservation.Reservation;
 import com.inc.fcr.reviews.Review;
 import com.inc.fcr.user.User;
 import com.inc.fcr.utils.APIController;
+import com.inc.fcr.utils.DatabaseController;
 import com.inc.fcr.utils.PostmanController;
 import com.inc.fcr.utils.VersionController;
 import com.inc.fcr.car.enums.EnumController;
@@ -166,11 +167,36 @@ public class Main {
 
                 path("reviews", () -> {
                     get(reviews::getAll, Role.ANYONE);
-                    post(reviews::create, Role.WRITE);
+                    post(ctx -> {
+                        long tokenAcctId = Auth.getAccountIdFromToken(ctx);
+                        long bodyAcctId = new ObjectMapper().readTree(ctx.body()).path("account").asLong(-1);
+                        if (tokenAcctId != bodyAcctId && !Auth.userRoles(ctx).contains(Role.WRITE)) {
+                            throw new ForbiddenResponse("You can only create reviews for your own account");
+                        }
+                        reviews.create(ctx);
+                    }, Role.READ);
                     path("{id}", () -> {
                         get(reviews::getOne, Role.ANYONE);
-                        patch(reviews::update, Role.WRITE);
-                        delete(reviews::delete, Role.ADMIN);
+                        patch(ctx -> {
+                            long tokenAcctId = Auth.getAccountIdFromToken(ctx);
+                            long reviewId = Long.parseLong(ctx.pathParam("id"));
+                            Review review = (Review) DatabaseController.getOne(Review.class, reviewId);
+                            if (review != null && review.getAccount().getAcctId() != tokenAcctId
+                                    && !Auth.userRoles(ctx).contains(Role.WRITE)) {
+                                throw new ForbiddenResponse("You can only edit your own reviews");
+                            }
+                            reviews.update(ctx);
+                        }, Role.READ);
+                        delete(ctx -> {
+                            long tokenAcctId = Auth.getAccountIdFromToken(ctx);
+                            long reviewId = Long.parseLong(ctx.pathParam("id"));
+                            Review review = (Review) DatabaseController.getOne(Review.class, reviewId);
+                            if (review != null && review.getAccount().getAcctId() != tokenAcctId
+                                    && !Auth.userRoles(ctx).contains(Role.ADMIN)) {
+                                throw new ForbiddenResponse("You can only delete your own reviews");
+                            }
+                            reviews.delete(ctx);
+                        }, Role.READ);
                     });
                 });
 

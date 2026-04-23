@@ -11,6 +11,8 @@ import java.util.stream.Collectors;
 import com.inc.fcr.errorHandling.QueryParamException;
 import com.inc.fcr.utils.APIEntity;
 import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Query;
 import joptsimple.internal.Strings;
 
@@ -58,6 +60,8 @@ public class ParsedQueryParams {
         Map<String, String> fieldMap = new LinkedHashMap<>();
         Map<String, String> alphaFieldMap = new LinkedHashMap<>();
         Map<String, List<String>> enumValues = new HashMap<>();
+        Map<String, String> relationIdPaths = new LinkedHashMap<>();
+        Set<String> numericRelationFields = new LinkedHashSet<>();
 
         if (!APIEntity.class.isAssignableFrom(clazz))
             throw new QueryParamException("Entity does not extend APIEntity.");
@@ -77,6 +81,16 @@ public class ParsedQueryParams {
 
             if (isNumericClass(type)) numericSet.add(name);
             else if (Temporal.class.isAssignableFrom(type)) temporalSet.add(name);
+            else if (field.isAnnotationPresent(ManyToOne.class) || field.isAnnotationPresent(OneToOne.class)) {
+                // Find the related entity's @Id field to build a proper path filter
+                for (Field relField : type.getDeclaredFields()) {
+                    if (relField.isAnnotationPresent(Id.class)) {
+                        relationIdPaths.put(name, name + "." + relField.getName());
+                        if (isNumericClass(relField.getType())) numericRelationFields.add(name);
+                        break;
+                    }
+                }
+            }
             else alphaFieldMap.put(name.toLowerCase(), name);
 
             if (type.isEnum()) {
@@ -90,6 +104,8 @@ public class ParsedQueryParams {
         FIELD_MAP = Collections.unmodifiableMap(fieldMap);
         ALPHA_FIELD_MAP = Collections.unmodifiableMap(alphaFieldMap);
         ENUM_VALUES = Collections.unmodifiableMap(enumValues);
+        RELATION_ID_PATHS = Collections.unmodifiableMap(relationIdPaths);
+        NUMERIC_RELATION_FIELDS = Collections.unmodifiableSet(numericRelationFields);
     }
 
     private static boolean isNumericClass(Class<?> clazz) {
@@ -124,6 +140,8 @@ public class ParsedQueryParams {
     private Map<String, String> FIELD_MAP; // contains alpha & numeric
     private Map<String, String> ALPHA_FIELD_MAP; // strings only
     private Map<String, List<String>> ENUM_VALUES;
+    private Map<String, String> RELATION_ID_PATHS; // @ManyToOne/@OneToOne: fieldName -> "field.idField"
+    private Set<String> NUMERIC_RELATION_FIELDS; // relation fields whose FK is numeric
 
     // Params Constructor
     // ------------------
@@ -301,6 +319,18 @@ public class ParsedQueryParams {
                             .forEach(v -> sb.append(" OR c.").append(_field).append(" = '").append(v).append("'"));
                     sb.append(")");
                     // close the condition group
+                } else if (RELATION_ID_PATHS.containsKey(field)
+                        || (field.startsWith("not_") && RELATION_ID_PATHS.containsKey(field.substring(4)))) {
+                    boolean inverted = field.startsWith("not_");
+                    String _field = inverted ? field.substring(4) : field;
+                    String idPath = RELATION_ID_PATHS.get(_field);
+                    boolean numericId = NUMERIC_RELATION_FIELDS.contains(_field);
+                    sb.append(" AND ").append(inverted ? "NOT " : "").append("(1=0 ");
+                    Arrays.stream(value.split(",")).map(String::trim).forEach(v -> {
+                        if (numericId) sb.append(" OR c.").append(idPath).append(" = ").append(v);
+                        else sb.append(" OR c.").append(idPath).append(" = '").append(v).append("'");
+                    });
+                    sb.append(")");
                 } else {
                     boolean inverted = field.startsWith("not_"); String _field;
                     if (inverted) _field = field.substring(4);
