@@ -3,12 +3,15 @@ package com.inc.fcr;
 import com.inc.fcr.auth.Account;
 import com.inc.fcr.auth.AccountRole;
 import com.inc.fcr.auth.LoginToken;
+import com.inc.fcr.errorHandling.ApiErrors;
+import com.inc.fcr.reviews.Review;
+import com.inc.fcr.utils.APIController;
+import com.inc.fcr.utils.DatabaseController;
 import com.inc.fcr.utils.HibernateUtil;
-import io.javalin.http.Context;
-import io.javalin.http.Header;
-import io.javalin.http.UnauthorizedResponse;
+import io.javalin.http.*;
 import io.javalin.security.RouteRole;
 import org.hibernate.Session;
+import org.jetbrains.annotations.NotNull;
 
 import java.time.Instant;
 import java.util.List;
@@ -143,6 +146,64 @@ public class Auth {
         } catch (Exception e) {
             return -1;
         }
+    }
+    /**
+     * Verifies that the request is being made by the account owner with the appropriate role,
+     * then handles the request if both conditions are satisfied.
+     *
+     * <p>This method enforces account ownership by comparing the provided {@code accountId}
+     * with the account ID extracted from the Bearer token. It also ensures the user possesses
+     * the required {@link Role}. If both conditions are met, the handler is executed;
+     * otherwise, a {@code 403 Forbidden} response is thrown.</p>
+     *
+     * @param handler the request handler to execute if verification succeeds
+     * @param role the required {@link Role} the user must possess
+     * @param ctx the Javalin request context
+     * @param accountId the account ID to verify against the Bearer token owner
+     * @throws ForbiddenResponse if the account ID does not match the token owner's ID, or if the user lacks the required role
+     * @throws Exception if the handler execution throws an exception
+     **/
+    public static void verifiedAccountAPIHandler(@NotNull Handler handler, Role role, Context ctx, long accountId) throws Exception {
+        if (accountId == getAccountIdFromToken(ctx) && userRoles(ctx).contains(role)) handler.handle(ctx);
+        else throw new ForbiddenResponse("You can only access your own account data.");
+    }
+
+    /**
+     * Retrieves a database object by ID, verifies it belongs to the authenticated account,
+     * then handles the request with the associated account's verification.
+     *
+     * <p>This method performs the following steps:
+     * <ol>
+     *     <li>Extracts an object ID from the request path parameter</li>
+     *     <li>Retrieves the object from the database using the {@link APIController}</li>
+     *     <li>Returns a {@code 404 Not Found} response if the object does not exist</li>
+     *     <li>Extracts the associated {@link Account} from the object via reflection</li>
+     *     <li>Delegates to {@link #verifiedAccountAPIHandler(Handler, Role, Context, long)} to verify ownership and role before executing the handler</li>
+     * </ol>
+     * </p>
+     *
+     * <p><strong>Note:</strong> This method uses reflection to invoke the {@code getAccount()}
+     * method on the retrieved object. The object class must have a {@code getAccount()} method
+     * that returns an {@link Account} instance.</p>
+     *
+     * @param handler the request handler to execute if verification succeeds
+     * @param role the required {@link Role} the user must possess
+     * @param ctx the Javalin request context
+     * @param api the {@link APIController} containing the class type and ID class for database operations
+     * @throws ForbiddenResponse if the object's account does not match the token owner's ID, or if the user lacks the required role (propagated from {@code verifiedAccountAPIHandler})
+     * @throws com.stripe.exception.ApiException with status {@code 404} if the object is not found in the database
+     * @throws Exception if reflection invocation fails or the handler throws an exception
+     *
+     * @see APIController
+     * @see DatabaseController#getOne(Class, Object)
+     **/
+    public static void verifiedAccountObjAPIHandler(@NotNull Handler handler, Role role, Context ctx, APIController api) throws Exception {
+        Object objId = ctx.pathParamAsClass("id", api.idClazz).get();
+        Object obj = DatabaseController.getOne(api.clazz, objId);
+        if (obj == null) ApiErrors.notFound(ctx);
+
+        Account acc = (Account) api.clazz.getMethod("getAccount").invoke(api.clazz.cast(obj));
+        verifiedAccountAPIHandler(handler, role, ctx, acc.getAcctId());
     }
 
     /**

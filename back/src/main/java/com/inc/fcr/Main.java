@@ -11,14 +11,12 @@ import com.inc.fcr.reservation.Reservation;
 import com.inc.fcr.reviews.Review;
 import com.inc.fcr.user.User;
 import com.inc.fcr.utils.APIController;
-import com.inc.fcr.utils.DatabaseController;
 import com.inc.fcr.utils.PostmanController;
 import com.inc.fcr.utils.VersionController;
 import com.inc.fcr.car.enums.EnumController;
 import com.inc.fcr.utils.HibernateUtil;
 
 import io.javalin.Javalin;
-import io.javalin.http.ForbiddenResponse;
 
 import static io.javalin.apibuilder.ApiBuilder.*;
 
@@ -74,6 +72,8 @@ public class Main {
 
         Javalin app = Javalin.create(config -> {
 
+            ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
+
             // Create controllers
             APIController accounts = new APIController(Account.class, Long.class);
             APIController cars = new APIController(Car.class, String.class);
@@ -109,15 +109,8 @@ public class Main {
                     get(accounts::getAll, Role.READ);
                     path("{id}", () -> {
                         get(accounts::getOne, Role.READ);
-                        patch(ctx -> {
-                            long tokenAcctId = Auth.getAccountIdFromToken(ctx);
-                            long pathId = Long.parseLong(ctx.pathParam("id"));
-                            // Allow if owner, or if staff/admin
-                            if (tokenAcctId != pathId && !Auth.userRoles(ctx).contains(Role.WRITE)) {
-                                throw new ForbiddenResponse("You can only update your own account");
-                            }
-                            accounts.update(ctx);
-                        }, Role.READ);
+                        patch(ctx -> Auth.verifiedAccountAPIHandler(accounts::update, Role.WRITE, ctx,
+                                Long.parseLong(ctx.pathParam("id"))), Role.READ);
                         delete(accounts::delete, Role.ADMIN);
                     });
                 });
@@ -167,36 +160,12 @@ public class Main {
 
                 path("reviews", () -> {
                     get(reviews::getAll, Role.ANYONE);
-                    post(ctx -> {
-                        long tokenAcctId = Auth.getAccountIdFromToken(ctx);
-                        long bodyAcctId = new ObjectMapper().readTree(ctx.body()).path("account").asLong(-1);
-                        if (tokenAcctId != bodyAcctId && !Auth.userRoles(ctx).contains(Role.WRITE)) {
-                            throw new ForbiddenResponse("You can only create reviews for your own account");
-                        }
-                        reviews.create(ctx);
-                    }, Role.READ);
+                    post(ctx -> Auth.verifiedAccountAPIHandler(reviews::create, Role.WRITE, ctx,
+                            mapper.readTree(ctx.body()).path("account").asLong(-1)), Role.READ);
                     path("{id}", () -> {
                         get(reviews::getOne, Role.ANYONE);
-                        patch(ctx -> {
-                            long tokenAcctId = Auth.getAccountIdFromToken(ctx);
-                            long reviewId = Long.parseLong(ctx.pathParam("id"));
-                            Review review = (Review) DatabaseController.getOne(Review.class, reviewId);
-                            if (review != null && review.getAccount().getAcctId() != tokenAcctId
-                                    && !Auth.userRoles(ctx).contains(Role.WRITE)) {
-                                throw new ForbiddenResponse("You can only edit your own reviews");
-                            }
-                            reviews.update(ctx);
-                        }, Role.READ);
-                        delete(ctx -> {
-                            long tokenAcctId = Auth.getAccountIdFromToken(ctx);
-                            long reviewId = Long.parseLong(ctx.pathParam("id"));
-                            Review review = (Review) DatabaseController.getOne(Review.class, reviewId);
-                            if (review != null && review.getAccount().getAcctId() != tokenAcctId
-                                    && !Auth.userRoles(ctx).contains(Role.ADMIN)) {
-                                throw new ForbiddenResponse("You can only delete your own reviews");
-                            }
-                            reviews.delete(ctx);
-                        }, Role.READ);
+                        patch(ctx -> Auth.verifiedAccountObjAPIHandler(reviews::update, Role.WRITE, ctx, reviews), Role.READ);
+                        delete(ctx -> Auth.verifiedAccountObjAPIHandler(reviews::delete, Role.ADMIN, ctx, reviews), Role.READ);
                     });
                 });
 

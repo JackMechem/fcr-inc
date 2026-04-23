@@ -23,9 +23,9 @@ import org.hibernate.HibernateException;
 public class APIController {
 
     /** The JPA entity class this controller manages (e.g., {@code Car.class}). */
-    protected final Class<?> clazz;
+    public final Class<?> clazz;
     /** The type of the entity's primary key (e.g., {@code String.class} for VIN, {@code Long.class} for auto-increment IDs). */
-    protected final Class<?> idClazz;
+    public final Class<?> idClazz;
 
     /**
      * Constructs an {@code APIController} for the given entity and ID types.

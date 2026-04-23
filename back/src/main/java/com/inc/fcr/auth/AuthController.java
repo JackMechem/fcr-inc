@@ -5,10 +5,7 @@ import com.inc.fcr.user.Address;
 import com.inc.fcr.user.DriversLicense;
 import com.inc.fcr.user.User;
 import com.inc.fcr.utils.HibernateUtil;
-import io.javalin.http.BadRequestResponse;
-import io.javalin.http.ConflictResponse;
-import io.javalin.http.Context;
-import io.javalin.http.NotFoundResponse;
+import io.javalin.http.*;
 import org.hibernate.Session;
 
 import java.time.Instant;
