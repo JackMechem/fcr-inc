@@ -13,7 +13,12 @@ import jakarta.persistence.*;
 
 import java.time.Instant;
 
-
+/**
+ * JPA entity representing a customer post rental review of their experience with the vehicle.
+ *
+ * <p>Maps to the {@code cars} database table.
+ *
+ */
 
 @Entity
 @Table(name = "reviews")
@@ -35,7 +40,16 @@ public class Review extends APIEntity {
     private Instant publishedDate;
 
     // Constructors
-
+    /**
+     * Loads an existing review from the review database by userID and copies its fields into this instance.
+     *
+     * @param account the user account
+     * @param title review title
+     * @param bodyOfText text field for user to type main thoughts ("This car was an amazing experience! I had so much fun.")
+     * @param stars rating system 1-5
+     * @param rentalDuration amount of time rented vehicle
+     * @param publishedDate time-stamp of review
+     */
     public Review(Account account, String title, String bodyOfText, int stars,
                   int rentalDuration, Instant publishedDate) {
         this.account = account;
@@ -46,6 +60,7 @@ public class Review extends APIEntity {
         this.publishedDate = publishedDate;
     }
 
+    /** Default no-arg constructor required by JPA/Hibernate. */
     public Review() {}
 
     public Review(long id) throws IllegalAccessException {

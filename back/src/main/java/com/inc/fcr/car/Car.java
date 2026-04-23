@@ -211,6 +211,9 @@ public class Car extends APIEntity {
         if(parseFullObjects) return reviews;
         else return reviews.stream().map(Review::getReviewId).toList();
     }
+    public Double getAverageRating(){
+    return reviews.stream().mapToDouble(Review::getStars).average().orElse(-1);
+    }
 
     // Setters with Validation
 
