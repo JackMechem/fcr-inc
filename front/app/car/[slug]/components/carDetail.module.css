@@ -297,6 +297,34 @@
 
 .titleBlock {}
 
+.titleRow {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 16px;
+}
+
+.editCarBtn {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-shrink: 0;
+	padding: 8px 14px;
+	background: color-mix(in srgb, var(--color-accent) 10%, transparent);
+	color: var(--color-accent);
+	border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
+	border-radius: 8px;
+	font-size: 13px;
+	font-weight: 500;
+	cursor: pointer;
+	transition: background 150ms;
+	margin-top: 6px;
+}
+
+.editCarBtn:hover {
+	background: color-mix(in srgb, var(--color-accent) 18%, transparent);
+}
+
 .carTitle {
 	font-size: 26pt;
 	font-weight: 700;

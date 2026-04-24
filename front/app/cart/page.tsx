@@ -1,6 +1,6 @@
 import NavHeader from "../components/headers/navHeader";
 import TitleText from "../components/text/titleText";
-import CartContents from "./componenets/cartContents";
+import CartContents from "./components/cartContents";
 import styles from "./cart.module.css";
 
 const CartPage = () => {

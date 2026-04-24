@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { browserApi } from "@/app/lib/fcr-client";
 
 export interface BookmarkCar {
     vin: string;
@@ -44,15 +45,9 @@ function parseBookmarks(raw: unknown[]): BookmarkCar[] {
 export async function fetchBookmarks(accountId: number) {
     try {
         useBookmarkStore.getState().setLoading(true);
-        const res = await fetch(`/api/accounts/${accountId}/bookmarks`);
-        if (!res.ok) {
-            console.error("[bookmarks] GET failed:", res.status, await res.text());
-            return;
-        }
-        const data = await res.json();
-        console.log("[bookmarks] GET response:", data);
+        const data = await browserApi.bookmarks.get(accountId);
         const raw = data.bookmarkedCars;
-        const cars = Array.isArray(raw) ? parseBookmarks(raw) : [];
+        const cars = Array.isArray(raw) ? parseBookmarks(raw as unknown[]) : [];
         useBookmarkStore.getState().setBookmarks(cars);
     } catch (err) {
         console.error("[bookmarks] GET error:", err);
@@ -63,19 +58,8 @@ export async function fetchBookmarks(accountId: number) {
 
 /** Save the given VIN list to the API, then refetch to get full objects */
 async function saveAndRefresh(accountId: number, vins: { vin: string }[]) {
-    console.log("[bookmarks] PATCH", accountId, vins);
     try {
-        const res = await fetch(`/api/accounts/${accountId}/bookmarks`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ bookmarkedCars: vins }),
-        });
-        if (!res.ok) {
-            console.error("[bookmarks] PATCH failed:", res.status, await res.text());
-            return;
-        }
-        console.log("[bookmarks] PATCH success");
-        // Refetch so the store has the full car objects from the API
+        await browserApi.bookmarks.update(accountId, vins);
         await fetchBookmarks(accountId);
     } catch (err) {
         console.error("[bookmarks] PATCH error:", err);

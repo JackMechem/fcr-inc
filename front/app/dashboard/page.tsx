@@ -1,17 +1,19 @@
 import { getSessionCookies } from "@/app/lib/serverAuth";
 import NavHeader from "../components/headers/navHeader";
-import UserSidebar from "./components/UserSidebar";
-import MagicLinkPromptPage from "./components/MagicLinkPromptPage";
-import DashboardContentArea from "./DashboardContentArea";
-import DashboardShell from "./DashboardShell";
+import UserSidebar from "./components/layout/UserSidebar";
+import MagicLinkPromptPage from "./components/panels/MagicLinkPromptPage";
+import DashboardContentArea from "./components/layout/DashboardContentArea";
+import DashboardShell from "./components/layout/DashboardShell";
+import MobileMenuButton from "../components/buttons/MobileMenuButton";
 
 export default async function DashboardPage({
     searchParams,
 }: {
-    searchParams: Promise<{ payment?: string }>;
+    searchParams: Promise<{ payment?: string; editcar?: string }>;
 }) {
     const { sessionToken } = await getSessionCookies();
     const sp = await searchParams;
+    const editCarVin = sp?.editcar;
 
     if (!sessionToken) {
         return (
@@ -24,10 +26,10 @@ export default async function DashboardPage({
 
     return (
         <>
-            <NavHeader white={false} />
+            <NavHeader white={false} mobileMenuTrigger={<MobileMenuButton />} />
             <UserSidebar />
             <DashboardContentArea>
-                <DashboardShell paymentSuccess={sp?.payment === "success"} />
+                <DashboardShell paymentSuccess={sp?.payment === "success"} editCarVin={editCarVin} />
             </DashboardContentArea>
         </>
     );

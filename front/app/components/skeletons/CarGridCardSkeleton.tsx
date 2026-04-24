@@ -50,7 +50,7 @@ const CarGridCardSkeleton = () => (
 				{/* Feature tags */}
 				<div className={styles.features} style={{ marginTop: 0 }}>
 					{[60, 48, 70, 52].map((w, i) => (
-						<span key={i} className={styles.featureTag}><Line w={w} /></span>
+						<span key={i} className={sk.pulse} style={{ display: "inline-block", height: 22, width: w, borderRadius: 9999 }} />
 					))}
 				</div>
 			</div>

@@ -3,10 +3,11 @@
 import { useState, useEffect } from "react";
 import { useAdminSidebarStore, AdminView } from "@/stores/adminSidebarStore";
 import { useUserDashboardStore } from "@/stores/userDashboardStore";
+import { useMobileSidebarStore } from "@/stores/mobileSidebarStore";
 import { useWindowSize } from "@/app/hooks/useWindowSize";
 import {
     BiCar, BiChevronLeft, BiChevronRight, BiChevronDown,
-    BiPlus, BiEdit, BiTable, BiGridAlt, BiX, BiCalendar, BiUser,
+    BiPlus, BiEdit, BiTable, BiGridAlt, BiX, BiCalendar, BiUser, BiMenu,
 } from "react-icons/bi";
 import styles from "./adminSidebar.module.css";
 
@@ -49,80 +50,97 @@ const SECTIONS: SectionDef[] = [
     },
 ];
 
-// ── Mobile bottom bar + sheet ─────────────────────────────────────────────────
+// ── Mobile slide-in drawer ────────────────────────────────────────────────────
 
 const MobileSidebar = () => {
     const { activeView, setActiveView } = useAdminSidebarStore();
-    const [sheetSection, setSheetSection] = useState<Section | null>(null);
+    const { role } = useUserDashboardStore();
+    const { open, setOpen } = useMobileSidebarStore();
+    const [openSection, setOpenSection] = useState<Section | null>(
+        () => SECTIONS.find((s) => s.items.some((i) => i.view === activeView))?.id ?? null
+    );
 
-    const handleDashboard = () => { setActiveView(null); setSheetSection(null); };
-    const openSheet  = (id: Section) => setSheetSection(id);
-    const closeSheet = () => setSheetSection(null);
-    const pickView   = (view: AdminView) => { setActiveView(view); closeSheet(); };
+    useEffect(() => {
+        const sectionId = SECTIONS.find((s) => s.items.some((i) => i.view === activeView))?.id;
+        if (sectionId) setOpenSection(sectionId);
+    }, [activeView]);
 
-    const sheet = SECTIONS.find((s) => s.id === sheetSection);
+    const handleDashboard = () => { setActiveView(null); setOpen(false); };
+    const handleSection   = (id: Section) => setOpenSection((prev) => (prev === id ? null : id));
+    const pickView        = (view: AdminView) => { setActiveView(view); setOpen(false); };
 
     return (
         <>
-            {/* Bottom tab bar */}
-            <div className={styles.mobileBar}>
-                <button
-                    onClick={handleDashboard}
-                    className={`${styles.mobileTabBtn} ${activeView === null && !sheetSection ? styles.mobileTabBtnActive : ""}`}
-                >
-                    <BiGridAlt className={styles.mobileTabIcon} />
-                    <span className={styles.mobileTabLabel}>Dashboard</span>
-                </button>
-                {SECTIONS.map((s) => {
-                    const sectionActive = s.items.some((i) => i.view === activeView) || sheetSection === s.id;
-                    return (
-                        <button
-                            key={s.id}
-                            onClick={() => openSheet(s.id)}
-                            className={`${styles.mobileTabBtn} ${sectionActive ? styles.mobileTabBtnActive : ""}`}
-                        >
-                            <span className={styles.mobileTabIcon}>{s.icon}</span>
-                            <span className={styles.mobileTabLabel}>{s.label}</span>
-                        </button>
-                    );
-                })}
-            </div>
+            {/* Overlay */}
+            {open && <div className={styles.overlay} onClick={() => setOpen(false)} />}
 
-            {/* Bottom sheet */}
-            {sheet && (
-                <>
-                    <div className={styles.overlay} onClick={closeSheet} />
-                    <div className={styles.sheet}>
-                        <div className={styles.sheetHeader}>
-                            <div className={styles.sheetTitleGroup}>
-                                <span className={styles.sheetTitleIcon}>{sheet.icon}</span>
-                                <span className={styles.sheetTitle}>{sheet.label}</span>
-                            </div>
-                            <button onClick={closeSheet} className={styles.sheetCloseBtn}>
-                                <BiX />
-                            </button>
-                        </div>
-                        <div className={styles.sheetItems}>
-                            {sheet.items.map((item) => {
-                                const isActive = activeView === item.view;
-                                return (
-                                    <button
-                                        key={String(item.view)}
-                                        onClick={() => pickView(item.view)}
-                                        className={`${styles.sheetItem} ${isActive ? styles.sheetItemActive : ""}`}
-                                    >
-                                        <span className={`${styles.sheetItemIcon} ${isActive ? styles.sheetItemIconActive : ""}`}>
-                                            {item.icon}
-                                        </span>
-                                        <span className={styles.sheetItemLabel}>{item.label}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                        <div className={styles.sheetSpacer} />
+            {/* Slide-in drawer */}
+            <div className={`${styles.mobileDrawer} ${open ? styles.mobileDrawerOpen : ""}`}>
+                <div className={styles.mobileDrawerHeader}>
+                    <span className={styles.mobileDrawerTitle}>Menu</span>
+                    <button className={styles.sheetCloseBtn} onClick={() => setOpen(false)}>
+                        <BiX />
+                    </button>
+                </div>
+
+                <div className={styles.expandedInner}>
+                    <div className={styles.navTop}>
+                        <button
+                            onClick={handleDashboard}
+                            className={`${styles.dashBtn} ${activeView === null ? styles.dashBtnActive : ""}`}
+                        >
+                            <BiGridAlt className={styles.dashBtnIcon} />
+                            <span className={styles.dashBtnLabel}>Dashboard</span>
+                        </button>
                     </div>
-                </>
-            )}
+                    <div className={styles.navDivider} />
+                    <div className={styles.navSections}>
+                        {SECTIONS.map((s) => {
+                            const isOpen = openSection === s.id;
+                            const hasActive = s.items.some((i) => i.view === activeView);
+                            return (
+                                <div key={s.id} className={styles.navSection}>
+                                    <button
+                                        onClick={() => handleSection(s.id)}
+                                        className={`${styles.sectionBtn} ${isOpen || hasActive ? styles.sectionBtnOpen : ""}`}
+                                    >
+                                        <span className={styles.sectionBtnIcon}>{s.icon}</span>
+                                        <span className={styles.sectionBtnLabel}>{s.label}</span>
+                                        <BiChevronDown className={`${styles.sectionChevron} ${isOpen ? styles.sectionChevronOpen : ""}`} />
+                                    </button>
+                                    {isOpen && (
+                                        <div className={styles.subItems}>
+                                            {s.items.map((item) => {
+                                                const isActive = activeView === item.view;
+                                                return (
+                                                    <button
+                                                        key={String(item.view)}
+                                                        onClick={() => pickView(item.view)}
+                                                        className={`${styles.subItem} ${isActive ? styles.subItemActive : ""}`}
+                                                    >
+                                                        <span className={`${styles.subItemIcon} ${isActive ? styles.subItemIconActive : ""}`}>
+                                                            {item.icon}
+                                                        </span>
+                                                        <span className={styles.subItemLabel}>{item.label}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                    {role === "ADMIN" && (
+                        <div className={styles.adminWarning}>
+                            <p className={styles.adminWarningTitle}>⚠ Admin Access</p>
+                            <p className={styles.adminWarningBody}>
+                                You have <strong>full access</strong> to the live database. Changes are <strong>permanent</strong>.
+                            </p>
+                        </div>
+                    )}
+                </div>
+            </div>
         </>
     );
 };

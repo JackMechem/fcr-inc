@@ -28,6 +28,7 @@ interface NavHeaderProps {
 	filterControls?: React.ReactNode;
 	mobileFilterButton?: React.ReactNode;
 	activeFilters?: React.ReactNode;
+	mobileMenuTrigger?: React.ReactNode;
 }
 
 const NavHeader = ({
@@ -35,6 +36,7 @@ const NavHeader = ({
 	filterControls,
 	mobileFilterButton,
 	activeFilters,
+	mobileMenuTrigger,
 }: NavHeaderProps) => {
 	const [showSuggestions, setShowSuggestions] = useState(false);
 	const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
@@ -227,7 +229,7 @@ const NavHeader = ({
 
 	const searchButton = (
 		<div className={styles.searchBtnContainer}>
-			<button onClick={handleSearch} className={styles.searchBtn}>
+			<button type="button" onClick={handleSearch} className={styles.searchBtn}>
 				<BiSearch />
 			</button>
 		</div>
@@ -253,7 +255,7 @@ const NavHeader = ({
 							alt="FCR Logo"
 						/>
 					) : (
-						<Image width={50} height={50} src={smallLogo} alt="FCR Logo" />
+						<Image width={50} height={50} src={smallLogo} alt="FCR Logo" loading="eager" />
 					)}
 				</Link>
 
@@ -337,6 +339,7 @@ const NavHeader = ({
 					className={`${styles.rightSide} ${isWhite ? styles.rightSideWhite : styles.rightSideCompact}`}
 				>
 					<HeaderMenuButton />
+					{mobileMenuTrigger}
 				</div>
 			</div>
 

@@ -1,46 +1,33 @@
-/* ── Mobile bottom bar ──────────────────────────────────────────────────────── */
-.mobileBar {
+/* ── Mobile FAB + slide-in drawer ───────────────────────────────────────────── */
+
+.mobileFab {
 	position: fixed;
-	bottom: 0;
+	top: 90px;
 	left: 0;
-	right: 0;
 	z-index: 20;
+	width: 22px;
+	height: 52px;
+	padding: 0;
+	border-radius: 0 999px 999px 0;
 	background-color: var(--color-primary);
-	border-top: 1px solid color-mix(in srgb, var(--color-third) 50%, transparent);
-	display: flex;
-	align-items: center;
-	justify-content: space-around;
-	padding: 6px 8px;
-}
-
-.mobileTabBtn {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: 2px;
-	padding: 6px 16px;
-	border-radius: 0.75rem;
-	cursor: pointer;
-	transition: color 150ms;
-	background: none;
-	border: none;
+	border: 1px solid color-mix(in srgb, var(--color-third) 70%, transparent);
+	border-left: none;
 	color: var(--color-foreground-light);
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 16px;
+	box-shadow: 2px 0 8px rgb(0 0 0 / 0.10);
+	transition: background-color 150ms, color 150ms;
 }
 
-.mobileTabBtnActive {
-	color: var(--color-accent);
+.mobileFab:active {
+	background-color: var(--color-primary-dark);
+	color: var(--color-foreground);
 }
 
-.mobileTabIcon {
-	font-size: 20pt;
-}
-
-.mobileTabLabel {
-	font-size: 7pt;
-	font-weight: 500;
-}
-
-/* ── Bottom sheet overlay ───────────────────────────────────────────────────── */
+/* ── Overlay ────────────────────────────────────────────────────────────────── */
 .overlay {
 	position: fixed;
 	inset: 0;
@@ -49,42 +36,41 @@
 	backdrop-filter: blur(2px);
 }
 
-.sheet {
+/* ── Drawer ─────────────────────────────────────────────────────────────────── */
+.mobileDrawer {
 	position: fixed;
-	bottom: 0;
+	top: 65px;
 	left: 0;
-	right: 0;
+	bottom: 0;
+	width: min(300px, 85vw);
 	z-index: 40;
 	background-color: var(--color-primary);
-	border-radius: 1rem 1rem 0 0;
-	border-top: 1px solid color-mix(in srgb, var(--color-third) 40%, transparent);
-	box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-	animation: slide-up 200ms ease-out;
+	border-right: 1px solid color-mix(in srgb, var(--color-third) 50%, transparent);
+	box-shadow: 4px 0 24px rgb(0 0 0 / 0.18);
+	display: flex;
+	flex-direction: column;
+	transform: translateX(-100%);
+	transition: transform 260ms cubic-bezier(0.4, 0, 0.2, 1);
+	overflow: hidden;
 }
 
-.sheetHeader {
+.mobileDrawerOpen {
+	transform: translateX(0);
+}
+
+.mobileDrawerHeader {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	padding: 16px 20px 12px;
-	border-bottom: 1px solid color-mix(in srgb, var(--color-third) 30%, transparent);
+	padding: 14px 16px 12px;
+	border-bottom: 1px solid color-mix(in srgb, var(--color-third) 40%, transparent);
+	flex-shrink: 0;
 }
 
-.sheetTitleGroup {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	color: var(--color-foreground);
-}
-
-.sheetTitleIcon {
-	font-size: 18pt;
-	color: var(--color-accent);
-}
-
-.sheetTitle {
+.mobileDrawerTitle {
 	font-size: 13pt;
 	font-weight: 600;
+	color: var(--color-foreground);
 }
 
 .sheetCloseBtn {
@@ -94,60 +80,32 @@
 	background: none;
 	border: none;
 	transition: color 150ms;
+	display: flex;
+	align-items: center;
 }
 
 .sheetCloseBtn:hover {
 	color: var(--color-foreground);
 }
 
-.sheetItems {
+/* ── Mobile full-screen menu (user dashboard) ───────────────────────────────── */
+.mobileFullMenu {
+	position: fixed;
+	top: 65px;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	z-index: 40;
+	background-color: var(--color-primary);
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
-	padding: 12px;
+	overflow: hidden;
+	animation: fade-in 180ms ease-out;
 }
 
-.sheetItem {
-	width: auto;
-	display: flex;
-	align-items: center;
-	gap: 14px;
-	padding: 14px 16px;
-	border-radius: 0.75rem;
-	cursor: pointer;
-	transition: background-color 150ms, color 150ms;
-	text-align: left;
-	background: none;
-	border: none;
-	color: var(--color-foreground);
-}
-
-.sheetItem:hover {
-	background-color: color-mix(in srgb, var(--color-third) 20%, transparent);
-}
-
-.sheetItemActive {
-	background-color: var(--color-primary-dark);
-	color: var(--color-accent);
-}
-
-.sheetItemIcon {
-	font-size: 18pt;
-	flex-shrink: 0;
-	color: var(--color-foreground-light);
-}
-
-.sheetItemIconActive {
-	color: var(--color-accent);
-}
-
-.sheetItemLabel {
-	font-size: 12pt;
-	font-weight: 500;
-}
-
-.sheetSpacer {
-	height: 16px;
+@keyframes fade-in {
+	from { opacity: 0; transform: translateY(8px); }
+	to   { opacity: 1; transform: translateY(0); }
 }
 
 /* ── Desktop sidebar ────────────────────────────────────────────────────────── */
@@ -426,6 +384,9 @@
 	padding: 0;
 	overflow: hidden;
 	min-height: 0;
+	margin-left: 18px;
+	padding-left: 10px;
+	border-left: 2px solid color-mix(in srgb, var(--color-third) 60%, transparent);
 }
 
 .subItem {

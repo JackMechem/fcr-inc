@@ -1,13 +1,12 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
+import { browserApi } from "@/app/lib/fcr-client";
 
 export interface Suggestion {
 	vin: string;
 	make: string;
 	model: string;
 }
-
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 /**
  * Fetches car suggestions as the user types, with a 1-second cooldown
@@ -30,20 +29,8 @@ export const useSearchSuggestions = (searchText: string) => {
 			}
 			lastRequestTime.current = Date.now();
 			setLoadingSuggestions(true);
-			try {
-				const p = new URLSearchParams({
-					search: searchText,
-					select: "vin,make,model",
-					pageSize: "6",
-				});
-				const res = await fetch(`${API_BASE}/cars?${p}`);
-				if (res.ok) {
-					const data = await res.json();
-					setSuggestions(data.data ?? []);
-				}
-			} catch {
-				/* ignore network errors */
-			}
+			const results = await browserApi.cars.suggest(searchText);
+			setSuggestions(results);
 			setLoadingSuggestions(false);
 		};
 

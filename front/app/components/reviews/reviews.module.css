@@ -13,27 +13,28 @@
 
 .star {
     display: inline-block;
-    width: 10px;
-    height: 10px;
-    border-radius: 9999px;
+    font-size: 15px;
+    line-height: 1;
     flex-shrink: 0;
 }
 
 .starRowMd .star {
-    width: 14px;
-    height: 14px;
+    font-size: 20px;
 }
 
 .starFull {
-    background-color: #f59e0b;
+    color: #f59e0b;
 }
 
 .starHalf {
     background: linear-gradient(90deg, #f59e0b 50%, var(--color-third) 50%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .starEmpty {
-    background-color: var(--color-third);
+    color: var(--color-third);
 }
 
 .starCount {

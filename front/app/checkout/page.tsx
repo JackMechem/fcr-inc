@@ -1,18 +1,12 @@
-import { getSessionCookies } from "@/app/lib/serverAuth";
-import { fetchUser } from "@/app/lib/ServerApiCalls";
-import CheckoutClient from "./CheckoutClient";
+import { getCheckoutData } from "./actions";
+import CheckoutClient from "./components/CheckoutClient";
 
 export default async function CheckoutPage() {
-    const { sessionToken, stripeUserId } = await getSessionCookies();
-
-    let initialUser: Record<string, unknown> | null = null;
-    if (sessionToken && stripeUserId) {
-        initialUser = await fetchUser(stripeUserId, sessionToken);
-    }
+    const { isAuthenticated, initialUser } = await getCheckoutData();
 
     return (
         <CheckoutClient
-            isAuthenticated={!!sessionToken}
+            isAuthenticated={isAuthenticated}
             initialUser={initialUser}
         />
     );

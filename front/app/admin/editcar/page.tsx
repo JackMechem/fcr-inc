@@ -2,7 +2,7 @@
 
 import { Car } from "@/app/types/CarTypes";
 import { useEffect, useState } from "react";
-import { addCar, getAllCars, deleteCar, getCarAdmin, getFilteredCarsAdmin } from "@/app/lib/AdminApiCalls";
+import { getAllCars, getCarsFiltered, getCarById, addCar } from "../actions";
 import NavHeader from "@/app/components/headers/navHeader";
 
 interface ICopyOptions {
@@ -20,7 +20,7 @@ const EditCarPage = () => {
 
 	const fetchCopyCarOptions = async () => {
 		try {
-			const carData = await getFilteredCarsAdmin({
+			const carData = await getCarsFiltered({
 				select: "vin,make,model",
 				pageSize: 100,
 			});
@@ -35,7 +35,7 @@ const EditCarPage = () => {
 	}, []);
 
 	const fetchFullCar = async (vin: string) => {
-		const carData: Car = await getCarAdmin(vin);
+		const carData: Car = await getCarById(vin);
 		setFormData(carData);
 	};
 

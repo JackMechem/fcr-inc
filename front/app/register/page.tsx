@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import NavHeader from "../components/headers/navHeader";
+import { browserApi } from "@/app/lib/fcr-client";
 import styles from "./register.module.css";
 
 const toUnixSeconds = (dateStr: string) =>
@@ -40,30 +41,25 @@ function RegisterForm() {
         setError(null);
 
         try {
-            const res = await fetch("/api/auth/register", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    email: form.email,
-                    role: "CUSTOMER",
-                    firstName: form.firstName,
-                    lastName: form.lastName,
-                    phoneNumber: form.phoneNumber,
-                    address: {
-                        buildingNumber: form.buildingNumber,
-                        streetName: form.streetName,
-                        city: form.city,
-                        state: form.state,
-                        zipCode: form.zipCode,
-                    },
-                    driversLicense: {
-                        driversLicense: form.licenseNumber,
-                        state: form.licenseState,
-                        expirationDate: toUnixSeconds(form.expirationDate),
-                        dateOfBirth: toUnixSeconds(form.dateOfBirth),
-                    },
-                }),
-                signal: AbortSignal.timeout(10000),
+            const res = await browserApi.auth.register({
+                email: form.email,
+                role: "CUSTOMER",
+                firstName: form.firstName,
+                lastName: form.lastName,
+                phoneNumber: form.phoneNumber,
+                address: {
+                    buildingNumber: form.buildingNumber,
+                    streetName: form.streetName,
+                    city: form.city,
+                    state: form.state,
+                    zipCode: form.zipCode,
+                },
+                driversLicense: {
+                    driversLicense: form.licenseNumber,
+                    state: form.licenseState,
+                    expirationDate: toUnixSeconds(form.expirationDate),
+                    dateOfBirth: toUnixSeconds(form.dateOfBirth),
+                },
             });
 
             if (res.status === 201) {

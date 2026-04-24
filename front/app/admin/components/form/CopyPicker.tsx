@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { BiCar, BiCheck, BiSearch, BiX, BiChevronLeft, BiChevronRight } from "react-icons/bi";
-import { getFilteredCarsAdmin, getCarAdmin } from "@/app/lib/AdminApiCalls";
+import { getCarById, getCarsFiltered } from "../../actions";
 import styles from "./adminForm.module.css";
 
 export interface CopyOption {
@@ -45,7 +45,7 @@ const CopyPicker = ({
 		try {
 			if (m === "vin" && q.trim()) {
 				try {
-					const car = await getCarAdmin(q.trim());
+					const car = await getCarById(q.trim());
 					if (id !== fetchIdRef.current) return;
 					setOptions([car as CopyOption]);
 					setTotalPages(1);
@@ -61,7 +61,7 @@ const CopyPicker = ({
 					page: p,
 				};
 				if (q.trim()) params.search = q.trim();
-				const res = await getFilteredCarsAdmin(params);
+				const res = await getCarsFiltered(params);
 				if (id !== fetchIdRef.current) return;
 				setOptions(res.data as CopyOption[]);
 				setTotalPages(res.totalPages);

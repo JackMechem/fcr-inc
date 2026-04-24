@@ -1,8 +1,8 @@
 import { Suspense } from "react";
 import PaymentSuccessDialog from "./components/dialogs/PaymentSuccessDialog";
 import TitleText from "./components/text/titleText";
-import { getFilteredCars } from "./lib/CarApi";
-import { Car, CarPages } from "./types/CarTypes";
+import { getBrandScrollData, getFeaturedCars } from "./actions";
+import { Car } from "./types/CarTypes";
 import MainBodyContainer from "./components/containers/mainBodyContainer";
 import NavHeader from "./components/headers/navHeader";
 import LandingHero from "./components/heros/landingHero";
@@ -28,19 +28,7 @@ import styles from "./home.module.css";
 // --- Async data components ---
 
 const BrandScrollSection = async () => {
-	const [
-		mercedesPages,
-		bmwPages,
-		porschePages,
-		audiPages,
-		volkswagenPages,
-	] = await Promise.all([
-		getFilteredCars({ pageSize: 1, page: 1, sortBy: "pricePerDay", make: "Mercedes-Benz", sortDir: "asc" }),
-		getFilteredCars({ pageSize: 1, page: 1, sortBy: "pricePerDay", make: "BMW", sortDir: "asc" }),
-		getFilteredCars({ pageSize: 1, page: 1, sortBy: "pricePerDay", make: "Porsche", sortDir: "asc" }),
-		getFilteredCars({ pageSize: 1, page: 1, sortBy: "pricePerDay", make: "Audi", sortDir: "asc" }),
-		getFilteredCars({ pageSize: 1, page: 1, sortBy: "pricePerDay", make: "Volkswagen", sortDir: "asc" }),
-	]);
+	const { mercedes: mercedesPages, bmw: bmwPages, porsche: porschePages, audi: audiPages, volkswagen: volkswagenPages } = await getBrandScrollData();
 
 	return (
 		<BrandScroll>
@@ -54,12 +42,7 @@ const BrandScrollSection = async () => {
 };
 
 const FeaturedCarsSection = async () => {
-	const result: CarPages = await getFilteredCars({
-		pageSize: 8,
-		page: 1,
-		sortBy: "pricePerDay",
-		sortDir: "desc",
-	});
+	const result = await getFeaturedCars();
 	const cars: Car[] = result.data;
 	if (cars.length === 0) return null;
 	return (

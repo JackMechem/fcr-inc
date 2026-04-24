@@ -1,18 +1,17 @@
 import { Suspense } from "react";
-import { getAllMakes } from "../lib/CarApi";
-import { getAllEnums } from "../lib/EnumApi";
+import { getFilterBarData } from "./actions";
 import { CarApiParams } from "../types/CarTypes";
 import { CarEnums } from "../types/CarEnums";
 import NavHeader from "../components/headers/navHeader";
-import FilterButton from "./components/filterButton";
-import SortButtons from "./components/sortButtons";
-import ActiveFilters from "./components/activeFilters";
-import InfiniteCarList from "./components/InfiniteCarList";
-import LayoutToggle from "./components/layoutToggle";
-import BrowseContentWrapper from "./components/BrowseContentWrapper";
-import BrowseParamsSync from "./components/BrowseParamsSync";
+import FilterButton from "./components/filters/filterButton";
+import SortButtons from "./components/filters/sortButtons";
+import ActiveFilters from "./components/filters/activeFilters";
+import InfiniteCarList from "./components/list/InfiniteCarList";
+import LayoutToggle from "./components/filters/layoutToggle";
+import BrowseContentWrapper from "./components/list/BrowseContentWrapper";
+import BrowseParamsSync from "./components/list/BrowseParamsSync";
 import PageFooter from "../components/footer/PageFooter";
-import styles from "./components/browseContent.module.css";
+import styles from "./components/list/browseContent.module.css";
 
 type Params = { [key: string]: string | string[] | undefined };
 
@@ -22,8 +21,8 @@ const num = (val: string | string[] | undefined): number | undefined =>
 	str(val) ? Number(str(val)) : undefined;
 
 const FilterButtonWithEnums = async () => {
-	const [enums, makes]: [CarEnums, string[]] = await Promise.all([getAllEnums(), getAllMakes()]);
-	return <FilterButton enums={enums} makes={makes} />;
+	const { enums, makes } = await getFilterBarData();
+	return <FilterButton enums={enums as CarEnums} makes={makes as string[]} />;
 };
 
 const FilterButtonSkeleton = () => (

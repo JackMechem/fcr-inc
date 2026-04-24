@@ -20,7 +20,7 @@ const StarRating = ({ average, count, size = "sm" }: StarRatingProps) => {
                     <span
                         key={i}
                         className={`${styles.star} ${filled ? styles.starFull : half ? styles.starHalf : styles.starEmpty}`}
-                    />
+                    >★</span>
                 );
             })}
             {count !== undefined && (

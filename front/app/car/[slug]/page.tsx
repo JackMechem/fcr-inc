@@ -1,11 +1,10 @@
-import { getCar } from "@/app/lib/CarApi";
+import { getCarAndReviews } from "./actions";
 import { Car } from "@/app/types/CarTypes";
-import { fetchReviewsForCar } from "@/app/lib/ServerApiCalls";
 import { Review } from "@/app/types/ReviewTypes";
-import LeftColumn from "./components/leftColumn";
-import RightColumn from "./components/rightColumn";
-import ImageView from "./components/imageView";
-import BackButton from "./components/backButton";
+import LeftColumn from "./components/layout/leftColumn";
+import RightColumn from "./components/layout/rightColumn";
+import ImageView from "./components/media/imageView";
+import BackButton from "./components/layout/backButton";
 import MainBodyContainer from "@/app/components/containers/mainBodyContainer";
 import NavHeader from "@/app/components/headers/navHeader";
 import PageFooter from "@/app/components/footer/PageFooter";
@@ -14,10 +13,7 @@ import styles from "./components/carDetail.module.css";
 const CarPage = async ({ params }: { params: Promise<{ slug: string }> }) => {
 	const { slug } = await params;
 
-	const [carData, reviews]: [Car, Review[]] = await Promise.all([
-		getCar(slug),
-		fetchReviewsForCar(slug),
-	]);
+	const { car: carData, reviews } = await getCarAndReviews(slug);
 
 	return (
 		<div>

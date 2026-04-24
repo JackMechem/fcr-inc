@@ -1,0 +1,33 @@
+.btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    border-radius: 9999px;
+    padding: 6px;
+    background: none;
+    cursor: pointer;
+    color: var(--color-accent);
+    transition: border-color 200ms, background-color 200ms;
+}
+
+.btn:hover {
+    border-color: color-mix(in srgb, var(--color-third) 50%, transparent);
+    background-color: color-mix(in srgb, var(--color-primary-dark) 50%, transparent);
+}
+
+.icon {
+    font-size: 20px;
+    display: block;
+}
+
+[data-theme="dark"] .btn {
+    color: #fff;
+}
+
+/* Only show on mobile */
+@media (min-width: 768px) {
+    .btn {
+        display: none;
+    }
+}

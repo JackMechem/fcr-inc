@@ -44,3 +44,26 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json(result);
 }
+
+export async function POST(req: NextRequest) {
+    const authHeader = await getBearerHeader();
+    const body = await req.json();
+    const headers: HeadersInit = {
+        "Content-Type": "application/json",
+        ...getApiKeyHeader(),
+        ...(authHeader ? { Authorization: authHeader } : {}),
+    };
+    try {
+        const res = await fetch(`${process.env.API_BASE_URL}/reservations`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify(body),
+            signal: AbortSignal.timeout(8000),
+        });
+        const text = await res.text();
+        return new NextResponse(text, { status: res.status });
+    } catch (err) {
+        console.error("[POST /api/reservations] error:", err);
+        return NextResponse.json({ error: "Failed to create reservation" }, { status: 502 });
+    }
+}

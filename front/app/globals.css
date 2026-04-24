@@ -25,10 +25,16 @@
 ::before,
 ::after {
 	box-sizing: border-box;
+	-webkit-box-sizing: border-box;
 	border-width: 0;
 	border-style: solid;
 	border-color: #e5e7eb; /* default border color */
 	margin: unset;
+}
+
+*:not([type="checkbox"]):not([type="radio"]) {
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 a {
@@ -47,10 +53,67 @@ h6 {
 	margin: 0;
 }
 
-input {
-	background-color: none;
-	background: none;
-	margin: 0;
+:where(input:not([type="checkbox"]):not([type="radio"])),
+:where(textarea) {
+    all: unset;
+    box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    display: block;
+    width: 100%;
+    margin: 0;
+    color: inherit;
+    font: inherit;
+    background: var(--color-primary);
+    border: 1px solid var(--color-third);
+    border-radius: 6px;
+    padding: 7px 10px;
+    transition: border-color 150ms;
+}
+
+:where(input:not([type="checkbox"]):not([type="radio"])):focus,
+:where(textarea):focus {
+    outline: none;
+    border-color: var(--color-accent);
+}
+
+:where(input:not([type="checkbox"]):not([type="radio"]))::placeholder,
+:where(textarea)::placeholder {
+    color: color-mix(in srgb, var(--color-foreground-light) 60%, transparent);
+}
+
+input[type="checkbox"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    border: 1.5px solid var(--color-third);
+    background: transparent;
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+    transition: border-color 120ms, background 120ms;
+    box-sizing: border-box;
+}
+
+input[type="checkbox"]:checked {
+    background: var(--color-accent);
+    border-color: var(--color-accent);
+}
+
+input[type="checkbox"]:checked::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    margin: auto;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-primary);
+}
+
+input[type="checkbox"]:hover:not(:checked) {
+    border-color: var(--color-accent);
 }
 
 body {
@@ -62,13 +125,37 @@ body {
 	overflow-x: hidden;
 	width: 100%;
 	margin: 0;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
 }
 
 button {
 	all: unset;
 	box-sizing: border-box;
 	cursor: pointer;
-    text-align: center;
+	text-align: center;
+}
+
+:where(select) {
+    all: unset;
+    box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    display: block;
+    width: 100%;
+    margin: 0;
+    color: inherit;
+    font: inherit;
+    background: var(--color-primary);
+    border: 1px solid var(--color-third);
+    border-radius: 6px;
+    padding: 7px 10px;
+    cursor: pointer;
+    transition: border-color 150ms;
+}
+
+:where(select):focus {
+    outline: none;
+    border-color: var(--color-accent);
 }
 
 /* ── Animations ────────────────────────────────────────────────────────────── */

@@ -1,6 +1,6 @@
 "use client"
 
-import { useFilterParams } from "@/app/browse/components/useFilterParams";
+import { useFilterParams } from "@/app/browse/components/filters/useFilterParams";
 import { useState } from "react";
 import { BiSearch } from "react-icons/bi";
 import DatePicker from "@/app/components/DatePicker";

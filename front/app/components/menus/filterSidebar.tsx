@@ -1,9 +1,9 @@
 "use client";
 
 import { useSidebarStore } from "@/stores/sidebarStore";
-import { useFilterParams } from "@/app/browse/components/useFilterParams";
-import FilterBarNumberRangeInline from "@/app/browse/components/filterBarNumberRangeInline";
-import PillSelect from "@/app/browse/components/pillSelect";
+import { useFilterParams } from "@/app/browse/components/filters/useFilterParams";
+import FilterBarNumberRangeInline from "@/app/browse/components/filters/filterBarNumberRangeInline";
+import PillSelect from "@/app/browse/components/filters/pillSelect";
 import { BiX } from "react-icons/bi";
 import styles from "./filterSidebar.module.css";
 
