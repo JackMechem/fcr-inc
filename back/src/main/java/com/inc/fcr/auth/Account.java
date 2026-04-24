@@ -147,6 +147,6 @@ public class Account extends APIEntity {
     }
   
     public void setCartReservations(List<CartReservation> cartReservations) {
-        this.cartReservations = cartReservations;
+        this.cartReservations = cartReservations != null ? cartReservations : new ArrayList<>();
     }
 }
