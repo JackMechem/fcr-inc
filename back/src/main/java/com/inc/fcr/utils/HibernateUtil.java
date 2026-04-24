@@ -75,7 +75,6 @@ public class HibernateUtil {
             configuration.addAnnotatedClass(Payment.class);
             configuration.addAnnotatedClass(Review.class);
 
-   configuration.setProperty("hibernate.default_batch_fetch_size", "16");
             return configuration.buildSessionFactory();
         } catch (Throwable ex) {
             System.err.println("Initial SessionFactory creation failed: " + ex);
