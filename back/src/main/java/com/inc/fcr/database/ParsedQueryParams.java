@@ -54,14 +54,6 @@ public class ParsedQueryParams {
     // ---------------------
 
     private void mapClassFields() throws QueryParamException {
-        Set<String> searchFields = new LinkedHashSet<>();
-        Set<String> numericSet = new LinkedHashSet<>();
-        Set<String> temporalSet = new LinkedHashSet<>();
-        Map<String, String> fieldMap = new LinkedHashMap<>();
-        Map<String, String> alphaFieldMap = new LinkedHashMap<>();
-        Map<String, List<String>> enumValues = new HashMap<>();
-        Map<String, String> relationIdPaths = new LinkedHashMap<>();
-        Set<String> numericRelationFields = new LinkedHashSet<>();
 
         if (!APIEntity.class.isAssignableFrom(clazz))
             throw new QueryParamException("Entity does not extend APIEntity.");
@@ -75,37 +67,29 @@ public class ParsedQueryParams {
             final Class<?> type = field.getType();
 
             if (field.isAnnotationPresent(Id.class)) idName = name;
-            if (field.isAnnotationPresent(SearchField.class)) searchFields.add(name);
+            if (field.isAnnotationPresent(SearchField.class)) SEARCH_FIELDS.add(name);
 
-            fieldMap.put(name.toLowerCase(), name);
+            FIELD_MAP.put(name.toLowerCase(), name);
 
-            if (isNumericClass(type)) numericSet.add(name);
-            else if (Temporal.class.isAssignableFrom(type)) temporalSet.add(name);
+            if (isNumericClass(type)) NUMERIC_FIELDS.add(name);
+            else if (Temporal.class.isAssignableFrom(type)) TEMPORAL_FIELDS.add(name);
             else if (field.isAnnotationPresent(ManyToOne.class) || field.isAnnotationPresent(OneToOne.class)) {
                 // Find the related entity's @Id field to build a proper path filter
                 for (Field relField : type.getDeclaredFields()) {
                     if (relField.isAnnotationPresent(Id.class)) {
-                        relationIdPaths.put(name, name + "." + relField.getName());
-                        if (isNumericClass(relField.getType())) numericRelationFields.add(name);
+                        RELATION_ID_PATHS.put(name, name + "." + relField.getName());
+                        if (isNumericClass(relField.getType())) NUMERIC_RELATION_FIELDS.add(name);
                         break;
                     }
                 }
             }
-            else alphaFieldMap.put(name.toLowerCase(), name);
+            else ALPHA_FIELD_MAP.put(name.toLowerCase(), name);
 
             if (type.isEnum()) {
                 var eType = (Class<? extends Enum>) type;
-                enumValues.put(name, Arrays.stream(eType.getEnumConstants()).map(Enum::name).toList());
+                ENUM_VALUES.put(name, Arrays.stream(eType.getEnumConstants()).map(Enum::name).toList());
             }
         }
-        SEARCH_FIELDS = Collections.unmodifiableSet(searchFields);
-        NUMERIC_FIELDS = Collections.unmodifiableSet(numericSet);
-        TEMPORAL_FIELDS = Collections.unmodifiableSet(temporalSet);
-        FIELD_MAP = Collections.unmodifiableMap(fieldMap);
-        ALPHA_FIELD_MAP = Collections.unmodifiableMap(alphaFieldMap);
-        ENUM_VALUES = Collections.unmodifiableMap(enumValues);
-        RELATION_ID_PATHS = Collections.unmodifiableMap(relationIdPaths);
-        NUMERIC_RELATION_FIELDS = Collections.unmodifiableSet(numericRelationFields);
     }
 
     private static boolean isNumericClass(Class<?> clazz) {
@@ -131,17 +115,20 @@ public class ParsedQueryParams {
     private int page = 1;
     private int pageSize = DEFAULT_PAGE_SIZE;
     private String searchText;
-    private List<String> parsedSearchText;
+    /** Potential parameters to be set post-query creation <br>
+     * May contain {@code Object} or {@code List<Object>} values */
+    private Map<String, Object> potentialParams = new HashMap<>();
 
     private final Class<?> clazz;
-    private Set<String> SEARCH_FIELDS;
-    private Set<String> NUMERIC_FIELDS; // numeric only
-    private Set<String> TEMPORAL_FIELDS; // date type fields
-    private Map<String, String> FIELD_MAP; // contains alpha & numeric
-    private Map<String, String> ALPHA_FIELD_MAP; // strings only
-    private Map<String, List<String>> ENUM_VALUES;
-    private Map<String, String> RELATION_ID_PATHS; // @ManyToOne/@OneToOne: fieldName -> "field.idField"
-    private Set<String> NUMERIC_RELATION_FIELDS; // relation fields whose FK is numeric
+
+    private Set<String> SEARCH_FIELDS = new LinkedHashSet<>();
+    private Set<String> NUMERIC_FIELDS = new LinkedHashSet<>(); // numeric only
+    private Set<String> TEMPORAL_FIELDS = new LinkedHashSet<>(); // date type fields
+    private Map<String, String> FIELD_MAP = new LinkedHashMap<>(); // contains alpha & numeric
+    private Map<String, String> ALPHA_FIELD_MAP = new LinkedHashMap<>(); // strings only
+    private Map<String, List<String>> ENUM_VALUES = new HashMap<>();
+    private Map<String, String> RELATION_ID_PATHS = new LinkedHashMap<>(); // @ManyToOne/@OneToOne: fieldName -> "field.idField"
+    private Set<String> NUMERIC_RELATION_FIELDS  = new LinkedHashSet<>(); // relation fields whose FK is numeric
 
     // Params Constructor
     // ------------------
@@ -244,17 +231,20 @@ public class ParsedQueryParams {
 
         String properKey = FIELD_MAP.get(key);
         if (rangeType != null) {
-            if (TEMPORAL_FIELDS.contains(properKey))
-                filterFields.put(rangeType + "T_" + properKey, val); // Temporal type
-            else filterFields.put(rangeType + "_" + properKey, val); // Numeric type
+            if (TEMPORAL_FIELDS.contains(properKey)) {
+                String fullKey = rangeType + "T_" + properKey;
+                filterFields.put(fullKey, val); // Temporal type
+                potentialParams.put(fullKey, Instant.parse(val));
+            } // Numeric type
+            else filterFields.put(rangeType + "_" + properKey, val);
         }
         else filterFields.put(properKey, val);
     }
 
-    /** Parse and clean up raw search text and initialize parsedSearchText list */
+    /** Parse and clean up raw search text and initialize searchText params list */
     private String parseSearchText(String rawSearchText) {
         rawSearchText = rawSearchText.trim().toLowerCase();
-        parsedSearchText = List.of(rawSearchText.replaceAll(" -"," ").split(" "));
+        potentialParams.put("searchText", List.of(rawSearchText.replaceAll(" -"," ").split(" ")));
         return rawSearchText;
     }
 
@@ -335,10 +325,14 @@ public class ParsedQueryParams {
                     boolean inverted = field.startsWith("not_"); String _field;
                     if (inverted) _field = field.substring(4);
                     else _field = field;
-                    sb.append(" AND ").append(inverted ? "NOT ":"").append("(1=0 "); // new condition group
-                    Arrays.stream(value.split(",")).forEach(v ->
-                            sb.append(" OR c.").append(_field).append(" like '%").append(v).append("%'"));
-                    sb.append(")"); // close the condition group
+                    sb.append(" AND ").append(inverted ? "NOT ":"").append("(1=0 ");
+                    // new condition group
+                    var values = Arrays.stream(value.split(",")).toList();
+                    potentialParams.put(field, values.stream().map(v -> "%"+v+"%").toList());
+                    var i = new AtomicInteger(); // adds filters with param keys to be set after query creation
+                    values.forEach(v -> sb.append(" OR c.").append(_field).append(" like :").append(field).append(i.getAndIncrement()));
+                    // close the condition group
+                    sb.append(")");
                 }
             }
         }
@@ -373,17 +367,15 @@ public class ParsedQueryParams {
         return Strings.join(SEARCH_FIELDS.stream().map(e -> "c." + e).toList(), ", ");
     }
 
-    /** Fills out search parameter fields on given query expected to be generated from the same */
+    /** Populates the query with sensitive parameter values from constructed {@code potentialParams}, handling single values and lists. */
     public Query setPotentialParams(Query q) {
-        if (parsedSearchText != null) {
-            // fill in parsed search text safely
-            var i = new AtomicInteger();
-            parsedSearchText.forEach(e -> q.setParameter("searchText" + i.getAndIncrement(), e));
-        }
-        if (filterFields != null) {
-            filterFields.keySet().stream().filter(k -> k.startsWith("T_", 3))
-                    .forEach(k -> q.setParameter(k, Instant.parse(filterFields.get(k))) );
-        }
+        potentialParams.forEach((key,val) -> {
+            if (!(val instanceof List)) q.setParameter(key, val);
+            else { // val instanceof List
+                var i = new AtomicInteger();
+                ((List<?>) val).forEach(e -> q.setParameter(key + i.getAndIncrement(), e));
+            }
+        });
         return q;
      }
 
