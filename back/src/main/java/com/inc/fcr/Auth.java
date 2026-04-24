@@ -164,7 +164,9 @@ public class Auth {
      * @throws Exception if the handler execution throws an exception
      **/
     public static void verifiedAccountAPIHandler(@NotNull Handler handler, Role role, Context ctx, long accountId) throws Exception {
-        if (accountId == getAccountIdFromToken(ctx) && userRoles(ctx).contains(role)) handler.handle(ctx);
+        boolean isOwner = accountId == getAccountIdFromToken(ctx);
+        boolean isAdmin = userRoles(ctx).contains(Role.ADMIN);
+        if ((isOwner || isAdmin) && userRoles(ctx).contains(role)) handler.handle(ctx);
         else throw new ForbiddenResponse("You can only access your own account data.");
     }
 

@@ -181,6 +181,16 @@ public class Main {
                     });
                 });
 
+                // GET /table-config        — full table permission config
+                // GET /table-config/{table} — config for a specific table
+                path("table-config", () -> {
+                    get(TableConfigController::getAll, Role.ANYONE);
+                    path("{table}", () -> {
+                        get(TableConfigController::getOne, Role.ANYONE);
+                        patch(TableConfigController::update, Role.ADMIN);
+                    });
+                });
+
                 // GET /postman — returns a Postman collection JSON for import
                 get("/postman", PostmanController::getCollection, Role.ANYONE);
 

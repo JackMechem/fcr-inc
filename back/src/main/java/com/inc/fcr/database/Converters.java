@@ -150,6 +150,7 @@ public class Converters {
          * @return JSON representation of the list
          */
         public String convertToDatabaseColumn(List<CartReservation> attribute) {
+            if (attribute == null) return "[]";
             try {
                 return mapper.writeValueAsString(attribute);
             } catch (Exception e) {
@@ -165,8 +166,10 @@ public class Converters {
          * @return the deserialized list, or an empty list on failure
          */
         public List<CartReservation> convertToEntityAttribute(String dbData) {
+            if (dbData == null) return new ArrayList<>();
             try {
-                return mapper.readValue(dbData, new TypeReference<List<CartReservation>>() {});
+                List<CartReservation> result = mapper.readValue(dbData, new TypeReference<List<CartReservation>>() {});
+                return result != null ? result : new ArrayList<>();
             } catch (Exception e) {
                 return new ArrayList<>();
             }
