@@ -637,6 +637,7 @@ export default function SpreadsheetTable<T>({
     // ── Right-click context menu ─────────────────────────────────────────
     const [ctxMenu, setCtxMenu] = useState<ContextMenuState | null>(null);
     const ctxRef = useRef<HTMLDivElement>(null);
+    const [ctxAiLoading, setCtxAiLoading] = useState(false);
 
     useEffect(() => {
         if (!ctxMenu) return;
@@ -723,6 +724,30 @@ export default function SpreadsheetTable<T>({
         setEditingCell({ id, colKey: ctxMenu.colKey });
         setEditingCellValue(initVal);
         closeCtx();
+    };
+
+    const ctxAiFillCell = async () => {
+        if (!ctxMenu?.rowItem || !onSaveEdits || ctxAiLoading) return;
+        const col = columns.find((c) => c.key === ctxMenu.colKey);
+        if (!col?.editable || !col.aiGenerate) return;
+        const item = ctxMenu.rowItem as T;
+        const id = getRowId(item);
+        setCtxAiLoading(true);
+        try {
+            const result = await col.aiGenerate(item);
+            if (col.editType === "tags") {
+                const match = result.match(/\[[\s\S]*\]/);
+                const tags: string[] = match ? JSON.parse(match[0]) : [];
+                setEditCell(id, col.key, tags);
+            } else {
+                setEditCell(id, col.key, result);
+            }
+        } catch (e) {
+            alert("AI error: " + e);
+        } finally {
+            setCtxAiLoading(false);
+            closeCtx();
+        }
     };
 
     const saveCellEdit = (andMoveDown = false) => {
@@ -2073,9 +2098,16 @@ export default function SpreadsheetTable<T>({
                     {ctxMenu.rowItem && (() => {
                         const col = columns.find((c) => c.key === ctxMenu.colKey);
                         return col?.editable && onSaveEdits ? (
-                            <button className={styles.ctxItem} onClick={ctxEditCell}>
-                                <BiPencil /> Edit Cell
-                            </button>
+                            <>
+                                <button className={styles.ctxItem} onClick={ctxEditCell}>
+                                    <BiPencil /> Edit Cell
+                                </button>
+                                {col.aiGenerate && col.editType !== "markdown" && col.editType !== "images" && (
+                                    <button className={styles.ctxItem} onClick={ctxAiFillCell} disabled={ctxAiLoading}>
+                                        <BiCheck /> {ctxAiLoading ? "Generating…" : "Fill with AI"}
+                                    </button>
+                                )}
+                            </>
                         ) : null;
                     })()}
 

@@ -10,7 +10,7 @@ import { useBookmarkStore, BookmarkCar, removeBookmark as removeBookmarkApi, cle
 import { useBookmarkSync } from "@/app/hooks/useBookmarkSync";
 import DefaultProfilePhoto from "../defaultProfilePhoto";
 import Image from "next/image";
-import { BiTrash, BiGridAlt, BiError, BiUser } from "react-icons/bi";
+import { BiTrash, BiGridAlt, BiError, BiUser, BiGitCompare } from "react-icons/bi";
 import { CartProps } from "@/app/types/CartTypes";
 import { BsCart2, BsCart3, BsBookmark, BsBookmarkFill } from "react-icons/bs";
 import { IoClose } from "react-icons/io5";
@@ -261,12 +261,23 @@ const HeaderMenu = () => {
                                 ))}
                             </div>
                         )}
+                        {bookmarkCount >= 2 && (
+                            <Link
+                                href="/compare"
+                                onClick={close}
+                                className={styles.compareBtn}
+                            >
+                                <BiGitCompare />
+                                Compare all
+                            </Link>
+                        )}
                     </div>
                 )}
 
                 {/* Footer */}
                 <div className={styles.footer} />
             </div>
+
         </>
     );
 };

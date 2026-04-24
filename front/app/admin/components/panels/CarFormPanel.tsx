@@ -129,7 +129,7 @@ const CarFormPanel = ({ mode }: CarFormPanelProps) => {
 		setAiField("features", true);
 		try {
 			const raw = await callGemini(
-				`List 6–10 notable features of a ${vehicleCtx} as a JSON array of short strings (e.g. ["Heated seats","Blind spot monitoring"]). Reply with only the JSON array, no extra text.`,
+				`List 5–8 features of a ${vehicleCtx} as a JSON array. Each feature must be 2–4 words, no punctuation (e.g. ["Heated seats","Apple CarPlay","360° camera","Lane assist"]). Reply with only the JSON array, no extra text.`,
 			);
 			const match = raw.match(/\[[\s\S]*\]/);
 			const tags: string[] = match ? JSON.parse(match[0]) : [];
