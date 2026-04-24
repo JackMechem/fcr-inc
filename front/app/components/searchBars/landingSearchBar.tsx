@@ -7,6 +7,7 @@ import DatePicker from "@/app/components/DatePicker";
 import SuggestionsDropdown from "@/app/components/ui/SuggestionsDropdown";
 import { useSearchSuggestions } from "@/app/hooks/useSearchSuggestions";
 import type { Suggestion } from "@/app/hooks/useSearchSuggestions";
+import { useScrollCollapse } from "@/app/hooks/useScrollCollapse";
 import styles from "./landingSearchBar.module.css";
 
 const LandingSearchBar = () => {
@@ -19,6 +20,7 @@ const LandingSearchBar = () => {
 	const router = useRouter();
 
 	const { suggestions, loadingSuggestions } = useSearchSuggestions(searchText);
+	const isExpanded = useScrollCollapse(true, 100, 60);
 
 	const handleSearch = () => {
 		setShowSuggestions(false);
@@ -72,7 +74,7 @@ const LandingSearchBar = () => {
 	}, []);
 
 	return (
-		<div className={styles.outer}>
+		<div className={`${styles.outer} ${!isExpanded ? styles.outerHidden : ""}`}>
 			<div ref={containerRef} className={styles.relative}>
 				<div className={styles.bar}>
 					<div>
