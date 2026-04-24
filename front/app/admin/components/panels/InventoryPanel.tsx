@@ -36,30 +36,45 @@ const StatusBadge = ({ status }: { status?: CarStatus }) => {
 
 // ── Column definitions ───────────────────────────────────────────────────────
 
+const ctx = (c: Car) => `${c.modelYear ?? ""} ${c.make} ${c.model}`.trim();
+const specAi = (label: string) => (c: Car) =>
+    callGemini(`What is the ${label} of a ${ctx(c)}? Reply with only the numeric value, no units or extra text.`);
+const selectAi = (label: string, opts: string[]) => (c: Car) =>
+    callGemini(`For a ${ctx(c)}, which of these best describes its ${label}: ${opts.join(", ")}? Reply with only one of those exact values, no extra text.`);
+
 const CAR_COLUMNS: Column<Car>[] = [
     { key: "vin",          label: "VIN",          defaultVisible: true,  render: (c) => c.vin, minWidth: 170, editable: true, editType: "text", getValue: (c) => c.vin },
     { key: "make",         label: "Make",         defaultVisible: true,  render: (c) => c.make,      editable: true, editType: "text",   getValue: (c) => c.make },
     { key: "model",        label: "Model",        defaultVisible: true,  render: (c) => c.model,     editable: true, editType: "text",   getValue: (c) => c.model },
     { key: "modelYear",    label: "Year",         defaultVisible: true,  render: (c) => c.modelYear, editable: true, editType: "number", getValue: (c) => c.modelYear },
-    { key: "vehicleClass", label: "Class",        defaultVisible: true,  render: (c) => <span className={styles.badge}>{c.vehicleClass}</span>, editable: true, editType: "select", editOptions: ["ECONOMY", "LUXURY", "PERFORMANCE", "OFFROAD", "FULL_SIZE", "ELECTRIC"], getValue: (c) => c.vehicleClass ?? "" },
+    { key: "vehicleClass", label: "Class",        defaultVisible: true,  render: (c) => <span className={styles.badge}>{c.vehicleClass}</span>, editable: true, editType: "select", editOptions: ["ECONOMY", "LUXURY", "PERFORMANCE", "OFFROAD", "FULL_SIZE", "ELECTRIC"], getValue: (c) => c.vehicleClass ?? "",
+        aiGenerate: selectAi("vehicle class", ["ECONOMY", "LUXURY", "PERFORMANCE", "OFFROAD", "FULL_SIZE", "ELECTRIC"]) },
     { key: "carStatus",    label: "Status",       defaultVisible: true,  render: (c) => <StatusBadge status={c.carStatus} />, editable: true, editType: "select", editOptions: ["AVAILABLE", "DISABLED", "ARCHIVED", "LOANED", "SERVICE"], getValue: (c) => c.carStatus ?? "" },
-    { key: "pricePerDay",  label: "Price / Day",  defaultVisible: true,  render: (c) => <span style={{ color: "var(--color-accent)", fontWeight: 600 }}>${c.pricePerDay}</span>, editable: true, editType: "number", getValue: (c) => c.pricePerDay },
-    { key: "bodyType",     label: "Body Type",    defaultVisible: false, render: (c) => c.bodyType ? <span className={styles.badge}>{c.bodyType}</span> : "—",        editable: true, editType: "select", editOptions: ["SEDAN", "SUV", "TRUCK", "CONVERTIBLE", "HATCHBACK", "FULL_SIZE", "COMPACT", "WAGON", "ELECTRIC", "COUPE"], getValue: (c) => c.bodyType ?? "" },
-    { key: "transmission", label: "Transmission", defaultVisible: false, render: (c) => c.transmission ? <span className={styles.badge}>{c.transmission}</span> : "—", editable: true, editType: "select", editOptions: ["AUTOMATIC", "MANUAL"], getValue: (c) => String(c.transmission ?? "") },
-    { key: "drivetrain",   label: "Drivetrain",   defaultVisible: false, render: (c) => c.drivetrain ? <span className={styles.badge}>{c.drivetrain}</span> : "—",    editable: true, editType: "select", editOptions: ["FWD", "RWD", "AWD"], getValue: (c) => String(c.drivetrain ?? "") },
-    { key: "engineLayout", label: "Engine",       defaultVisible: false, render: (c) => c.engineLayout ? <span className={styles.badge}>{c.engineLayout}</span> : "—", editable: true, editType: "select", editOptions: ["V", "INLINE", "FLAT", "SINGLE_MOTOR", "DUAL_MOTOR"], getValue: (c) => String(c.engineLayout ?? "") },
-    { key: "fuel",         label: "Fuel",         defaultVisible: false, render: (c) => c.fuel ? <span className={styles.badge}>{c.fuel}</span> : "—",                editable: true, editType: "select", editOptions: ["GASOLINE", "DIESEL", "ELECTRIC", "HYBRID"], getValue: (c) => String(c.fuel ?? "") },
-    { key: "roofType",     label: "Roof",         defaultVisible: false, render: (c) => c.roofType ? <span className={styles.badge}>{c.roofType}</span> : "—",        editable: true, editType: "select", editOptions: ["SOFTTOP", "HARDTOP", "TARGA", "SLICKTOP", "SUNROOF", "PANORAMIC"], getValue: (c) => c.roofType ?? "" },
-    { key: "cylinders",    label: "Cylinders",    defaultVisible: false, render: (c) => c.cylinders ?? "—",  editable: true, editType: "number", getValue: (c) => c.cylinders ?? "" },
-    { key: "gears",        label: "Gears",        defaultVisible: false, render: (c) => c.gears ?? "—",      editable: true, editType: "number", getValue: (c) => c.gears ?? "" },
-    { key: "horsepower",   label: "HP",           defaultVisible: false, render: (c) => c.horsepower ?? "—", editable: true, editType: "number", getValue: (c) => c.horsepower ?? "" },
-    { key: "torque",       label: "Torque",       defaultVisible: false, render: (c) => c.torque ?? "—",     editable: true, editType: "number", getValue: (c) => c.torque ?? "" },
-    { key: "seats",        label: "Seats",        defaultVisible: false, render: (c) => c.seats ?? "—",      editable: true, editType: "number", getValue: (c) => c.seats ?? "" },
-    { key: "mpg",          label: "MPG",          defaultVisible: false, render: (c) => c.mpg ?? "—",        editable: true, editType: "number", getValue: (c) => c.mpg ?? "" },
-    { key: "features",     label: "Features",     defaultVisible: false, render: (c) => c.features?.length ? <div className={styles.featurePillsCell}>{c.features.map((f, i) => <span key={f + i} className={styles.featurePill}>{f}</span>)}</div> : <span>—</span>, minWidth: 200, editable: true, editType: "tags", getTagsValue: (c) => c.features ?? [] },
+    { key: "pricePerDay",  label: "Price / Day",  defaultVisible: true,  render: (c) => <span style={{ color: "var(--color-accent)", fontWeight: 600 }}>${c.pricePerDay}</span>, editable: true, editType: "number", getValue: (c) => c.pricePerDay,
+        aiGenerate: (c) => callGemini(`Suggest a reasonable daily rental price in USD for a ${ctx(c)} at a luxury car rental company. Reply with only the number, no $ sign or extra text.`) },
+    { key: "bodyType",     label: "Body Type",    defaultVisible: false, render: (c) => c.bodyType ? <span className={styles.badge}>{c.bodyType}</span> : "—",        editable: true, editType: "select", editOptions: ["SEDAN", "SUV", "TRUCK", "CONVERTIBLE", "HATCHBACK", "FULL_SIZE", "COMPACT", "WAGON", "ELECTRIC", "COUPE"], getValue: (c) => c.bodyType ?? "",
+        aiGenerate: selectAi("body type", ["SEDAN", "SUV", "TRUCK", "CONVERTIBLE", "HATCHBACK", "FULL_SIZE", "COMPACT", "WAGON", "ELECTRIC", "COUPE"]) },
+    { key: "transmission", label: "Transmission", defaultVisible: false, render: (c) => c.transmission ? <span className={styles.badge}>{c.transmission}</span> : "—", editable: true, editType: "select", editOptions: ["AUTOMATIC", "MANUAL"], getValue: (c) => String(c.transmission ?? ""),
+        aiGenerate: selectAi("transmission", ["AUTOMATIC", "MANUAL"]) },
+    { key: "drivetrain",   label: "Drivetrain",   defaultVisible: false, render: (c) => c.drivetrain ? <span className={styles.badge}>{c.drivetrain}</span> : "—",    editable: true, editType: "select", editOptions: ["FWD", "RWD", "AWD"], getValue: (c) => String(c.drivetrain ?? ""),
+        aiGenerate: selectAi("drivetrain", ["FWD", "RWD", "AWD"]) },
+    { key: "engineLayout", label: "Engine",       defaultVisible: false, render: (c) => c.engineLayout ? <span className={styles.badge}>{c.engineLayout}</span> : "—", editable: true, editType: "select", editOptions: ["V", "INLINE", "FLAT", "SINGLE_MOTOR", "DUAL_MOTOR"], getValue: (c) => String(c.engineLayout ?? ""),
+        aiGenerate: selectAi("engine layout", ["V", "INLINE", "FLAT", "SINGLE_MOTOR", "DUAL_MOTOR"]) },
+    { key: "fuel",         label: "Fuel",         defaultVisible: false, render: (c) => c.fuel ? <span className={styles.badge}>{c.fuel}</span> : "—",                editable: true, editType: "select", editOptions: ["GASOLINE", "DIESEL", "ELECTRIC", "HYBRID"], getValue: (c) => String(c.fuel ?? ""),
+        aiGenerate: selectAi("fuel type", ["GASOLINE", "DIESEL", "ELECTRIC", "HYBRID"]) },
+    { key: "roofType",     label: "Roof",         defaultVisible: false, render: (c) => c.roofType ? <span className={styles.badge}>{c.roofType}</span> : "—",        editable: true, editType: "select", editOptions: ["SOFTTOP", "HARDTOP", "TARGA", "SLICKTOP", "SUNROOF", "PANORAMIC"], getValue: (c) => c.roofType ?? "",
+        aiGenerate: selectAi("roof type", ["SOFTTOP", "HARDTOP", "TARGA", "SLICKTOP", "SUNROOF", "PANORAMIC"]) },
+    { key: "cylinders",    label: "Cylinders",    defaultVisible: false, render: (c) => c.cylinders ?? "—",  editable: true, editType: "number", getValue: (c) => c.cylinders ?? "", aiGenerate: specAi("cylinder count") },
+    { key: "gears",        label: "Gears",        defaultVisible: false, render: (c) => c.gears ?? "—",      editable: true, editType: "number", getValue: (c) => c.gears ?? "",      aiGenerate: specAi("number of gears") },
+    { key: "horsepower",   label: "HP",           defaultVisible: false, render: (c) => c.horsepower ?? "—", editable: true, editType: "number", getValue: (c) => c.horsepower ?? "", aiGenerate: specAi("horsepower") },
+    { key: "torque",       label: "Torque",       defaultVisible: false, render: (c) => c.torque ?? "—",     editable: true, editType: "number", getValue: (c) => c.torque ?? "",     aiGenerate: specAi("torque in lb-ft") },
+    { key: "seats",        label: "Seats",        defaultVisible: false, render: (c) => c.seats ?? "—",      editable: true, editType: "number", getValue: (c) => c.seats ?? "",      aiGenerate: specAi("seat count") },
+    { key: "mpg",          label: "MPG",          defaultVisible: false, render: (c) => c.mpg ?? "—",        editable: true, editType: "number", getValue: (c) => c.mpg ?? "",        aiGenerate: specAi("combined MPG fuel economy") },
+    { key: "features",     label: "Features",     defaultVisible: false, render: (c) => c.features?.length ? <div className={styles.featurePillsCell}>{c.features.map((f, i) => <span key={f + i} className={styles.featurePill}>{f}</span>)}</div> : <span>—</span>, minWidth: 200, editable: true, editType: "tags", getTagsValue: (c) => c.features ?? [],
+        aiGenerate: (c) => callGemini(`List 5–8 features of a ${ctx(c)} as a JSON array. Each feature must be 2–4 words, no punctuation (e.g. ["Heated seats","Apple CarPlay","360° camera"]). Reply with only the JSON array, no extra text.`) },
     { key: "images",       label: "Images",       defaultVisible: false, render: (c) => <span>{c.images?.length ?? 0} image{c.images?.length !== 1 ? "s" : ""}</span>, editable: true, editType: "images", getImagesValue: (c) => c.images ?? [] },
     { key: "description",  label: "Description",  defaultVisible: false, render: (c) => <span className={styles.truncatedCell}>{c.description || "—"}</span>, minWidth: 200, editable: true, editType: "markdown", getValue: (c) => c.description ?? "",
-        aiGenerate: (c) => callGemini(`Write a compelling 2-3 paragraph markdown description with titles, subtitles, and maybe bullets for renting a ${c.modelYear ?? ""} ${c.make} ${c.model} at a luxury car rental company. Highlight performance, comfort, and what makes it special. Use **bold** for emphasis where appropriate. Reply with only the description text in markdown format.`) },
+        aiGenerate: (c) => callGemini(`Write a compelling 2-3 paragraph markdown description with titles, subtitles, and maybe bullets for renting a ${ctx(c)} at a luxury car rental company. Highlight performance, comfort, and what makes it special. Use **bold** for emphasis where appropriate. Reply with only the description text in markdown format.`) },
 ];
 
 // ── Car preview panel ─────────────────────────────────────────────────────────
