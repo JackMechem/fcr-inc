@@ -237,7 +237,7 @@ const UsersPanel = () => {
                 onSearchChange={setQuery}
                 searchPlaceholder="Filter by name, email, ID or role\u2026"
                 emptyMessage="No accounts found."
-                onSaveEdits={handleSaveEdits}
+                onSaveEdits={isAdmin ? handleSaveEdits : undefined}
                 onCreateRow={isAdmin ? handleCreateRow : undefined}
                 sortBy={sortBy}
                 sortDir={sortDir}

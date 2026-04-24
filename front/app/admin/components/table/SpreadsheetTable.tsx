@@ -1770,7 +1770,7 @@ export default function SpreadsheetTable<T>({
                                                     />
                                                 )
                                             ) : (
-                                                <span style={{ color: "var(--color-foreground-light)", opacity: 0.4 }}>—</span>
+                                                <span style={{ color: "var(--color-foreground-light)", opacity: 0.3, fontSize: 13 }}>—</span>
                                             )}
                                         </td>
                                     ))}

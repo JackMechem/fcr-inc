@@ -51,7 +51,7 @@ export const getUsers = (opts: {
     sortDir?: "asc" | "desc";
 } = {}) => browserApi.users.getAll(opts);
 
-export const createUser = (data: { firstName: string; lastName: string; email: string; phoneNumber?: string }) =>
+export const createUser = (data: Record<string, unknown>) =>
     browserApi.users.create(data);
 
 export const updateUser = (userId: string | number, patch: Record<string, unknown>) =>
@@ -83,7 +83,7 @@ export const deleteReservation = (reservationId: string | number) =>
 export const getReviews = (opts: { page?: number; pageSize?: number } = {}) =>
     browserApi.reviews.getAll(opts);
 
-export const createReview = (data: { car: string; account: number; stars: number; title: string; bodyOfText: string; rentalDuration: number }) =>
+export const createReview = (data: { car: string; account: number; stars: number; title: string; bodyOfText: string; rentalDuration: number; publishedDate: number }) =>
     browserApi.reviews.create(data);
 
 export const deleteReview = (reviewId: number) =>

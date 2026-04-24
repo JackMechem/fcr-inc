@@ -35,6 +35,13 @@ async function expectOk(res: Response): Promise<void> {
     if (!res.ok) await apiThrow(res);
 }
 
+/** Like parseResponse but handles empty/no-content bodies without throwing. */
+async function safeJson(res: Response): Promise<unknown> {
+    if (!res.ok) await apiThrow(res);
+    const text = await res.text();
+    return text ? JSON.parse(text) : null;
+}
+
 // ── Domain: cars ──────────────────────────────────────────────────────────────
 
 const cars = {
@@ -159,7 +166,7 @@ const accounts = {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data),
         });
-        return parseResponse(res);
+        return safeJson(res);
     },
 
     /** Update account fields. */
@@ -211,18 +218,13 @@ const users = {
         }
     },
 
-    async create(data: {
-        firstName: string;
-        lastName: string;
-        email: string;
-        phoneNumber?: string;
-    }): Promise<unknown> {
+    async create(data: Record<string, unknown>): Promise<unknown> {
         const res = await fetch("/api/users", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data),
         });
-        return parseResponse(res);
+        return safeJson(res);
     },
 
     async update(
@@ -299,7 +301,7 @@ const reservations = {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data),
         });
-        return parseResponse(res);
+        return safeJson(res);
     },
 
     /** Update a reservation. */
@@ -312,7 +314,12 @@ const reservations = {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(patch),
         });
-        return parseResponse(res);
+        if (!res.ok) {
+            const text = await res.text().catch(() => res.statusText);
+            throw new Error(text);
+        }
+        const text = await res.text();
+        return text ? JSON.parse(text) : null;
     },
 
     /** Delete a reservation. */
@@ -364,13 +371,14 @@ const reviews = {
         title: string;
         bodyOfText: string;
         rentalDuration: number;
+        publishedDate: number;
     }): Promise<unknown> {
         const res = await fetch("/api/reviews", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data),
         });
-        return parseResponse(res);
+        return safeJson(res);
     },
 
     /** Delete a review. */

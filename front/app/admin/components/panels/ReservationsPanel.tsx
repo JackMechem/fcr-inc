@@ -269,7 +269,7 @@ const ReservationsPanel = () => {
                 onSearchChange={setQuery}
                 searchPlaceholder="Filter by vehicle, reservation ID or user ID\u2026"
                 emptyMessage="No reservations found."
-                onSaveEdits={handleSaveEdits}
+                onSaveEdits={isAdmin ? handleSaveEdits : undefined}
                 onCreateRow={isAdmin ? handleCreateRow : undefined}
                 sortBy={sortBy}
                 sortDir={sortDir}

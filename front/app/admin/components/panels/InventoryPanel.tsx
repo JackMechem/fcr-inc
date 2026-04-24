@@ -549,7 +549,7 @@ const InventoryPanel = ({ role }: Props) => {
             onSearchChange={setQuery}
             searchContent={searchBar}
             emptyMessage={searchMode === "vin" && activeSearch ? "No vehicle found with that VIN." : "No vehicles found."}
-            onSaveEdits={handleSaveEdits}
+            onSaveEdits={isAdmin ? handleSaveEdits : undefined}
             onCreateRow={isAdmin ? handleCreateRow : undefined}
             sortBy={sortBy}
             sortDir={sortDir}

@@ -99,12 +99,13 @@ const ReviewsPanel = () => {
 
     const handleCreateRow = async (data: Record<string, string | string[]>) => {
         await createReview({
-            car:           String(data.car ?? ""),
-            account:       Number(data.account ?? 0),
-            stars:         Number(data.stars ?? 5),
-            title:         String(data.title ?? ""),
-            bodyOfText:    String(data.bodyOfText ?? ""),
+            car:            String(data.car ?? ""),
+            account:        Number(data.account ?? 0),
+            stars:          Number(data.stars ?? 5),
+            title:          String(data.title ?? ""),
+            bodyOfText:     String(data.bodyOfText ?? ""),
             rentalDuration: Number(data.rentalDuration ?? 1),
+            publishedDate:  Math.floor(Date.now() / 1000),
         });
         fetchPage(page, pageSize, true);
     };

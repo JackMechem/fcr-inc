@@ -41,10 +41,10 @@ const USER_COLUMNS: Column<User>[] = [
     { key: "phoneNumber",   label: "Phone",        defaultVisible: true,  render: (u) => u.phoneNumber || "—", editable: true, editType: "text", getValue: (u) => u.phoneNumber || "" },
     { key: "dateCreated",   label: "Created",      defaultVisible: false, render: (u) => fmtDate(u.dateCreated) },
     { key: "address",       label: "Address",      defaultVisible: false, render: (u) => <span className={styles.truncatedCell}>{fmtAddress(u)}</span>, minWidth: 200 },
-    { key: "dlNumber",      label: "License #",    defaultVisible: false, render: (u) => u.driversLicense?.driversLicense || "—" },
-    { key: "dlState",       label: "DL State",     defaultVisible: false, render: (u) => u.driversLicense?.state || "—" },
-    { key: "dlExpires",     label: "DL Expires",   defaultVisible: false, render: (u) => u.driversLicense ? fmtEpoch(u.driversLicense.expirationDate) : "—" },
-    { key: "dob",           label: "DOB",          defaultVisible: false, render: (u) => u.driversLicense ? fmtEpoch(u.driversLicense.dateOfBirth) : "—" },
+    { key: "dlNumber",      label: "License #",    defaultVisible: false, render: (u) => u.driversLicense?.driversLicense || "—", editable: true, editType: "text",   getValue: (u) => u.driversLicense?.driversLicense || "" },
+    { key: "dlState",       label: "DL State",     defaultVisible: false, render: (u) => u.driversLicense?.state || "—",              editable: true, editType: "text",   getValue: (u) => u.driversLicense?.state || "" },
+    { key: "dlExpires",     label: "DL Expires",   defaultVisible: false, render: (u) => u.driversLicense ? fmtEpoch(u.driversLicense.expirationDate) : "—", editable: true, editType: "text", getValue: (u) => u.driversLicense ? toDateInput(u.driversLicense.expirationDate) : "" },
+    { key: "dob",           label: "DOB",          defaultVisible: false, render: (u) => u.driversLicense ? fmtEpoch(u.driversLicense.dateOfBirth) : "—",   editable: true, editType: "text", getValue: (u) => u.driversLicense ? toDateInput(u.driversLicense.dateOfBirth) : "" },
     { key: "reservations",  label: "Reservations", defaultVisible: false, render: (u) => u.reservations?.length ?? 0 },
     { key: "reviews",       label: "Reviews",      defaultVisible: false, render: (u) => u.reviews?.length ?? 0 },
 ];
@@ -251,19 +251,44 @@ const UserProfilesPanel = () => {
     };
 
     const handleCreateRow = async (data: Record<string, string | string[]>) => {
-        await createUser({
-            firstName:   String(data.firstName ?? ""),
-            lastName:    String(data.lastName ?? ""),
-            email:       String(data.email ?? ""),
-            phoneNumber: String(data.phoneNumber ?? "") || undefined,
-        });
+        const s = (k: string) => String(data[k] ?? "");
+        const payload: Record<string, unknown> = {
+            firstName:   s("firstName"),
+            lastName:    s("lastName"),
+            email:       s("email"),
+            phoneNumber: s("phoneNumber") || undefined,
+        };
+        if (s("dlNumber") || s("dlState") || s("dlExpires") || s("dob")) {
+            payload.driversLicense = {
+                driversLicense: s("dlNumber"),
+                state:          s("dlState"),
+                expirationDate: s("dlExpires") ? toEpoch(s("dlExpires")) : 0,
+                dateOfBirth:    s("dob") ? toEpoch(s("dob")) : 0,
+            };
+        }
+        await createUser(payload);
         fetchPage(page, pageSize, sortBy, sortDir, true);
     };
 
     const handleSaveEdits = async (edits: RowEdit<User>[]) => {
-        await Promise.all(edits.map(({ id, patch }) =>
-            updateUser(id as number, patch as Partial<Pick<User, "firstName" | "lastName" | "email" | "phoneNumber">>)
-        ));
+        await Promise.all(edits.map(({ original, patch }) => {
+            const userPatch: Record<string, unknown> = {};
+            if (patch.firstName   !== undefined) userPatch.firstName   = patch.firstName;
+            if (patch.lastName    !== undefined) userPatch.lastName    = patch.lastName;
+            if (patch.email       !== undefined) userPatch.email       = patch.email;
+            if (patch.phoneNumber !== undefined) userPatch.phoneNumber = patch.phoneNumber;
+            const dlKeys = ["dlNumber", "dlState", "dlExpires", "dob"] as const;
+            if (dlKeys.some(k => patch[k] !== undefined)) {
+                const ex = original.driversLicense ?? { driversLicense: "", state: "", expirationDate: 0, dateOfBirth: 0 };
+                userPatch.driversLicense = {
+                    driversLicense: patch.dlNumber  !== undefined ? String(patch.dlNumber)  : ex.driversLicense,
+                    state:          patch.dlState   !== undefined ? String(patch.dlState)   : ex.state,
+                    expirationDate: patch.dlExpires !== undefined ? toEpoch(String(patch.dlExpires)) : ex.expirationDate,
+                    dateOfBirth:    patch.dob       !== undefined ? toEpoch(String(patch.dob))       : ex.dateOfBirth,
+                };
+            }
+            return updateUser(original.userId, userPatch);
+        }));
         fetchPage(page, pageSize, sortBy, sortDir, true);
     };
 
@@ -310,7 +335,7 @@ const UserProfilesPanel = () => {
                 onSearchChange={setQuery}
                 searchPlaceholder="Filter by name, email, ID or phone\u2026"
                 emptyMessage="No users found."
-                onSaveEdits={handleSaveEdits}
+                onSaveEdits={isAdmin ? handleSaveEdits : undefined}
                 onCreateRow={isAdmin ? handleCreateRow : undefined}
                 sortBy={sortBy}
                 sortDir={sortDir}
