@@ -14,19 +14,19 @@ import {
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-const fmtTimestamp = (ts: number) =>
-    new Date(ts * 1000).toLocaleDateString("en-US", {
-        month: "short", day: "numeric", year: "numeric",
-    });
-
-const toDatetimeLocal = (epochSec: number): string => {
-    const d = new Date(epochSec * 1000);
-    const pad = (n: number) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const fmtTimestamp = (ts: number | string) => {
+    const d = typeof ts === "string" ? new Date(ts + "T00:00:00") : new Date(ts * 1000);
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 };
 
-const fromDatetimeLocal = (val: string): number =>
-    Math.floor(new Date(val).getTime() / 1000);
+const toDateString = (epochSec: number): string => {
+    const d = new Date(epochSec * 1000);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+};
+
+const fromDateString = (val: string): number =>
+    Math.floor(new Date(val + "T00:00:00").getTime() / 1000);
 
 const carLabel = (r: Reservation) => {
     if (typeof r.car === "object" && r.car !== null) return `${r.car.make} ${r.car.model}`;
@@ -48,10 +48,10 @@ const RES_COLUMNS: Column<Reservation>[] = [
     { key: "car",           label: "Vehicle",   defaultVisible: true,  render: carLabel, minWidth: 140 },
     { key: "carVin",        label: "Car VIN",   defaultVisible: false, render: (r) => carVin(r), minWidth: 170, editable: true, editType: "text", getValue: (r) => carVin(r) },
     { key: "userId",        label: "User ID",   defaultVisible: true,  render: (r) => userId(r) ?? "—", editable: true, editType: "number", getValue: (r) => userId(r) ?? 0 },
-    { key: "pickUpTime",    label: "Pick-up",   defaultVisible: true,  render: (r) => fmtTimestamp(r.pickUpTime),  editable: true, editType: "datetime-local", getValue: (r) => toDatetimeLocal(r.pickUpTime) },
-    { key: "dropOffTime",   label: "Drop-off",  defaultVisible: true,  render: (r) => fmtTimestamp(r.dropOffTime), editable: true, editType: "datetime-local", getValue: (r) => toDatetimeLocal(r.dropOffTime) },
+    { key: "pickUpTime",    label: "Pick-up",   defaultVisible: true,  render: (r) => fmtTimestamp(r.pickUpTime as number | string),  editable: true, editType: "date", getValue: (r) => toDateString(r.pickUpTime) },
+    { key: "dropOffTime",   label: "Drop-off",  defaultVisible: true,  render: (r) => fmtTimestamp(r.dropOffTime as number | string), editable: true, editType: "date", getValue: (r) => toDateString(r.dropOffTime) },
     { key: "durationDays",  label: "Days",      defaultVisible: true,  render: (r) => `${r.durationDays}d ${r.durationHours % 24}h` },
-    { key: "dateBooked",    label: "Booked",    defaultVisible: false, render: (r) => fmtTimestamp(r.dateBooked) },
+    { key: "dateBooked",    label: "Booked",    defaultVisible: false, render: (r) => fmtTimestamp(r.dateBooked as number | string) },
     { key: "payments",      label: "Payments",  defaultVisible: false, render: (r) => Array.isArray(r.payments) ? r.payments.length : 0 },
 ];
 
@@ -66,8 +66,8 @@ interface EditFormProps {
 const EditForm = ({ res, onSave, onCancel }: EditFormProps) => {
     const vin = carVin(res);
     const uid = userId(res);
-    const [pickUp, setPickUp] = useState(toDatetimeLocal(res.pickUpTime));
-    const [dropOff, setDropOff] = useState(toDatetimeLocal(res.dropOffTime));
+    const [pickUp, setPickUp] = useState(toDateString(res.pickUpTime));
+    const [dropOff, setDropOff] = useState(toDateString(res.dropOffTime));
     const [vinVal, setVinVal] = useState(vin);
     const [userIdVal, setUserIdVal] = useState(String(uid));
     const [saving, setSaving] = useState(false);
@@ -78,8 +78,8 @@ const EditForm = ({ res, onSave, onCancel }: EditFormProps) => {
         setError(null);
         try {
             const patch: Parameters<typeof onSave>[0] = {};
-            const newPickUp = fromDatetimeLocal(pickUp);
-            const newDropOff = fromDatetimeLocal(dropOff);
+            const newPickUp = fromDateString(pickUp);
+            const newDropOff = fromDateString(dropOff);
             if (newPickUp !== res.pickUpTime) patch.pickUpTime = newPickUp;
             if (newDropOff !== res.dropOffTime) patch.dropOffTime = newDropOff;
             if (vinVal !== vin) patch.car = vinVal;
@@ -106,11 +106,11 @@ const EditForm = ({ res, onSave, onCancel }: EditFormProps) => {
             <div className={styles.editGrid}>
                 <div className={styles.fieldGroup}>
                     <label className={styles.fieldLabel}>Pick-up</label>
-                    <input type="datetime-local" className={styles.fieldInput} value={pickUp} onChange={(e) => setPickUp(e.target.value)} />
+                    <input type="date" className={styles.fieldInput} value={pickUp} onChange={(e) => setPickUp(e.target.value)} />
                 </div>
                 <div className={styles.fieldGroup}>
                     <label className={styles.fieldLabel}>Drop-off</label>
-                    <input type="datetime-local" className={styles.fieldInput} value={dropOff} onChange={(e) => setDropOff(e.target.value)} />
+                    <input type="date" className={styles.fieldInput} value={dropOff} onChange={(e) => setDropOff(e.target.value)} />
                 </div>
                 <div className={styles.fieldGroup}>
                     <label className={styles.fieldLabel}>Car VIN</label>
@@ -208,19 +208,34 @@ const ReservationsPanel = () => {
         await createReservation({
             car:         String(data.carVin ?? ""),
             user:        Number(data.userId ?? 0),
-            pickUpTime:  fromDatetimeLocal(String(data.pickUpTime ?? "")),
-            dropOffTime: fromDatetimeLocal(String(data.dropOffTime ?? "")),
+            pickUpTime:  fromDateString(String(data.pickUpTime ?? "")),
+            dropOffTime: fromDateString(String(data.dropOffTime ?? "")),
         });
         fetchPage(page, pageSize, sortBy, sortDir, true);
     };
 
     const handleSaveEdits = async (edits: RowEdit<Reservation>[]) => {
-        await Promise.all(edits.map(({ id, patch }) => {
+        for (const { original, patch } of edits) {
+            const changingDates = patch.pickUpTime !== undefined || patch.dropOffTime !== undefined;
+            if (changingDates) {
+                const newPickUp  = patch.pickUpTime  !== undefined ? fromDateString(String(patch.pickUpTime))  : original.pickUpTime;
+                const newDropOff = patch.dropOffTime !== undefined ? fromDateString(String(patch.dropOffTime)) : original.dropOffTime;
+                if (newPickUp >= newDropOff) {
+                    alert(`Invalid dates for reservation #${original.reservationId}: pick-up must be before drop-off.`);
+                    return;
+                }
+            }
+        }
+        await Promise.all(edits.map(({ id, original, patch }) => {
             const apiPatch: { pickUpTime?: number; dropOffTime?: number; car?: string; user?: number } = {};
-            if (patch.pickUpTime !== undefined)  apiPatch.pickUpTime  = fromDatetimeLocal(String(patch.pickUpTime));
-            if (patch.dropOffTime !== undefined) apiPatch.dropOffTime = fromDatetimeLocal(String(patch.dropOffTime));
-            if (patch.carVin !== undefined)      apiPatch.car         = String(patch.carVin);
-            if (patch.userId !== undefined)      apiPatch.user        = Number(patch.userId);
+            const changingDates = patch.pickUpTime !== undefined || patch.dropOffTime !== undefined;
+            if (changingDates) {
+                // Send dropOffTime first so backend setter sees it before validating pickUpTime
+                apiPatch.dropOffTime = patch.dropOffTime !== undefined ? fromDateString(String(patch.dropOffTime)) : original.dropOffTime;
+                apiPatch.pickUpTime  = patch.pickUpTime  !== undefined ? fromDateString(String(patch.pickUpTime))  : original.pickUpTime;
+            }
+            if (patch.carVin !== undefined)  apiPatch.car  = String(patch.carVin);
+            if (patch.userId !== undefined)  apiPatch.user = Number(patch.userId);
             return updateReservation(id as number, apiPatch);
         }));
         fetchPage(page, pageSize, sortBy, sortDir, true);

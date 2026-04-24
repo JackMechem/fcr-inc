@@ -33,6 +33,8 @@ import {
 } from "react-icons/bi";
 import { PiSortAscending, PiSortDescending } from "react-icons/pi";
 import ReactMarkdown from "react-markdown";
+import { format as dateFnsFormat } from "date-fns";
+import DatePicker from "@/app/components/DatePicker";
 import styles from "./spreadsheetTable.module.css";
 
 // ── Public types ─────────────────────────────────────────────────────────────
@@ -45,7 +47,7 @@ export interface Column<T> {
     minWidth?: number;
     // Edit mode
     editable?: boolean;
-    editType?: "text" | "number" | "textarea" | "datetime-local" | "select" | "markdown" | "tags" | "images";
+    editType?: "text" | "number" | "textarea" | "datetime-local" | "date" | "select" | "markdown" | "tags" | "images";
     editOptions?: string[];
     getValue?: (item: T) => string | number;
     getTagsValue?: (item: T) => string[];
@@ -1567,6 +1569,23 @@ export default function SpreadsheetTable<T>({
                                                                 </div>
                                                                 <button className={styles.cellSaveBtn} onMouseDown={(e) => { e.preventDefault(); saveCellEdit(); }} title="Save"><BiCheck /></button>
                                                             </div>
+                                                        ) : col.editType === "date" ? (
+                                                            <div className={styles.cellEditRow}>
+                                                                <DatePicker
+                                                                    label={col.label}
+                                                                    showLabel={false}
+                                                                    allowPast
+                                                                    autoOpen
+                                                                    portal
+                                                                    selected={editingCellValue ? new Date(editingCellValue + "T00:00:00") : undefined}
+                                                                    onSelect={(date) => {
+                                                                        if (date) {
+                                                                            setEditCell(id, col.key, dateFnsFormat(date, "yyyy-MM-dd"));
+                                                                            setEditingCell(null);
+                                                                        }
+                                                                    }}
+                                                                />
+                                                            </div>
                                                         ) : (
                                                             <div className={styles.cellEditRow}>
                                                                 <input
@@ -1660,6 +1679,17 @@ export default function SpreadsheetTable<T>({
                                                                     ))}
                                                                 </select>
                                                             </div>
+                                                        ) : col.editType === "date" ? (
+                                                            <DatePicker
+                                                                label={col.label}
+                                                                showLabel={false}
+                                                                allowPast
+                                                                portal
+                                                                selected={editVal ? new Date(String(editVal) + "T00:00:00") : undefined}
+                                                                onSelect={(date) => {
+                                                                    setEditCell(id, col.key, date ? dateFnsFormat(date, "yyyy-MM-dd") : "");
+                                                                }}
+                                                            />
                                                         ) : (
                                                             <input
                                                                 className={styles.editInput}
@@ -1759,6 +1789,16 @@ export default function SpreadsheetTable<T>({
                                                         placeholder={col.label}
                                                         value={(newRowValues[col.key] as string) ?? ""}
                                                         onChange={(e) => setNewRowValues(prev => ({ ...prev, [col.key]: e.target.value }))}
+                                                    />
+                                                ) : col.editType === "date" ? (
+                                                    <DatePicker
+                                                        label={col.label}
+                                                        showLabel={false}
+                                                        allowPast
+                                                        portal
+                                                        placeholder={col.label}
+                                                        selected={(newRowValues[col.key] as string) ? new Date((newRowValues[col.key] as string) + "T00:00:00") : undefined}
+                                                        onSelect={(date) => setNewRowValues(prev => ({ ...prev, [col.key]: date ? dateFnsFormat(date, "yyyy-MM-dd") : "" }))}
                                                     />
                                                 ) : (
                                                     <input
