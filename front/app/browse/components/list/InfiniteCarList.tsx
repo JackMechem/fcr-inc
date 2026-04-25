@@ -14,20 +14,6 @@ import styles from "./browseContent.module.css";
 const LIST_PAGE_SIZE = 12;
 const GRID_PAGE_SIZE = 48;
 
-const GERMAN_CAR_FACTS = [
-    "The Nürburgring Nordschleife is 20.8 km long with over 300 corners. Nearly every German automaker uses it as a benchmark — engineers call it \"the Green Hell.\"",
-    "BMW stands for Bayerische Motoren Werke, or Bavarian Motor Works. The company started in 1916 making aircraft engines before pivoting to motorcycles, then cars.",
-    "Porsche's 911 has been in continuous production since 1963 — over 60 years — making it one of the longest-running sports car nameplates in history.",
-    "Volkswagen literally means \"people's car\" in German. It was originally conceived in the 1930s to produce an affordable car for the average German family.",
-    "Mercedes-Benz holds the patent on the first true automobile. Karl Benz's Benz Patent-Motorwagen, filed in 1886, is widely recognized as the world's first gasoline-powered car.",
-    "Audi's four-ring logo represents the merger of four independent car manufacturers: Audi, DKW, Horch, and Wanderer — all united under Auto Union in 1932.",
-    "The Autobahn has no blanket speed limit on roughly 30% of its length. The recommended speed is 130 km/h, but some sections see cars legally traveling over 250 km/h.",
-    "Porsche saved Volkswagen Group — not the other way around. In 2008, Porsche attempted a takeover of VW, but a cash crunch reversed the deal and VW absorbed Porsche instead.",
-    "Germany produces around 5 million cars per year and exports about 75% of them, making it the third-largest auto exporter in the world behind Japan and South Korea.",
-    "The word \"Diesel\" comes from Rudolf Diesel, a German engineer who invented the compression-ignition engine in 1897. He mysteriously disappeared from a ship crossing the English Channel in 1913.",
-];
-
-const randomFact = () => GERMAN_CAR_FACTS[Math.floor(Math.random() * GERMAN_CAR_FACTS.length)];
 
 interface UserReservation {
 	vin: string;
@@ -61,8 +47,6 @@ const InfiniteCarList = ({ filterParams, layout = "list", fromDate, untilDate }:
 	const [cars, setCars] = useState<Car[]>([]);
 	const [carsLoading, setCarsLoading] = useState(true);
 	const [loading, setLoading] = useState(false);
-	const [fact, setFact] = useState(GERMAN_CAR_FACTS[0]);
-	useEffect(() => { setFact(randomFact()); }, []);
 	const [hasMore, setHasMore] = useState(false);
 	const [datesReady, setDatesReady] = useState(false);
 	const availabilityFilter = filterParams.availabilityFilter;
@@ -89,7 +73,6 @@ const InfiniteCarList = ({ filterParams, layout = "list", fromDate, untilDate }:
 
 		setCarsLoading(true);
 		setCars([]);
-		setFact(randomFact());
 		pageRef.current = 1;
 		setHasMore(false);
 
@@ -162,7 +145,6 @@ const InfiniteCarList = ({ filterParams, layout = "list", fromDate, untilDate }:
 		}
 		loadingRef.current = true;
 		setLoading(true);
-		setFact(randomFact());
 		const nextPage = pageRef.current + 1;
 		const result = await fetchCarsPage({ ...filterParams, pageSize: filterParams.pageSize ?? PAGE_SIZE, page: nextPage });
 		setCars((prev) => {
@@ -222,10 +204,6 @@ const InfiniteCarList = ({ filterParams, layout = "list", fromDate, untilDate }:
 				<div className={styles.initialLoading}>
 					<div className={styles.spinner} />
 					<p className={styles.loadingLabel}>Finding your next ride…</p>
-					<div className={styles.funFact}>
-						<span className={styles.funFactLabel}>Fun fact</span>
-						{fact}
-					</div>
 				</div>
 			) : (
 				<div className={isList ? styles.listGrid : styles.carGrid}>
@@ -255,10 +233,6 @@ const InfiniteCarList = ({ filterParams, layout = "list", fromDate, untilDate }:
 			{loading && (
 				<div className={styles.paginationLoading}>
 					<div className={styles.spinner} />
-					<div className={styles.funFact}>
-						<span className={styles.funFactLabel}>Fun fact</span>
-						{fact}
-					</div>
 				</div>
 			)}
 			<div ref={sentinelRef} className={styles.sentinel} />

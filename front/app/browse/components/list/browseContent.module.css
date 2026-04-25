@@ -88,27 +88,6 @@
 	color: var(--color-foreground);
 }
 
-.funFact {
-	max-width: 380px;
-	text-align: center;
-	font-size: 12px;
-	color: var(--color-foreground-light);
-	line-height: 1.6;
-	padding: 14px 18px;
-	border: 1px solid var(--color-third);
-	border-radius: 10px;
-	background: color-mix(in srgb, var(--color-third) 20%, transparent);
-}
-
-.funFactLabel {
-	display: block;
-	font-size: 10px;
-	font-weight: 700;
-	letter-spacing: 0.08em;
-	text-transform: uppercase;
-	color: var(--color-accent);
-	margin-bottom: 6px;
-}
 
 .paginationLoading {
 	display: flex;

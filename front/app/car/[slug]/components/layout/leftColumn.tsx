@@ -15,8 +15,10 @@ import EditCarButton from "./EditCarButton";
 import styles from "../carDetail.module.css";
 import reviewStyles from "@/app/components/reviews/reviews.module.css";
 
-const fmtDate = (iso: string) =>
-	new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+const fmtDate = (raw: string | number) => {
+	const ms = typeof raw === "number" ? raw * 1000 : isNaN(Number(raw)) ? new Date(raw).getTime() : Number(raw) * 1000;
+	return new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+};
 
 const LeftColumn = ({ carData, reviews = [] }: { carData: Car; reviews?: Review[] }) => {
 	const engineLabel =
@@ -91,7 +93,7 @@ const LeftColumn = ({ carData, reviews = [] }: { carData: Car; reviews?: Review[
 
 			{/* Reviews */}
 			<div className={reviewStyles.reviewsSection}>
-				<p className={reviewStyles.reviewsSectionTitle}>
+				<div className={reviewStyles.reviewsSectionTitle}>
 					Reviews
 					{reviews.length > 0 && (
 						<StarRating
@@ -100,7 +102,7 @@ const LeftColumn = ({ carData, reviews = [] }: { carData: Car; reviews?: Review[
 							size="sm"
 						/>
 					)}
-				</p>
+				</div>
 				{reviews.length === 0 ? (
 					<p className={reviewStyles.reviewsEmpty}>No reviews yet for this vehicle.</p>
 				) : (
