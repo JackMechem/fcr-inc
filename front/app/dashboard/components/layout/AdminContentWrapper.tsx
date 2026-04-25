@@ -14,13 +14,19 @@ import BookmarksPanel from "@/app/admin/components/panels/BookmarksPanel";
 import PermissionsPanel from "@/app/admin/components/panels/PermissionsPanel";
 import CreateInvoicePanel from "@/app/admin/components/panels/CreateInvoicePanel";
 import ViewPaymentsPanel from "@/app/admin/components/panels/ViewPaymentsPanel";
+import CarsListPanel from "@/app/admin/components/panels/CarsListPanel";
+import ReservationsListPanel from "@/app/admin/components/panels/ReservationsListPanel";
+import AccountsListPanel from "@/app/admin/components/panels/AccountsListPanel";
+import UsersListPanel from "@/app/admin/components/panels/UsersListPanel";
+import ReviewsListPanel from "@/app/admin/components/panels/ReviewsListPanel";
+import PaymentsListPanel from "@/app/admin/components/panels/PaymentsListPanel";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const ADMIN_VIEWS = new Set<UserDashboardView>([
-    "admin-dashboard", "add-car", "edit-car", "view-data",
-    "view-reservations", "view-accounts", "view-users",
-    "view-reviews", "view-bookmarks",
+    "admin-dashboard", "add-car", "edit-car",
+    "view-data", "view-reservations", "view-accounts", "view-users", "view-reviews", "view-bookmarks",
+    "list-data", "list-reservations", "list-accounts", "list-users", "list-reviews", "list-payments",
     "view-permissions-admin", "view-permissions-staff",
     "create-invoice", "view-payments",
 ]);
@@ -73,6 +79,18 @@ export default function AdminContentWrapper() {
             return <CreateInvoicePanel />;
         case "view-payments":
             return <ViewPaymentsPanel />;
+        case "list-data":
+            return <CarsListPanel />;
+        case "list-reservations":
+            return <ReservationsListPanel />;
+        case "list-accounts":
+            return <AccountsListPanel />;
+        case "list-users":
+            return <UsersListPanel />;
+        case "list-reviews":
+            return <ReviewsListPanel />;
+        case "list-payments":
+            return <PaymentsListPanel />;
         case "admin-dashboard":
         default:
             return <AdminDashboardPanel />;

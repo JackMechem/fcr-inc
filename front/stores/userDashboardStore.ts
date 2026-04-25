@@ -18,7 +18,14 @@ export type UserDashboardView =
     | "view-permissions-admin"
     | "view-permissions-staff"
     | "create-invoice"
-    | "view-payments";
+    | "view-payments"
+    | "list-data"
+    | "list-reservations"
+    | "list-accounts"
+    | "list-users"
+    | "list-reviews"
+    | "list-payments"
+    | "view-reservation";
 
 export interface DashboardReservation {
     reservationId: number;
@@ -62,6 +69,7 @@ interface UserDashboardStore {
     role: string | null;
 
     selectedReservation: DashboardReservation | null;
+    reservations: DashboardReservation[];
     editVin: string | null;
 
     toggle: () => void;
@@ -90,6 +98,8 @@ interface UserDashboardStore {
     /** Sign out of all sessions. */
     clearAllSessions: () => void;
 
+    setReservations: (reservations: DashboardReservation[]) => void;
+    openReservation: (reservation: DashboardReservation) => void;
     openEditReservation: (reservation: DashboardReservation) => void;
     openEditCar: (vin: string) => void;
     setEditVin: (vin: string | null) => void;
@@ -136,6 +146,7 @@ export const useUserDashboardStore = create<UserDashboardStore>()(
             sessionExpiresAt: null,
             role: null,
             selectedReservation: null,
+            reservations: [],
             editVin: null,
 
             toggle: () => set({ collapsed: !get().collapsed }),
@@ -238,6 +249,9 @@ export const useUserDashboardStore = create<UserDashboardStore>()(
             clearAllSessions: () =>
                 set({ sessions: [], activeSessionIndex: 0, ...applySession(undefined) }),
 
+            setReservations: (reservations) => set({ reservations }),
+            openReservation: (reservation) =>
+                set({ selectedReservation: reservation, activeView: "view-reservation" }),
             openEditReservation: (reservation) =>
                 set({ selectedReservation: reservation, activeView: "edit-reservation" }),
             openEditCar: (vin) => set({ activeView: "edit-car", editVin: vin }),
