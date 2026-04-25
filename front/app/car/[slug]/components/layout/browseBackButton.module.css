@@ -21,7 +21,22 @@
     border-color: color-mix(in srgb, var(--color-third) 70%, transparent);
 }
 
+/* Icon-only variant — used in the mobile header to the left of the logo */
 .browseBackBtnIcon {
-    font-size: 16pt;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22pt;
+    color: color-mix(in srgb, var(--color-accent) 80%, transparent);
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
     flex-shrink: 0;
+    transition: color 150ms;
+    line-height: 1;
+}
+
+.browseBackBtnIcon:hover {
+    color: var(--color-accent);
 }

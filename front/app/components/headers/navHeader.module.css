@@ -55,6 +55,17 @@
     display: flex;
 }
 
+/* Mobile-only left slot — hidden once the desktop search bar appears */
+.mobileLeftSlot {
+	display: flex;
+	align-items: center;
+	flex-shrink: 0;
+}
+
+@media (min-width: 768px) {
+	.mobileLeftSlot { display: none; }
+}
+
 .desktopSearch {
     box-sizing: border-box;
     -webkit-box-sizing: border-box;
@@ -152,8 +163,7 @@
 
 .datepickerSlotDot {
 	position: relative;
-	min-width: 40px;
-	width: 10%;
+	min-width: 52px;
 	flex-shrink: 0;
 }
 
@@ -277,7 +287,7 @@
 	display: flex;
 	align-items: center;
 	gap: 8px;
-	padding: 0 12px 12px;
+	padding: 0 10px 10px;
 }
 
 .mobileRowHideDesktop {
@@ -294,14 +304,15 @@
 	position: relative;
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: 0;
 	background-color: var(--color-primary-dark);
-	border: 1px solid transparent;
+	border: 1px solid var(--color-third);
 	border-radius: 9999px;
 	padding-left: 16px;
-	height: 50px;
+	height: 46px;
 	width: 100%;
 	transition: border-color 150ms;
+	overflow: hidden;
 }
 
 .mobileSearchBar:focus-within {
@@ -310,16 +321,135 @@
 
 .mobileSearchInput {
 	outline: none;
+	background: transparent;
 	color: var(--color-foreground);
 	flex: 1;
 	min-width: 0;
-	font-size: 0.875rem;
-	width: 100%;
+	font-size: 0.8rem;
+	border: none;
+	padding: 0;
+}
+
+.mobileSearchInput::placeholder {
+	color: color-mix(in srgb, var(--color-foreground) 45%, transparent);
 }
 
 .mobileSeparator {
 	width: 1px;
-	height: 24px;
-	background-color: color-mix(in srgb, var(--color-third) 50%, transparent);
+	height: 22px;
+	background-color: color-mix(in srgb, var(--color-third) 80%, transparent);
 	flex-shrink: 0;
+	margin: 0 6px;
+}
+
+/* Mobile date trigger button (inside the search pill) */
+.mobileDateBtn {
+	all: unset;
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	padding: 0 10px 0 6px;
+	cursor: pointer;
+	color: color-mix(in srgb, var(--color-foreground) 65%, transparent);
+	font-size: 0.78rem;
+	white-space: nowrap;
+	flex-shrink: 1;
+	min-width: 0;
+	overflow: hidden;
+	transition: color 150ms;
+}
+
+.mobileDateBtn span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.mobileDateBtnOpen {
+	color: var(--color-foreground);
+}
+
+.dateDotInline {
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background-color: #1d4ed8;
+	flex-shrink: 0;
+	display: inline-block;
+}
+
+:global([data-theme="dark"]) .dateDotInline {
+	background-color: #93c5fd;
+}
+
+/* Mobile search submit button — simpler than the desktop shared button */
+.mobileSearchBtn {
+	all: unset;
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-color: var(--color-accent);
+	color: var(--color-primary);
+	border-radius: 9999px;
+	width: 36px;
+	height: 36px;
+	min-width: 36px;
+	flex-shrink: 0;
+	font-size: 18px;
+	cursor: pointer;
+	margin: 5px;
+	transition: filter 150ms;
+}
+
+.mobileSearchBtn:hover {
+	filter: brightness(1.1);
+}
+
+/* Wrapper that contains the search bar + the date popover */
+.mobileDateWrapper {
+	flex: 1;
+	min-width: 0;
+	position: relative;
+}
+
+/* Mobile trip dates popover */
+.mobileDatePopover {
+	position: absolute;
+	top: calc(100% + 6px);
+	left: 0;
+	right: 0;
+	z-index: 100;
+	background-color: var(--color-primary);
+	border: 1px solid var(--color-third);
+	border-radius: 1rem;
+	box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.12), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+	padding: 14px 16px;
+}
+
+.mobileDateRow {
+	display: flex;
+	align-items: flex-start;
+	gap: 0;
+}
+
+.mobileDatePickerGroup {
+	flex: 1;
+	min-width: 0;
+}
+
+.mobileDatePickerLabel {
+	font-size: 9pt;
+	color: color-mix(in srgb, var(--color-foreground) 50%, transparent);
+	margin-bottom: 4px;
+	line-height: 1;
+}
+
+.mobileDateDivider {
+	width: 1px;
+	background-color: color-mix(in srgb, var(--color-third) 70%, transparent);
+	align-self: stretch;
+	flex-shrink: 0;
+	margin: 0 14px;
 }

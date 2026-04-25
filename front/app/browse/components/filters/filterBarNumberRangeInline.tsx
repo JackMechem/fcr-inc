@@ -36,17 +36,17 @@ const FilterBarNumberRangeInline = ({
     const leftPct = ((clamp(min) - MIN) / range) * 100;
     const rightPct = ((MAX - clamp(max)) / range) * 100;
 
-    const getValueFromEvent = (e: MouseEvent | React.MouseEvent) => {
+    const getValueFromX = (clientX: number) => {
         if (!trackRef.current) return null;
         const rect = trackRef.current.getBoundingClientRect();
-        const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
         return Math.round(MIN + pct * range);
     };
 
     useEffect(() => {
         if (!dragging) return;
-        const handleMouseMove = (e: MouseEvent) => {
-            const val = getValueFromEvent(e);
+        const move = (clientX: number) => {
+            const val = getValueFromX(clientX);
             if (val === null) return;
             if (dragging === "min") {
                 const clamped = Math.min(val, maxRef.current - 1);
@@ -58,23 +58,32 @@ const FilterBarNumberRangeInline = ({
                 setMaxInput(clamped.toString());
             }
         };
-        const handleMouseUp = () => {
+        const done = () => {
             onChange(minRef.current.toString(), maxRef.current.toString());
             setDragging(null);
         };
+        const handleMouseMove = (e: MouseEvent) => move(e.clientX);
+        const handleTouchMove = (e: TouchEvent) => { e.preventDefault(); move(e.touches[0].clientX); };
         document.addEventListener("mousemove", handleMouseMove);
-        document.addEventListener("mouseup", handleMouseUp);
+        document.addEventListener("mouseup", done);
+        document.addEventListener("touchmove", handleTouchMove, { passive: false });
+        document.addEventListener("touchend", done);
         return () => {
             document.removeEventListener("mousemove", handleMouseMove);
-            document.removeEventListener("mouseup", handleMouseUp);
+            document.removeEventListener("mouseup", done);
+            document.removeEventListener("touchmove", handleTouchMove);
+            document.removeEventListener("touchend", done);
         };
     }, [dragging]);
 
-    const handleTrackMouseDown = (e: React.MouseEvent) => {
-        const val = getValueFromEvent(e);
+    const startDrag = (clientX: number) => {
+        const val = getValueFromX(clientX);
         if (val === null) return;
         setDragging(Math.abs(val - min) <= Math.abs(val - max) ? "min" : "max");
     };
+
+    const handleTrackMouseDown = (e: React.MouseEvent) => startDrag(e.clientX);
+    const handleTrackTouchStart = (e: React.TouchEvent) => startDrag(e.touches[0].clientX);
 
     const handleMinInput = (e: React.ChangeEvent<HTMLInputElement>) => {
         setMinInput(e.target.value);
@@ -116,6 +125,7 @@ const FilterBarNumberRangeInline = ({
                 ref={trackRef}
                 className={styles.trackWrapper}
                 onMouseDown={handleTrackMouseDown}
+                onTouchStart={handleTrackTouchStart}
             >
                 <div className={styles.trackBg} />
                 <div
