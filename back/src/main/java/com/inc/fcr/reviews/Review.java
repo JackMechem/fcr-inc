@@ -17,7 +17,8 @@ import java.time.Instant;
  * JPA entity representing a customer post rental review of their experience with the vehicle.
  *
  * <p>Maps to the {@code cars} database table.
- *
+ * A review is associated with one {@link Account} and one {@link Car}.
+ * Contains a title, body text, star rating (1-5), rental duration, and a published timestamp.</p>
  */
 
 @Entity
