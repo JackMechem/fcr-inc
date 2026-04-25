@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ReservationsPanel from "../panels/ReservationsPanel";
+import ReservationDetailPanel from "../panels/ReservationDetailPanel";
 import EditReservationPanel from "../panels/EditReservationPanel";
 import UserDetailsPanel from "../panels/UserDetailsPanel";
 import AdminContentWrapper, { isAdminView } from "./AdminContentWrapper";
@@ -53,6 +54,7 @@ export default function DashboardShell({ paymentSuccess: initialPaymentSuccess, 
     const renderPanel = () => {
         if (isAdminView(activeView)) return <AdminContentWrapper />;
         switch (activeView) {
+            case "view-reservation": return <ReservationDetailPanel />;
             case "edit-reservation": return <EditReservationPanel />;
             case "user-details":     return <UserDetailsPanel />;
             default:                 return <ReservationsPanel />;

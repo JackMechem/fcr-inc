@@ -287,10 +287,27 @@
     white-space: nowrap;
 }
 
+.badgeActive {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 9px;
+    border-radius: 99px;
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    white-space: nowrap;
+}
+
 :global([data-theme="dark"]) .badgeUpcoming {
     color: #4ade80;
     background: color-mix(in srgb, #4ade80 12%, transparent);
     border-color: color-mix(in srgb, #4ade80 28%, transparent);
+}
+
+:global([data-theme="dark"]) .badgeActive {
+    color: #60a5fa;
+    background: color-mix(in srgb, #60a5fa 12%, transparent);
+    border-color: color-mix(in srgb, #60a5fa 28%, transparent);
 }
 
 .rowChevron {
@@ -649,4 +666,661 @@
 @media (max-width: 600px) {
     .datesRow { grid-template-columns: 1fr 1fr; }
     .grid3 { grid-template-columns: 1fr 1fr; }
+}
+
+/* ── Reservations redesigned list ──────────────────────────────────────────── */
+
+.resSection {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.resSectionHeader {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 2px;
+}
+
+.resSectionLabel {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-foreground-light);
+}
+
+.resSectionCount {
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--color-third);
+    color: var(--color-foreground-light);
+    border-radius: 99px;
+    padding: 1px 8px;
+    line-height: 1.5;
+}
+
+.resSectionItems {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.resCard {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 12px 14px;
+    background: var(--color-primary);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 120ms;
+    outline: none;
+}
+
+.resCard:hover,
+.resCard:focus-visible {
+    background: color-mix(in srgb, var(--color-accent) 5%, var(--color-primary));
+}
+
+.resCardMuted {
+    opacity: 0.72;
+}
+
+.resCardMuted:hover,
+.resCardMuted:focus-visible {
+    opacity: 1;
+}
+
+.resCardRow {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    width: 100%;
+}
+
+.resCardSkeleton {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 14px;
+}
+
+.resThumb {
+    position: relative;
+    width: 56px;
+    height: 40px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--color-third);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.resInfo {
+    flex: 1;
+    min-width: 0;
+}
+
+.resCarName {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-foreground);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 2px;
+}
+
+.resDates {
+    font-size: 12px;
+    color: var(--color-foreground-light);
+}
+
+.resRight {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.resReviewBtn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    background: color-mix(in srgb, #f59e0b 10%, transparent);
+    color: #f59e0b;
+    border: 1px solid color-mix(in srgb, #f59e0b 30%, transparent);
+    border-radius: 99px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 150ms;
+    white-space: nowrap;
+}
+
+.resReviewBtn:hover {
+    background: color-mix(in srgb, #f59e0b 20%, transparent);
+}
+
+.resReviewBtnDone {
+    background: color-mix(in srgb, #22c55e 10%, transparent);
+    color: #22c55e;
+    border-color: color-mix(in srgb, #22c55e 30%, transparent);
+}
+
+.resReviewBtnDone:hover {
+    background: color-mix(in srgb, #22c55e 18%, transparent);
+}
+
+.resCardStars {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    margin-top: 4px;
+}
+
+.resCardStarFilled {
+    font-size: 11px;
+    color: #f59e0b;
+}
+
+.resCardStarEmpty {
+    font-size: 11px;
+    color: var(--color-third);
+}
+
+.resChevron {
+    font-size: 18px;
+    color: var(--color-foreground-light);
+    opacity: 0.4;
+    flex-shrink: 0;
+}
+
+@media (max-width: 560px) {
+    .resReviewBtn { display: none; }
+    .resRight { gap: 8px; }
+}
+
+/* ── Active card progress bar (list) ──────────────────────────────────────── */
+
+.resCardProgressBar {
+    width: 100%;
+    height: 3px;
+    background: color-mix(in srgb, #3b82f6 18%, var(--color-primary));
+    border-radius: 99px;
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+.resCardProgressFill {
+    height: 100%;
+    background: #3b82f6;
+    border-radius: 99px;
+    transition: width 600ms ease;
+}
+
+.resCardPaymentBar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.resCardPaymentFill {
+    flex: 1;
+    height: 3px;
+    background: #22c55e;
+    border-radius: 99px;
+}
+
+.resCardPaymentLabel {
+    font-size: 10px;
+    font-weight: 600;
+    color: #22c55e;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ── Future rental detail section ─────────────────────────────────────────── */
+
+.futureSection {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 22px;
+    background: color-mix(in srgb, #22c55e 6%, var(--color-primary));
+    border: 1px solid color-mix(in srgb, #22c55e 22%, transparent);
+    border-radius: 14px;
+}
+
+.futureSectionHeader {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.futureCheck {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    background: #22c55e;
+    color: #fff;
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.futureSectionTitle {
+    font-size: 14px;
+    font-weight: 700;
+    color: #22c55e;
+}
+
+.futurePaymentWrap {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.futurePaymentTop {
+    display: flex;
+    justify-content: space-between;
+}
+
+.futurePaymentLabel {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-foreground-light);
+}
+
+.futurePaymentTrack {
+    height: 8px;
+    background: color-mix(in srgb, #22c55e 15%, var(--color-primary));
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.futurePaymentFill {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, #22c55e, #4ade80);
+    border-radius: 99px;
+}
+
+.activeStepNext .activeStepIcon {
+    background: color-mix(in srgb, #f59e0b 12%, var(--color-primary));
+    border-color: #f59e0b;
+    color: #f59e0b;
+}
+
+.activeStepNext .activeStepLabel {
+    color: #f59e0b;
+}
+
+/* ── Active rental detail section ─────────────────────────────────────────── */
+
+.activeSection {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 22px;
+    background: color-mix(in srgb, #3b82f6 6%, var(--color-primary));
+    border: 1px solid color-mix(in srgb, #3b82f6 22%, transparent);
+    border-radius: 14px;
+}
+
+.activeSectionHeader {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.activeSectionTitle {
+    font-size: 14px;
+    font-weight: 700;
+    color: #3b82f6;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.5; transform: scale(0.85); }
+}
+
+.activePulse {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #3b82f6;
+    animation: pulse 1.8s ease-in-out infinite;
+    flex-shrink: 0;
+}
+
+/* progress bar */
+.activeProgressWrap {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.activeProgressTop {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.activeProgressLabel {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-foreground-light);
+}
+
+.activeProgressTrack {
+    height: 8px;
+    background: color-mix(in srgb, #3b82f6 15%, var(--color-primary));
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.activeProgressFill {
+    height: 100%;
+    background: linear-gradient(90deg, #3b82f6, #60a5fa);
+    border-radius: 99px;
+    transition: width 600ms ease;
+    position: relative;
+}
+
+.activeProgressFill::after {
+    content: "";
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    background: #fff;
+    border: 2px solid #3b82f6;
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px color-mix(in srgb, #3b82f6 25%, transparent);
+}
+
+/* journey steps */
+.activeSteps {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    position: relative;
+}
+
+.activeStep {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    position: relative;
+}
+
+.activeStepLine {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    width: 100%;
+    height: 2px;
+    background: var(--color-third);
+    z-index: 0;
+}
+
+.activeStepDone .activeStepLine {
+    background: #3b82f6;
+}
+
+.activeStepCurrent .activeStepLine {
+    background: linear-gradient(90deg, #3b82f6, var(--color-third));
+}
+
+.activeStepIcon {
+    position: relative;
+    z-index: 1;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    background: var(--color-third);
+    color: var(--color-foreground-light);
+    border: 2px solid var(--color-third);
+    margin-bottom: 8px;
+    flex-shrink: 0;
+}
+
+.activeStepDone .activeStepIcon {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: #fff;
+}
+
+.activeStepCurrent .activeStepIcon {
+    background: color-mix(in srgb, #3b82f6 15%, var(--color-primary));
+    border-color: #3b82f6;
+    color: #3b82f6;
+    animation: pulse 1.8s ease-in-out infinite;
+}
+
+.activeStepLabel {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-foreground);
+}
+
+.activeStepDone .activeStepLabel,
+.activeStepCurrent .activeStepLabel {
+    color: #3b82f6;
+}
+
+.activeStepSub {
+    font-size: 10px;
+    color: var(--color-foreground-light);
+    margin-top: 2px;
+    line-height: 1.3;
+}
+
+/* reminders */
+.activeReminders {
+    background: var(--color-primary);
+    border: 1px solid color-mix(in srgb, #3b82f6 15%, var(--color-third));
+    border-radius: 10px;
+    padding: 14px 16px;
+}
+
+.activeRemindersTitle {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--color-foreground-light);
+    margin-bottom: 10px;
+}
+
+.activeRemindersList {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.activeRemindersItem {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--color-foreground);
+    line-height: 1.4;
+}
+
+.activeRemindersCheck {
+    font-size: 15px;
+    color: #3b82f6;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+
+@media (max-width: 500px) {
+    .activeSteps { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .activeStepLine { display: none; }
+}
+
+/* ── Reservation detail hero ───────────────────────────────────────────────── */
+
+.detailHero {
+    position: relative;
+    width: 100%;
+    height: 280px;
+    border-radius: 16px;
+    overflow: hidden;
+    background: var(--color-third);
+}
+
+.detailHeroFallback {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.detailHeroFallbackIcon {
+    font-size: 72px;
+    color: var(--color-foreground-light);
+    opacity: 0.25;
+}
+
+.detailHeroOverlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        to top,
+        rgba(0, 0, 0, 0.72) 0%,
+        rgba(0, 0, 0, 0.28) 45%,
+        transparent 70%
+    );
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 20px 22px;
+    gap: 12px;
+}
+
+.detailHeroMeta {
+    min-width: 0;
+}
+
+.detailHeroName {
+    font-size: 22px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.2;
+    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+}
+
+.detailHeroVin {
+    font-size: 11px;
+    font-family: monospace;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 4px;
+    letter-spacing: 0.04em;
+}
+
+/* ── Review card (ReservationDetailPanel) ──────────────────────────────────── */
+
+.reviewCard {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px;
+    background: var(--color-primary);
+    border: 1px solid var(--color-third);
+    border-radius: 14px;
+}
+
+.reviewCardHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.reviewStars {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.reviewStarFilled {
+    font-size: 17px;
+    color: #f59e0b;
+}
+
+.reviewStarEmpty {
+    font-size: 17px;
+    color: var(--color-third);
+}
+
+.reviewStarCount {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-foreground-light);
+    margin-left: 6px;
+}
+
+.reviewEditBtn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: var(--color-primary-dark);
+    color: var(--color-foreground-light);
+    border: 1px solid var(--color-third);
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 140ms, border-color 140ms, background 140ms;
+    flex-shrink: 0;
+}
+
+.reviewEditBtn:hover {
+    color: var(--color-foreground);
+    border-color: color-mix(in srgb, var(--color-foreground-light) 40%, transparent);
+    background: var(--color-third);
+}
+
+.reviewTitle {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-foreground);
+    line-height: 1.4;
+}
+
+.reviewBody {
+    font-size: 13px;
+    color: var(--color-foreground-light);
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.reviewNoReview {
+    font-size: 13px;
+    color: var(--color-foreground-light);
 }

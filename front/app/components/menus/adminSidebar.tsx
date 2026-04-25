@@ -7,7 +7,7 @@ import { useMobileSidebarStore } from "@/stores/mobileSidebarStore";
 import { useWindowSize } from "@/app/hooks/useWindowSize";
 import {
     BiCar, BiChevronLeft, BiChevronRight, BiChevronDown,
-    BiPlus, BiEdit, BiTable, BiGridAlt, BiX, BiCalendar, BiUser, BiMenu,
+    BiPlus, BiEdit, BiTable, BiGridAlt, BiX, BiCalendar, BiUser, BiMenu, BiListUl,
 } from "react-icons/bi";
 import styles from "./adminSidebar.module.css";
 
@@ -26,9 +26,10 @@ const SECTIONS: SectionDef[] = [
         icon: <BiCar />,
         label: "Cars",
         items: [
-            { icon: <BiPlus />,  label: "Add Car",   view: "add-car"   },
-            { icon: <BiEdit />,  label: "Edit Car",  view: "edit-car"  },
-            { icon: <BiTable />, label: "View Data", view: "view-data" },
+            { icon: <BiPlus />,    label: "Add Car",     view: "add-car"   },
+            { icon: <BiEdit />,    label: "Edit Car",    view: "edit-car"  },
+            { icon: <BiTable />,   label: "Table View",  view: "view-data" },
+            { icon: <BiListUl />,  label: "List View",   view: "list-data" },
         ],
     },
     {
@@ -36,7 +37,8 @@ const SECTIONS: SectionDef[] = [
         icon: <BiCalendar />,
         label: "Reservations",
         items: [
-            { icon: <BiTable />, label: "View Data", view: "view-reservations" },
+            { icon: <BiTable />,  label: "Table View", view: "view-reservations" },
+            { icon: <BiListUl />, label: "List View",  view: "list-reservations" },
         ],
     },
     {
@@ -44,8 +46,10 @@ const SECTIONS: SectionDef[] = [
         icon: <BiUser />,
         label: "Users",
         items: [
-            { icon: <BiTable />, label: "View Accounts", view: "view-accounts" },
-            { icon: <BiUser />,  label: "View Users",    view: "view-users"    },
+            { icon: <BiTable />,  label: "Accounts — Table", view: "view-accounts" },
+            { icon: <BiListUl />, label: "Accounts — List",  view: "list-accounts" },
+            { icon: <BiTable />,  label: "Profiles — Table", view: "view-users"    },
+            { icon: <BiListUl />, label: "Profiles — List",  view: "list-users"    },
         ],
     },
 ];

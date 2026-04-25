@@ -11,6 +11,10 @@ import InventoryPanel from "../panels/InventoryPanel";
 import ReservationsPanel from "../panels/ReservationsPanel";
 import UsersPanel from "../panels/UsersPanel";
 import UserProfilesPanel from "../panels/UserProfilesPanel";
+import CarsListPanel from "../panels/CarsListPanel";
+import ReservationsListPanel from "../panels/ReservationsListPanel";
+import AccountsListPanel from "../panels/AccountsListPanel";
+import UsersListPanel from "../panels/UsersListPanel";
 import { useAdminSidebarStore } from "@/stores/adminSidebarStore";
 import SessionSwitcher from "./SessionSwitcher";
 import { useWindowSize } from "@/app/hooks/useWindowSize";
@@ -31,7 +35,11 @@ export default function AdminShell() {
         }
     }, [isAuthenticated, sessionToken, role, router]);
 
-    const isTableView = activeView === "view-data" || activeView === "view-reservations" || activeView === "view-accounts" || activeView === "view-users";
+    const FULL_HEIGHT_VIEWS = [
+        "view-data", "view-reservations", "view-accounts", "view-users",
+        "list-data", "list-reservations", "list-accounts", "list-users",
+    ];
+    const isTableView = FULL_HEIGHT_VIEWS.includes(activeView ?? "");
 
     const renderContent = () => {
         switch (activeView) {
@@ -49,16 +57,15 @@ export default function AdminShell() {
                         <CarFormPanel mode="edit" />
                     </div>
                 );
-            case "view-data":
-                return <InventoryPanel />;
-            case "view-reservations":
-                return <ReservationsPanel />;
-            case "view-accounts":
-                return <UsersPanel />;
-            case "view-users":
-                return <UserProfilesPanel />;
-            default:
-                return <DashboardPanel />;
+            case "view-data":         return <InventoryPanel />;
+            case "view-reservations": return <ReservationsPanel />;
+            case "view-accounts":     return <UsersPanel />;
+            case "view-users":        return <UserProfilesPanel />;
+            case "list-data":         return <CarsListPanel />;
+            case "list-reservations": return <ReservationsListPanel />;
+            case "list-accounts":     return <AccountsListPanel />;
+            case "list-users":        return <UsersListPanel />;
+            default:                  return <DashboardPanel />;
         }
     };
 

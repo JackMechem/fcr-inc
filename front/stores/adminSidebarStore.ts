@@ -1,7 +1,11 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
-export type AdminView = "add-car" | "edit-car" | "view-data" | "view-reservations" | "view-accounts" | "view-users" | null;
+export type AdminView =
+    | "add-car" | "edit-car"
+    | "view-data" | "view-reservations" | "view-accounts" | "view-users"
+    | "list-data" | "list-reservations" | "list-accounts" | "list-users"
+    | null;
 
 // Views that are transient and should not be restored on refresh.
 const TRANSIENT_VIEWS: AdminView[] = ["add-car", "edit-car"];

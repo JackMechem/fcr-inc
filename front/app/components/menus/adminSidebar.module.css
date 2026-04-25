@@ -136,6 +136,7 @@
 	align-items: center;
 	gap: 4px;
 	padding: 12px 8px;
+	flex: 1;
 }
 
 .collapsedIconBtn {
@@ -143,23 +144,24 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	padding: 10px 0;
-	border-radius: 0.75rem;
+	padding: 8px 0;
+	border-radius: 0.5rem;
 	cursor: pointer;
-	transition: background-color 150ms, color 150ms, border-color 150ms;
+	transition: color 150ms, background-color 150ms;
 	background: none;
-	border: 1px solid transparent;
-	color: var(--color-accent);
+	border: none;
+	color: var(--color-foreground-light);
 }
 
 .collapsedIconBtn:hover {
-	background-color: var(--color-primary-dark);
+	color: var(--color-foreground);
+	background-color: color-mix(in srgb, var(--color-foreground) 6%, transparent);
 }
 
 .collapsedIconBtnActive {
-	background-color: var(--color-primary-dark);
-	border-color: var(--color-accent);
 	color: var(--color-accent);
+	background: none;
+	border: none;
 }
 
 .collapsedIconWrap {
@@ -168,47 +170,62 @@
 }
 
 .collapsedBtnIcon {
-	font-size: 18pt;
+	font-size: 14pt;
 }
 
-/* Flyout panel */
-.flyout {
-	position: absolute;
-	left: calc(100% + 8px);
-	top: 0;
-	background-color: var(--color-primary);
-	border: 1px solid color-mix(in srgb, var(--color-third) 60%, transparent);
-	border-radius: 0.75rem;
-	box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-	padding: 8px 0;
-	width: 180px;
-	z-index: 50;
+/* Flyout panel — styled like the table right-click context menu */
+@keyframes flyoutIn {
+	from { opacity: 0; transform: translateX(-4px); }
+	to   { opacity: 1; transform: translateX(0);    }
 }
+
+.flyout {
+	position: fixed;
+	background: var(--color-primary);
+	border: 1px solid var(--color-third);
+	border-left: none;
+	border-radius: 0 10px 10px 0;
+	padding: 4px 0;
+	min-width: 180px;
+	box-shadow: none;
+	z-index: 9999;
+	animation: flyoutIn 120ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 
 .flyoutLabel {
-	font-size: 8pt;
-	font-weight: 600;
+	padding: 6px 14px 3px;
+	font-size: 7pt;
+	font-weight: 700;
 	text-transform: uppercase;
-	letter-spacing: 0.05em;
+	letter-spacing: 0.08em;
 	color: var(--color-foreground-light);
-	padding: 0 12px 6px;
-	border-bottom: 1px solid color-mix(in srgb, var(--color-third) 40%, transparent);
-	margin-bottom: 4px;
+	user-select: none;
+	opacity: 0.7;
+}
+
+.flyoutDivider {
+	height: 1px;
+	background: var(--color-third);
+	margin: 4px 8px;
 }
 
 .flyoutItem {
-    box-sizing: border-box;
-	width: 100%;
+	box-sizing: border-box;
 	display: flex;
 	align-items: center;
-	gap: 10px;
-	padding: 8px 12px;
+	gap: 8px;
+	width: calc(100% - 8px);
+	margin: 0 4px;
+	padding: 6px 10px;
+	font-size: 9.5pt;
+	color: var(--color-foreground);
+	background: transparent;
+	border: none;
+	border-radius: 6px;
 	cursor: pointer;
-	transition: background-color 150ms, color 150ms;
+	transition: background-color 0.1s;
 	text-align: left;
-	background: none;
-	border: 1px solid transparent;
-	color: var(--color-accent);
 }
 
 .flyoutItem:hover {
@@ -216,13 +233,12 @@
 }
 
 .flyoutItemActive {
-	background-color: var(--color-primary-dark);
-	border-color: var(--color-accent);
 	color: var(--color-accent);
+	font-weight: 600;
 }
 
 .flyoutItemIcon {
-	font-size: 14pt;
+	font-size: 12pt;
 	flex-shrink: 0;
 	color: inherit;
 }
@@ -232,8 +248,8 @@
 }
 
 .flyoutItemLabel {
-	font-size: 10.5pt;
-	font-weight: 500;
+	font-size: 9.5pt;
+	font-weight: 400;
 }
 
 /* Expanded layout — traditional collapsible nav */
@@ -436,6 +452,16 @@
 	font-size: 9.5pt;
 	font-weight: 400;
 	white-space: nowrap;
+}
+
+.subItemGroupLabel {
+	font-size: 8px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	color: var(--color-foreground-light);
+	padding: 6px 12px 2px;
+	opacity: 0.7;
 }
 
 /* Toggle button */
