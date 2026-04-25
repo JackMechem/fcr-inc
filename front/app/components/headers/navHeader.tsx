@@ -29,6 +29,7 @@ interface NavHeaderProps {
 	mobileFilterButton?: React.ReactNode;
 	activeFilters?: React.ReactNode;
 	mobileMenuTrigger?: React.ReactNode;
+	leftSlot?: React.ReactNode;
 }
 
 const NavHeader = ({
@@ -37,6 +38,7 @@ const NavHeader = ({
 	mobileFilterButton,
 	activeFilters,
 	mobileMenuTrigger,
+	leftSlot,
 }: NavHeaderProps) => {
 	const [showSuggestions, setShowSuggestions] = useState(false);
 	const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
@@ -264,6 +266,7 @@ const NavHeader = ({
 					<div
 						className={`${styles.desktopSearch} ${mobileFilterButton ? styles.desktopSearchHideLg : styles.desktopSearchHideMd}`}
 					>
+						{leftSlot}
 						<div ref={searchBarRef} className={styles.searchBar}>
 							<div className={styles.searchField}>
 								<p className={styles.searchFieldLabel}>What</p>

@@ -5,6 +5,48 @@ let _redirectPending = false;
 export const setBrowseRedirectPending = (v: boolean) => { _redirectPending = v; };
 export const isBrowseRedirectPending = () => _redirectPending;
 
+// ── Browse scroll / list restoration ─────────────────────────────────────────
+
+const SCROLL_KEY = "fcr_browse_scroll";
+const SCROLL_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+export interface BrowseScrollState {
+    scrollY: number;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    cars: any[];
+    page: number;
+    hasMore: boolean;
+    paramsKey: string;
+    timestamp: number;
+}
+
+export function saveBrowseScrollState(state: Omit<BrowseScrollState, "timestamp">): void {
+    if (typeof sessionStorage === "undefined") return;
+    try {
+        sessionStorage.setItem(SCROLL_KEY, JSON.stringify({ ...state, timestamp: Date.now() }));
+    } catch { /* quota exceeded — silently skip */ }
+}
+
+export function getBrowseScrollState(paramsKey: string): BrowseScrollState | null {
+    if (typeof sessionStorage === "undefined") return null;
+    try {
+        const raw = sessionStorage.getItem(SCROLL_KEY);
+        if (!raw) return null;
+        const data: BrowseScrollState = JSON.parse(raw);
+        if (data.paramsKey !== paramsKey) return null;
+        if (Date.now() - data.timestamp > SCROLL_TTL_MS) {
+            sessionStorage.removeItem(SCROLL_KEY);
+            return null;
+        }
+        return data;
+    } catch { return null; }
+}
+
+export function clearBrowseScrollState(): void {
+    if (typeof sessionStorage === "undefined") return;
+    sessionStorage.removeItem(SCROLL_KEY);
+}
+
 const DATES_KEY = "fcr_browse_dates";
 const FILTERS_KEY = "fcr_browse_filters";
 

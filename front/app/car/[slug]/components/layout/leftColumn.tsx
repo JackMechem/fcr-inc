@@ -1,6 +1,7 @@
 import { Car } from "@/app/types/CarTypes";
 import { Review } from "@/app/types/ReviewTypes";
 import Markdown from "react-markdown";
+
 import { formatEnum } from "@/app/lib/formatEnum";
 import { BiCar } from "react-icons/bi";
 import { GiCarSeat } from "react-icons/gi";
@@ -10,15 +11,10 @@ import { TbArrowAutofitDown, TbManualGearbox, TbWheel } from "react-icons/tb";
 import { MdRoofing } from "react-icons/md";
 import Spec from "../specs/Spec";
 import SpecGroup from "../specs/SpecGroup";
-import StarRating from "@/app/components/reviews/StarRating";
+import ReviewsSection from "./ReviewsSection";
 import EditCarButton from "./EditCarButton";
 import styles from "../carDetail.module.css";
-import reviewStyles from "@/app/components/reviews/reviews.module.css";
 
-const fmtDate = (raw: string | number) => {
-	const ms = typeof raw === "number" ? raw * 1000 : isNaN(Number(raw)) ? new Date(raw).getTime() : Number(raw) * 1000;
-	return new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-};
 
 const LeftColumn = ({ carData, reviews = [] }: { carData: Car; reviews?: Review[] }) => {
 	const engineLabel =
@@ -92,47 +88,11 @@ const LeftColumn = ({ carData, reviews = [] }: { carData: Car; reviews?: Review[
 			)}
 
 			{/* Reviews */}
-			<div className={reviewStyles.reviewsSection}>
-				<div className={reviewStyles.reviewsSectionTitle}>
-					Reviews
-					{reviews.length > 0 && (
-						<StarRating
-							average={reviews.reduce((s, r) => s + r.stars, 0) / reviews.length}
-							count={reviews.length}
-							size="sm"
-						/>
-					)}
-				</div>
-				{reviews.length === 0 ? (
-					<p className={reviewStyles.reviewsEmpty}>No reviews yet for this vehicle.</p>
-				) : (
-					<div className={reviewStyles.reviewsList}>
-						{reviews.map((r) => {
-							const authorName =
-								typeof r.account === "object" && r.account !== null
-									? (r.account as { name?: string }).name ?? "Anonymous"
-									: "Anonymous";
-							return (
-								<div key={r.reviewId} className={reviewStyles.reviewCard}>
-									<div className={reviewStyles.reviewHeader}>
-										<div className={reviewStyles.reviewTitleStars}>
-											<StarRating average={r.stars} size="sm" />
-											<p className={reviewStyles.reviewTitle}>{r.title}</p>
-										</div>
-										<span className={reviewStyles.reviewMeta}>{fmtDate(r.publishedDate)}</span>
-									</div>
-									{r.bodyOfText && (
-										<p className={reviewStyles.reviewBody}>{r.bodyOfText}</p>
-									)}
-									<p className={reviewStyles.reviewDuration}>
-										{authorName} · {r.rentalDuration} day rental
-									</p>
-								</div>
-							);
-						})}
-					</div>
-				)}
-			</div>
+			<ReviewsSection
+				initialReviews={reviews}
+				vin={carData.vin}
+				carName={`${carData.modelYear} ${carData.make} ${carData.model}`}
+			/>
 		</div>
 	);
 };

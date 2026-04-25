@@ -7,13 +7,13 @@ import { useUserDashboardStore } from "@/stores/userDashboardStore";
 import { fetchCarsPage, getUserReservations } from "../../actions";
 import { getAvailability } from "@/app/lib/availability";
 import { isBrowseRedirectPending } from "@/app/lib/browseStorage";
+import { saveBrowseListCache, getBrowseListCache } from "@/app/lib/browseListCache";
 import CarCard from "@/app/components/cars/CarListCard";
 import CarGridCard from "@/app/components/cars/carGridCard";
 import styles from "./browseContent.module.css";
 
 const LIST_PAGE_SIZE = 12;
 const GRID_PAGE_SIZE = 48;
-
 
 interface UserReservation {
 	vin: string;
@@ -32,7 +32,6 @@ interface InfiniteCarListProps {
 	untilDate?: string;
 }
 
-/** Returns true if the cart item's rental dates overlap with the browse date range. */
 function cartItemOverlapsBrowse(item: CartProps, fromDate: string, untilDate: string): boolean {
 	if (!item.startDate || !item.endDate) return false;
 	const cartStart = new Date(item.startDate).getTime();
@@ -44,19 +43,60 @@ function cartItemOverlapsBrowse(item: CartProps, fromDate: string, untilDate: st
 
 const InfiniteCarList = ({ filterParams, layout = "list", fromDate, untilDate }: InfiniteCarListProps) => {
 	const PAGE_SIZE = layout === "grid" ? GRID_PAGE_SIZE : LIST_PAGE_SIZE;
-	const [cars, setCars] = useState<Car[]>([]);
-	const [carsLoading, setCarsLoading] = useState(true);
+	const paramsKey = JSON.stringify(filterParams);
+
+	// Read from in-memory module-level cache (populated on unmount when navigating to a car).
+	// This is computed once at mount time and never changes — safe to use in deps comparisons.
+	const [cached] = useState(() => getBrowseListCache(paramsKey));
+
+	const [cars, setCars] = useState<Car[]>(cached?.cars ?? []);
+	const [carsLoading, setCarsLoading] = useState(cached === null);
 	const [loading, setLoading] = useState(false);
-	const [hasMore, setHasMore] = useState(false);
+	const [hasMore, setHasMore] = useState(cached?.hasMore ?? false);
 	const [datesReady, setDatesReady] = useState(false);
 	const availabilityFilter = filterParams.availabilityFilter;
 	const [isSmall] = useState(false);
 	const sentinelRef = useRef<HTMLDivElement>(null);
 	const loadingRef = useRef(false);
-	const pageRef = useRef(1);
-	const hasMoreRef = useRef(false);
+	const pageRef = useRef(cached?.page ?? 1);
+	const hasMoreRef = useRef(cached?.hasMore ?? false);
 	const fetchNextPageRef = useRef<() => void>(() => {});
 	const pendingFetchRef = useRef(false);
+
+	// Keep live refs for the unmount cleanup so it always captures current values.
+	const carsRef = useRef(cars);
+	useEffect(() => { carsRef.current = cars; }, [cars]);
+	const hasMoreRef2 = useRef(hasMore);
+	useEffect(() => { hasMoreRef2.current = hasMore; }, [hasMore]);
+	const paramsKeyRef = useRef(paramsKey);
+	useEffect(() => { paramsKeyRef.current = paramsKey; }, [paramsKey]);
+
+	// Save state to the in-memory cache when unmounting (navigating to a car detail page).
+	useEffect(() => {
+		return () => {
+			if (carsRef.current.length > 0) {
+				saveBrowseListCache({
+					cars: carsRef.current,
+					page: pageRef.current,
+					hasMore: hasMoreRef2.current,
+					scrollY: window.scrollY,
+					paramsKey: paramsKeyRef.current,
+				});
+			}
+		};
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+
+	// Restore scroll position after the car list renders.
+	// setTimeout ensures this fires AFTER Next.js's own post-navigation scroll reset.
+	useEffect(() => {
+		if (!cached?.scrollY) return;
+		const id = setTimeout(() => {
+			window.scrollTo({ top: cached.scrollY, behavior: "instant" });
+		}, 0);
+		return () => clearTimeout(id);
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
 
 	const cartItems = useCartStore((s) => s.carData);
 
@@ -64,12 +104,20 @@ const InfiniteCarList = ({ filterParams, layout = "list", fromDate, untilDate }:
 	const { isAuthenticated, sessionToken, stripeUserId } = useUserDashboardStore();
 	const [userReservations, setUserReservations] = useState<UserReservation[]>([]);
 
-	// Fetch first page of cars client-side.
-	// Skip if BrowseParamsSync is about to redirect with restored params — the
-	// redirect will cause a re-render with the correct filterParams, so there's
-	// no point fetching with the current (incomplete) ones.
+	// Fetch first page of cars.
+	// Skip when:
+	//   a) BrowseParamsSync is about to redirect (would cause a double fetch)
+	//   b) We have cached cars for these exact filter params (navigating back)
+	//
+	// The skip condition uses only the immutable `cached` value and the current
+	// paramsKey, so it's safe under React 18 StrictMode's double-invoke of effects.
 	useEffect(() => {
 		if (isBrowseRedirectPending()) return;
+
+		// If the cache already has data for these params, skip the fetch entirely.
+		// Any subsequent run of this effect (filter change) will have a different
+		// paramsKey, so `cached?.paramsKey !== paramsKey` will be true and we fetch.
+		if (cached !== null && cached.paramsKey === paramsKey) return;
 
 		setCarsLoading(true);
 		setCars([]);
@@ -85,9 +133,8 @@ const InfiniteCarList = ({ filterParams, layout = "list", fromDate, untilDate }:
 		}).catch(() => {
 			setCarsLoading(false);
 		});
-	// Stringify to detect param changes without deep equality
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [JSON.stringify(filterParams)]);
+	}, [paramsKey]);
 
 	useEffect(() => {
 		if (!isAuthenticated || !sessionToken || !stripeUserId) {
@@ -110,17 +157,14 @@ const InfiniteCarList = ({ filterParams, layout = "list", fromDate, untilDate }:
 			.finally(() => setDatesReady(true));
 	}, [isAuthenticated, sessionToken, stripeUserId]);
 
-	// Cart items (any car) whose rental dates overlap the current browse range
 	const cartConflicts = (fromDate && untilDate)
 		? cartItems.filter((item) => cartItemOverlapsBrowse(item, fromDate, untilDate))
 		: [];
 
 	const getCartInfo = (car: Car): CartCardInfo => {
 		const cartItem = cartItems.find((c) => c.vin === car.vin);
-		// Conflicts are other cars (not this one) in the cart overlapping the browse range
 		const conflicts = cartConflicts.filter((c) => c.vin !== car.vin);
 
-		// Check if the user has an existing reservation for this car that overlaps the browse range
 		let userReserved = false;
 		if (fromDate && untilDate && userReservations.length > 0) {
 			const browseFrom = new Date(fromDate).getTime();
@@ -136,7 +180,6 @@ const InfiniteCarList = ({ filterParams, layout = "list", fromDate, untilDate }:
 			userReserved,
 		};
 	};
-
 
 	const fetchNextPage = useCallback(async () => {
 		if (loadingRef.current || !hasMoreRef.current) {
@@ -162,12 +205,10 @@ const InfiniteCarList = ({ filterParams, layout = "list", fromDate, untilDate }:
 			fetchNextPageRef.current();
 		}
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [JSON.stringify(filterParams)]);
+	}, [paramsKey]);
 
-	// Keep the ref up-to-date so the observer always calls the latest version
 	useEffect(() => { fetchNextPageRef.current = fetchNextPage; }, [fetchNextPage]);
 
-	// Set up observer once — use ref so it never needs to reconnect
 	useEffect(() => {
 		const observer = new IntersectionObserver(
 			(entries) => { if (entries[0].isIntersecting) fetchNextPageRef.current(); },
@@ -177,7 +218,6 @@ const InfiniteCarList = ({ filterParams, layout = "list", fromDate, untilDate }:
 		return () => observer.disconnect();
 	}, []);
 
-	// Client-side availability filter
 	const filterCar = (car: Car) => {
 		if (!availabilityFilter || !fromDate || !untilDate) return true;
 		const { status } = getAvailability(car, fromDate, untilDate);
@@ -188,7 +228,6 @@ const InfiniteCarList = ({ filterParams, layout = "list", fromDate, untilDate }:
 
 	const visibleCars = cars.filter(filterCar);
 
-	// If all loaded cars are filtered out and more pages exist, auto-fetch
 	useEffect(() => {
 		if (availabilityFilter && fromDate && untilDate && visibleCars.length === 0 && hasMore && !loading) {
 			fetchNextPage();
@@ -196,7 +235,6 @@ const InfiniteCarList = ({ filterParams, layout = "list", fromDate, untilDate }:
 	}, [visibleCars.length, hasMore, loading]);
 
 	const isList = layout === "list" && !isSmall;
-	const skeletonCount = filterParams.pageSize ?? PAGE_SIZE;
 
 	return (
 		<>

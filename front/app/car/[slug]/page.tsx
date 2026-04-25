@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { getCarAndReviews } from "./actions";
 import { Car } from "@/app/types/CarTypes";
 import { Review } from "@/app/types/ReviewTypes";
@@ -5,6 +6,7 @@ import LeftColumn from "./components/layout/leftColumn";
 import RightColumn from "./components/layout/rightColumn";
 import ImageView from "./components/media/imageView";
 import BackButton from "./components/layout/backButton";
+import SimilarCars, { SimilarCarsSkeleton } from "./components/layout/SimilarCars";
 import MainBodyContainer from "@/app/components/containers/mainBodyContainer";
 import NavHeader from "@/app/components/headers/navHeader";
 import PageFooter from "@/app/components/footer/PageFooter";
@@ -17,14 +19,16 @@ const CarPage = async ({ params }: { params: Promise<{ slug: string }> }) => {
 
 	return (
 		<div>
-			<NavHeader white={false} />
+			<NavHeader white={false} leftSlot={<BackButton />} />
 			<MainBodyContainer className="mt-[20px]">
-				<BackButton />
 				<ImageView images={carData.images} />
 				<div className={styles.twoColRow}>
 					<LeftColumn carData={carData} reviews={reviews} />
 					<RightColumn carData={carData} />
 				</div>
+				<Suspense fallback={<SimilarCarsSkeleton />}>
+					<SimilarCars make={carData.make} excludeVin={carData.vin} />
+				</Suspense>
 			</MainBodyContainer>
 			<PageFooter />
 		</div>

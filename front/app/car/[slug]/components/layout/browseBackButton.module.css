@@ -1,0 +1,27 @@
+.browseBackBtn {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 11pt;
+    font-weight: 500;
+    color: color-mix(in srgb, var(--color-accent) 80%, transparent);
+    border: 1px solid transparent;
+    border-radius: 1rem;
+    padding: 8px 12px;
+    background: none;
+    cursor: pointer;
+    transition: background-color 150ms, border-color 150ms;
+    white-space: nowrap;
+    flex-shrink: 0;
+    text-decoration: none;
+}
+
+.browseBackBtn:hover {
+    background-color: var(--color-primary-dark);
+    border-color: color-mix(in srgb, var(--color-third) 70%, transparent);
+}
+
+.browseBackBtnIcon {
+    font-size: 16pt;
+    flex-shrink: 0;
+}
