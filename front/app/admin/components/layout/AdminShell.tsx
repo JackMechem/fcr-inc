@@ -12,6 +12,7 @@ import ReservationsPanel from "../panels/ReservationsPanel";
 import UsersPanel from "../panels/UsersPanel";
 import UserProfilesPanel from "../panels/UserProfilesPanel";
 import { useAdminSidebarStore } from "@/stores/adminSidebarStore";
+import SessionSwitcher from "./SessionSwitcher";
 import { useWindowSize } from "@/app/hooks/useWindowSize";
 import { useUserDashboardStore } from "@/stores/userDashboardStore";
 
@@ -49,7 +50,7 @@ export default function AdminShell() {
                     </div>
                 );
             case "view-data":
-                return <InventoryPanel role={role ?? ""} />;
+                return <InventoryPanel />;
             case "view-reservations":
                 return <ReservationsPanel />;
             case "view-accounts":
@@ -90,6 +91,7 @@ export default function AdminShell() {
                     flexDirection: "column" as const,
                     gap: 8,
                 }}>
+                    <SessionSwitcher />
                     {role === "ADMIN" && (
                         <div style={{
                             flexShrink: 0,

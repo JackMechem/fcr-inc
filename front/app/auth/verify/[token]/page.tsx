@@ -35,8 +35,11 @@ export default function VerifyPage() {
                     if (data.userId != null) {
                         Cookies.set("stripe-user-id", String(data.userId), { path: "/", expires: exp });
                     }
+                    const addingAccount = sessionStorage.getItem("add-account") === "1";
+                    if (addingAccount) sessionStorage.removeItem("add-account");
                     setStatus("success");
-                    setTimeout(() => router.replace("/dashboard"), 1200);
+                    const redirect = addingAccount && isPrivileged ? "/admin" : "/dashboard";
+                    setTimeout(() => router.replace(redirect), 1200);
                 } else {
                     setStatus("error");
                 }

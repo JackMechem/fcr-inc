@@ -3,10 +3,21 @@
 import { useState, useEffect, useCallback } from "react";
 import { User } from "@/app/lib/fcr-client";
 import { getUsers, createUser, deleteUser, updateUser } from "../../actions";
-import { useUserDashboardStore } from "@/stores/userDashboardStore";
 import SpreadsheetTable, { Column, RowEdit } from "../table/SpreadsheetTable";
+import { useTablePermissions } from "../../config/useTablePermissions";
+import { ActiveFilter, FilterableColumn, filtersToRecord } from "../table/FilterPanel";
+import { useTablePrefsStore } from "@/stores/tablePrefsStore";
 import styles from "../table/spreadsheetTable.module.css";
+
+const TABLE_TITLE = "Users Database";
+const EMPTY_FILTERS: ActiveFilter[] = [];
 import { BiSave, BiX, BiRefresh } from "react-icons/bi";
+
+const FILTERABLE_COLUMNS: FilterableColumn[] = [
+    { field: "firstName", label: "First Name", type: "text" },
+    { field: "lastName",  label: "Last Name",  type: "text" },
+    { field: "email",     label: "Email",      type: "text" },
+];
 
 // ── Helpers ──────────────────────────────────────────���───────────────────────
 
@@ -179,9 +190,7 @@ const EditForm = ({ user, onSave, onCancel }: EditFormProps) => {
 // ── Panel ────────────────────────────────────────────────────────────────────
 
 const UserProfilesPanel = () => {
-    const { role } = useUserDashboardStore();
-    const isAdmin = role === "ADMIN";
-    const canEdit = role === "STAFF" || isAdmin;
+    const { isAdmin, canEdit, canDelete, canAddRow, lockedCols, permanentlyLockedCols } = useTablePermissions("users");
 
     const [users, setUsers] = useState<User[]>([]);
     const [page, setPage] = useState(1);
@@ -196,14 +205,23 @@ const UserProfilesPanel = () => {
     const [editing, setEditing] = useState<User | null>(null);
     const [sortBy, setSortBy] = useState<string | null>(null);
     const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+    const storedFilters = useTablePrefsStore((s) => s.tableFilters[TABLE_TITLE]);
+    const storeSetFilters = useTablePrefsStore((s) => s.setTableFilters);
+    const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>((storedFilters ?? EMPTY_FILTERS) as ActiveFilter[]);
+    const handleFiltersChange = (f: ActiveFilter[]) => { setActiveFilters(f); storeSetFilters(TABLE_TITLE, f); };
 
-    const fetchPage = useCallback(async (p: number, ps: number, sb: string | null, sd: "asc" | "desc", isRefresh = false) => {
+    const fetchPage = useCallback(async (p: number, ps: number, sb: string | null, sd: "asc" | "desc", filters: ActiveFilter[] = [], isRefresh = false) => {
         if (isRefresh) setRefreshing(true); else setLoading(true);
         try {
-            const res = await getUsers({ page: p, pageSize: ps, sortBy: sb ?? undefined, sortDir: sd });
-            setUsers(res.data);
-            setTotalPages(res.totalPages);
-            setTotalItems(res.totalItems);
+            const params = new URLSearchParams({ page: String(p), pageSize: String(ps) });
+            if (sb) { params.set("sortBy", sb); params.set("sortDir", sd); }
+            Object.entries(filtersToRecord(filters)).forEach(([k, v]) => { if (v !== undefined) params.set(k, String(v)); });
+            const res = await fetch(`/api/users?${params}`, { cache: "no-store" });
+            if (!res.ok) throw new Error(`${res.status}`);
+            const data = await res.json();
+            setUsers(data?.data ?? []);
+            setTotalPages(data?.totalPages ?? 1);
+            setTotalItems(data?.totalItems ?? 0);
         } catch (e) {
             alert("Failed to fetch users: " + e);
         } finally {
@@ -212,15 +230,16 @@ const UserProfilesPanel = () => {
         }
     }, []);
 
-    useEffect(() => { fetchPage(page, pageSize, sortBy, sortDir); }, [page, pageSize, fetchPage]);
+    useEffect(() => { fetchPage(page, pageSize, sortBy, sortDir, activeFilters); }, [page, pageSize, fetchPage]);
+    useEffect(() => { setPage(1); fetchPage(1, pageSize, sortBy, sortDir, activeFilters); }, [activeFilters]);
 
     const handlePageChange = (p: number) => { setPage(p); setSelected(new Set()); };
     const handlePageSizeChange = (ps: number) => { setPageSize(ps); setPage(1); setSelected(new Set()); };
-    const handleRefresh = () => fetchPage(page, pageSize, sortBy, sortDir, true);
+    const handleRefresh = () => fetchPage(page, pageSize, sortBy, sortDir, activeFilters, true);
 
     const handleSortChange = (col: string, dir: "asc" | "desc") => {
         setSortBy(col); setSortDir(dir); setPage(1);
-        fetchPage(1, pageSize, col, dir);
+        fetchPage(1, pageSize, col, dir, activeFilters);
     };
 
     const handleBulkDelete = async () => {
@@ -232,7 +251,7 @@ const UserProfilesPanel = () => {
         setBulkDeleting(false);
         if (failed.length) alert(`${failed.length} deletion(s) failed.`);
         setSelected(new Set(failed));
-        fetchPage(page, pageSize, sortBy, sortDir, true);
+        fetchPage(page, pageSize, sortBy, sortDir, activeFilters, true);
     };
 
     const handleEdit = (user: User) => {
@@ -244,7 +263,7 @@ const UserProfilesPanel = () => {
         if (!window.confirm(`Delete user #${user.userId} (${user.firstName} ${user.lastName})? This cannot be undone.`)) return;
         try {
             await deleteUser(user.userId);
-            fetchPage(page, pageSize, sortBy, sortDir, true);
+            fetchPage(page, pageSize, sortBy, sortDir, activeFilters, true);
         } catch (e) {
             alert("Delete failed: " + e);
         }
@@ -267,7 +286,7 @@ const UserProfilesPanel = () => {
             };
         }
         await createUser(payload);
-        fetchPage(page, pageSize, sortBy, sortDir, true);
+        fetchPage(page, pageSize, sortBy, sortDir, activeFilters, true);
     };
 
     const handleSaveEdits = async (edits: RowEdit<User>[]) => {
@@ -289,14 +308,14 @@ const UserProfilesPanel = () => {
             }
             return updateUser(original.userId, userPatch);
         }));
-        fetchPage(page, pageSize, sortBy, sortDir, true);
+        fetchPage(page, pageSize, sortBy, sortDir, activeFilters, true);
     };
 
     const handleSaveEdit = async (patch: Partial<Pick<User, "firstName" | "lastName" | "email" | "phoneNumber" | "address" | "driversLicense">>) => {
         if (!editing) return;
         await updateUser(editing.userId, patch);
         setEditing(null);
-        fetchPage(page, pageSize, sortBy, sortDir, true);
+        fetchPage(page, pageSize, sortBy, sortDir, activeFilters, true);
     };
 
     const filtered = query
@@ -324,19 +343,24 @@ const UserProfilesPanel = () => {
                 isAdmin={isAdmin}
                 selected={selected}
                 onSelectionChange={setSelected}
-                onBulkDelete={handleBulkDelete}
+                onBulkDelete={canDelete ? handleBulkDelete : undefined}
                 bulkDeleting={bulkDeleting}
                 onEdit={handleEdit}
-                onDeleteOne={handleDeleteOne}
+                onDeleteOne={canDelete ? handleDeleteOne : undefined}
                 onRefresh={handleRefresh}
-                title="User Database"
+                filterableColumns={FILTERABLE_COLUMNS}
+                activeFilters={activeFilters}
+                onFiltersChange={handleFiltersChange}
+                title="Users Database"
                 subtitle={query ? `${filtered.length} matching on this page` : undefined}
                 searchQuery={query}
                 onSearchChange={setQuery}
                 searchPlaceholder="Filter by name, email, ID or phone\u2026"
                 emptyMessage="No users found."
-                onSaveEdits={isAdmin ? handleSaveEdits : undefined}
-                onCreateRow={isAdmin ? handleCreateRow : undefined}
+                onSaveEdits={canEdit ? handleSaveEdits : undefined}
+                onCreateRow={canAddRow ? handleCreateRow : undefined}
+                initialLockedCols={lockedCols}
+                permanentlyLockedCols={permanentlyLockedCols}
                 sortBy={sortBy}
                 sortDir={sortDir}
                 onSortChange={handleSortChange}

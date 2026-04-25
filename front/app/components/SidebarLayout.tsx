@@ -5,6 +5,9 @@ import { usePathname } from "next/navigation";
 import { useSidebarStore } from "@/stores/sidebarStore";
 import HeaderMenu from "./menus/headerMenu";
 import FilterSidebar from "./menus/filterSidebar";
+import DevConsole from "./menus/DevConsole";
+import DevConsoleProvider from "./DevConsoleProvider";
+import { useDevConsoleStore } from "@/stores/devConsoleStore";
 import { useWindowSize } from "@/app/hooks/useWindowSize";
 import styles from "./SidebarLayout.module.css";
 
@@ -17,14 +20,22 @@ const SidebarLayout = ({ children }: { children: React.ReactNode }) => {
     }, [pathname]);
 
     const { openPanel } = useSidebarStore();
+    const devConsolePanelWidth = useDevConsoleStore((s) => s.panelWidth);
     const { width } = useWindowSize();
-    const pushContent = openPanel && (width === undefined || width >= 1300);
+    const isDesktop = width === undefined || width >= 1300;
+    const pushWidth =
+        openPanel === "devConsole"
+            ? devConsolePanelWidth
+            : openPanel
+                ? 380
+                : 0;
+    const pushContent = isDesktop ? pushWidth : 0;
 
     return (
         <div className={styles.root}>
             <div
                 className={styles.content}
-                style={{ marginRight: pushContent ? 380 : 0 }}
+                style={{ marginRight: pushContent }}
             >
                 {children}
             </div>
@@ -33,6 +44,8 @@ const SidebarLayout = ({ children }: { children: React.ReactNode }) => {
             <Suspense>
                 <FilterSidebar />
             </Suspense>
+            <DevConsole />
+            <DevConsoleProvider />
         </div>
     );
 };

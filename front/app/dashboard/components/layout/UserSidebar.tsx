@@ -5,7 +5,7 @@ import { useWindowSize } from "@/app/hooks/useWindowSize";
 import {
     BiCalendar, BiUser, BiChevronLeft, BiChevronRight, BiChevronDown,
     BiLogOut, BiCar, BiPlus, BiEdit, BiTable, BiGridAlt, BiShieldQuarter,
-    BiStar, BiBookmark, BiX, BiMenu,
+    BiStar, BiBookmark, BiX, BiMenu, BiSlider, BiReceipt,
 } from "react-icons/bi";
 import { useState, useEffect } from "react";
 import Cookies from "js-cookie";
@@ -74,12 +74,23 @@ const ADMIN_SECTIONS: NavSection[] = [
             { icon: <BiTable />, label: "View Data", view: "view-bookmarks" },
         ],
     },
+    {
+        id: "payments",
+        icon: <BiReceipt />,
+        label: "Payments",
+        items: [
+            { icon: <BiPlus />,  label: "Create Invoice", view: "create-invoice" },
+            { icon: <BiTable />, label: "View Payments",  view: "view-payments"  },
+        ],
+    },
 ];
 
 const ADMIN_VIEWS = new Set<UserDashboardView>([
     "admin-dashboard", "add-car", "edit-car", "view-data",
     "view-reservations", "view-accounts", "view-users",
     "view-reviews", "view-bookmarks",
+    "view-permissions-admin", "view-permissions-staff",
+    "create-invoice", "view-payments",
 ]);
 
 const DesktopSidebar = () => {
@@ -94,7 +105,8 @@ const DesktopSidebar = () => {
     const flyoutTimer = useState<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
-        const sectionId = ADMIN_SECTIONS.find((s) => s.items.some((i) => i.view === activeView))?.id;
+        const sectionId = ADMIN_SECTIONS.find((s) => s.items.some((i) => i.view === activeView))?.id
+            ?? (activeView === "view-permissions-admin" || activeView === "view-permissions-staff" ? "permissions" : undefined);
         if (sectionId) setOpenSection(sectionId);
     }, [activeView]);
 
@@ -145,6 +157,43 @@ const DesktopSidebar = () => {
                             >
                                 <span className={styles.collapsedBtnIcon}><BiShieldQuarter /></span>
                             </button>
+                            {role === "ADMIN" && (
+                                <div className={styles.collapsedIconWrap}
+                                    onMouseEnter={() => openFlyout("permissions")}
+                                    onMouseLeave={closeFlyout}
+                                >
+                                    <button
+                                        className={`${styles.collapsedIconBtn} ${(activeView === "view-permissions-admin" || activeView === "view-permissions-staff") ? styles.collapsedIconBtnActive : ""}`}
+                                    >
+                                        <span className={styles.collapsedBtnIcon}><BiSlider /></span>
+                                    </button>
+                                    {flyout === "permissions" && (
+                                        <div
+                                            className={styles.flyout}
+                                            onMouseEnter={keepFlyout}
+                                            onMouseLeave={closeFlyout}
+                                        >
+                                            <p className={styles.flyoutLabel}>Permissions</p>
+                                            {(["view-permissions-admin", "view-permissions-staff"] as const).map((v) => {
+                                                const label = v === "view-permissions-admin" ? "Admin" : "Staff";
+                                                const isActive = activeView === v;
+                                                return (
+                                                    <button
+                                                        key={v}
+                                                        onClick={() => { setActiveView(v); setFlyout(null); }}
+                                                        className={`${styles.flyoutItem} ${isActive ? styles.flyoutItemActive : ""}`}
+                                                    >
+                                                        <span className={`${styles.flyoutItemIcon} ${isActive ? styles.flyoutItemIconActive : ""}`}>
+                                                            <BiSlider />
+                                                        </span>
+                                                        <span className={styles.flyoutItemLabel}>{label}</span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                             {ADMIN_SECTIONS.map((s) => {
                                 const sectionActive = s.items.some((i) => i.view === activeView);
                                 return (
@@ -281,8 +330,46 @@ const DesktopSidebar = () => {
                                         </div>
                                     );
                                 })}
+                                {role === "ADMIN" && (() => {
+                                    const permViews = ["view-permissions-admin", "view-permissions-staff"] as const;
+                                    const isOpen = openSection === "permissions";
+                                    const hasActive = permViews.some((v) => v === activeView);
+                                    return (
+                                        <div className={`${styles.navSection} ${isOpen ? styles.navSectionOpen : ""}`}>
+                                            <button
+                                                onClick={() => handleSection("permissions")}
+                                                className={`${styles.sectionBtn} ${isOpen || hasActive ? styles.sectionBtnOpen : ""}`}
+                                            >
+                                                <span className={styles.sectionBtnIcon}><BiSlider /></span>
+                                                <span className={styles.sectionBtnLabel}>Permissions</span>
+                                                <BiChevronDown className={`${styles.sectionChevron} ${isOpen ? styles.sectionChevronOpen : ""}`} />
+                                            </button>
+                                            <div className={`${styles.subItemsWrap} ${isOpen ? styles.subItemsWrapOpen : ""}`}>
+                                                <div className={styles.subItems}>
+                                                    {permViews.map((v) => {
+                                                        const label = v === "view-permissions-admin" ? "Admin" : "Staff";
+                                                        const isActive = activeView === v;
+                                                        return (
+                                                            <button
+                                                                key={v}
+                                                                onClick={() => setActiveView(v)}
+                                                                className={`${styles.subItem} ${isActive ? styles.subItemActive : ""}`}
+                                                            >
+                                                                <span className={`${styles.subItemIcon} ${isActive ? styles.subItemIconActive : ""}`}>
+                                                                    <BiSlider />
+                                                                </span>
+                                                                <span className={styles.subItemLabel}>{label}</span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
                         </>
                     )}
+
                     </div>
 
                     {/* Admin warning */}
@@ -427,6 +514,43 @@ const MobileSidebar = () => {
                                         </div>
                                     );
                                 })}
+                                {role === "ADMIN" && (() => {
+                                    const permViews = ["view-permissions-admin", "view-permissions-staff"] as const;
+                                    const isOpen = openSection === "permissions";
+                                    const hasActive = permViews.some((v) => v === activeView);
+                                    return (
+                                        <div className={styles.navSection}>
+                                            <button
+                                                onClick={() => handleSection("permissions")}
+                                                className={`${styles.sectionBtn} ${isOpen || hasActive ? styles.sectionBtnOpen : ""}`}
+                                            >
+                                                <span className={styles.sectionBtnIcon}><BiSlider /></span>
+                                                <span className={styles.sectionBtnLabel}>Permissions</span>
+                                                <BiChevronDown className={`${styles.sectionChevron} ${isOpen ? styles.sectionChevronOpen : ""}`} />
+                                            </button>
+                                            {isOpen && (
+                                                <div className={styles.subItems}>
+                                                    {permViews.map((v) => {
+                                                        const label = v === "view-permissions-admin" ? "Admin" : "Staff";
+                                                        const isActive = activeView === v;
+                                                        return (
+                                                            <button
+                                                                key={v}
+                                                                onClick={() => pick(v)}
+                                                                className={`${styles.subItem} ${isActive ? styles.subItemActive : ""}`}
+                                                            >
+                                                                <span className={`${styles.subItemIcon} ${isActive ? styles.subItemIconActive : ""}`}>
+                                                                    <BiSlider />
+                                                                </span>
+                                                                <span className={styles.subItemLabel}>{label}</span>
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })()}
                             </>
                         )}
                     </div>

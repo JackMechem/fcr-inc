@@ -3,6 +3,9 @@ import { persist } from "zustand/middleware";
 
 export type AdminView = "add-car" | "edit-car" | "view-data" | "view-reservations" | "view-accounts" | "view-users" | null;
 
+// Views that are transient and should not be restored on refresh.
+const TRANSIENT_VIEWS: AdminView[] = ["add-car", "edit-car"];
+
 interface AdminSidebarStore {
     collapsed: boolean;
     activeView: AdminView;
@@ -30,7 +33,8 @@ export const useAdminSidebarStore = create<AdminSidebarStore>()(
             name: "admin-sidebar",
             partialize: (state) => ({
                 collapsed: state.collapsed,
-                activeView: state.activeView,
+                // Don't restore transient views (add/edit car) — fall back to dashboard.
+                activeView: TRANSIENT_VIEWS.includes(state.activeView) ? null : state.activeView,
             }),
         }
     )

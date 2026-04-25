@@ -1,0 +1,98 @@
+{
+    "cars": {
+        "admin": {
+            "canEdit": true,
+            "canDelete": true,
+            "canAddRow": true,
+            "lockedCols": [],
+            "permanentlyLockedCols": []
+        },
+        "staff": {
+            "canEdit": true,
+            "canDelete": true,
+            "canAddRow": true,
+            "lockedCols": ["pricePerDay", "imageUrls"],
+            "permanentlyLockedCols": ["vin"]
+        }
+    },
+    "accounts": {
+        "admin": {
+            "canEdit": true,
+            "canDelete": true,
+            "canAddRow": true,
+            "lockedCols": [],
+            "permanentlyLockedCols": []
+        },
+        "staff": {
+            "canEdit": true,
+            "canDelete": false,
+            "canAddRow": true,
+            "lockedCols": ["role", "email"],
+            "permanentlyLockedCols": []
+        }
+    },
+    "users": {
+        "admin": {
+            "canEdit": true,
+            "canDelete": true,
+            "canAddRow": true,
+            "lockedCols": [],
+            "permanentlyLockedCols": []
+        },
+        "staff": {
+            "canEdit": true,
+            "canDelete": false,
+            "canAddRow": true,
+            "lockedCols": [],
+            "permanentlyLockedCols": []
+        }
+    },
+    "reservations": {
+        "admin": {
+            "canEdit": true,
+            "canDelete": true,
+            "canAddRow": true,
+            "lockedCols": ["payments"],
+            "permanentlyLockedCols": []
+        },
+        "staff": {
+            "canEdit": true,
+            "canDelete": false,
+            "canAddRow": false,
+            "lockedCols": ["car", "userId", "payments"],
+            "permanentlyLockedCols": ["car", "userId"]
+        }
+    },
+    "reviews": {
+        "admin": {
+            "canEdit": true,
+            "canDelete": true,
+            "canAddRow": true,
+            "lockedCols": [],
+            "permanentlyLockedCols": []
+        },
+        "staff": {
+            "canEdit": true,
+            "canDelete": false,
+            "canAddRow": false,
+            "lockedCols": ["account", "car"],
+            "permanentlyLockedCols": ["account", "car"]
+        }
+    },
+    "payments": {
+        "admin": {
+            "canEdit": true,
+            "canDelete": true,
+            "canAddRow": false,
+            "lockedCols": [],
+            "permanentlyLockedCols": ["paymentId"]
+        },
+        "staff": {
+            "canEdit": false,
+            "canDelete": false,
+            "canAddRow": false,
+            "lockedCols": [],
+            "permanentlyLockedCols": ["paymentId"]
+        }
+    }
+}

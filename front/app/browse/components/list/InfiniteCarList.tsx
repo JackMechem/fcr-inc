@@ -6,6 +6,7 @@ import { useCartStore } from "@/stores/cartStore";
 import { useUserDashboardStore } from "@/stores/userDashboardStore";
 import { fetchCarsPage, getUserReservations } from "../../actions";
 import { getAvailability } from "@/app/lib/availability";
+import { isBrowseRedirectPending } from "@/app/lib/browseStorage";
 import CarCard from "@/app/components/cars/CarListCard";
 import CarGridCard from "@/app/components/cars/carGridCard";
 import styles from "./browseContent.module.css";
@@ -79,8 +80,13 @@ const InfiniteCarList = ({ filterParams, layout = "list", fromDate, untilDate }:
 	const { isAuthenticated, sessionToken, stripeUserId } = useUserDashboardStore();
 	const [userReservations, setUserReservations] = useState<UserReservation[]>([]);
 
-	// Fetch first page of cars client-side
+	// Fetch first page of cars client-side.
+	// Skip if BrowseParamsSync is about to redirect with restored params — the
+	// redirect will cause a re-render with the correct filterParams, so there's
+	// no point fetching with the current (incomplete) ones.
 	useEffect(() => {
+		if (isBrowseRedirectPending()) return;
+
 		setCarsLoading(true);
 		setCars([]);
 		setFact(randomFact());

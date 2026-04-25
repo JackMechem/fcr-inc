@@ -37,8 +37,11 @@ export default function ConfirmPage() {
                     }
                     const pendingEmail = sessionStorage.getItem("pending-auth-email");
                     if (pendingEmail) { setUserEmail(pendingEmail); sessionStorage.removeItem("pending-auth-email"); }
+                    const addingAccount = sessionStorage.getItem("add-account") === "1";
+                    if (addingAccount) sessionStorage.removeItem("add-account");
                     setStatus("success");
-                    setTimeout(() => router.replace("/dashboard"), 1200);
+                    const redirect = addingAccount && isPrivileged ? "/admin" : "/dashboard";
+                    setTimeout(() => router.replace(redirect), 1200);
                 } else {
                     setStatus("error");
                 }

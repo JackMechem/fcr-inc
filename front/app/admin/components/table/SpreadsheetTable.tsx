@@ -30,12 +30,16 @@ import {
     BiLinkExternal,
     BiPlus,
     BiImages,
+    BiFilter,
 } from "react-icons/bi";
-import { PiSortAscending, PiSortDescending } from "react-icons/pi";
+import { PiSortAscending, PiSortDescending, PiSparkleFill } from "react-icons/pi";
 import ReactMarkdown from "react-markdown";
 import { format as dateFnsFormat } from "date-fns";
 import DatePicker from "@/app/components/DatePicker";
 import styles from "./spreadsheetTable.module.css";
+import { useTablePrefsStore } from "@/stores/tablePrefsStore";
+import FilterPanel, { FilterableColumn, ActiveFilter, formatFilterLabel } from "./FilterPanel";
+export type { FilterableColumn, ActiveFilter } from "./FilterPanel";
 
 // ── Public types ─────────────────────────────────────────────────────────────
 
@@ -56,6 +60,13 @@ export interface Column<T> {
     sortKey?: string;
     // AI auto-fill for markdown columns
     aiGenerate?: (item: T) => Promise<string>;
+    // Always show this column as an editable field in the new-row form,
+    // even when the column is hidden in the main table.
+    newRowVisible?: boolean;
+    // Permanently locked — cannot be unlocked by the user (e.g. primary-key columns).
+    locked?: boolean;
+    // Allow editing this column in the new-row form even when it is locked.
+    newRowEditable?: boolean;
 }
 
 export interface RowEdit<T> {
@@ -125,6 +136,18 @@ export interface SpreadsheetTableProps<T> {
     onSortChange?: (col: string, dir: "asc" | "desc") => void;
     // New row creation
     onCreateRow?: (data: Record<string, string | string[]>) => Promise<void>;
+    // Keys that must be non-empty before new-row AI generation is allowed
+    aiRequiredFields?: string[];
+    // Column keys that should start locked by default (can be toggled by user).
+    // Columns with col.locked=true are always locked regardless of this.
+    initialLockedCols?: string[];
+    // Column keys that non-admins cannot unlock (admins can still toggle them).
+    // These columns are still editable in the new-row form when onCreateRow is provided.
+    permanentlyLockedCols?: string[];
+    // Server-side filters
+    filterableColumns?: FilterableColumn[];
+    activeFilters?: ActiveFilter[];
+    onFiltersChange?: (filters: ActiveFilter[]) => void;
 }
 
 // ── Row action menu ──────────────────────────────────────────────────────────
@@ -189,7 +212,7 @@ function RowActionMenu<T>({
                             <BiEdit /> Edit
                         </button>
                     )}
-                    {isAdmin && onDelete && (
+                    {onDelete && (
                         <button
                             className={`${styles.ctxItem} ${styles.rowMenuDanger}`}
                             onClick={() => { setOpen(false); onDelete(item); }}
@@ -273,6 +296,7 @@ interface ContextMenuState {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     rowItem: any;
     cellText: string;
+    isNewRow?: boolean;
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -312,11 +336,57 @@ export default function SpreadsheetTable<T>({
     renderPreview,
     getRowLink,
     onCreateRow,
+    aiRequiredFields,
+    initialLockedCols,
+    permanentlyLockedCols,
+    filterableColumns,
+    activeFilters,
+    onFiltersChange,
 }: SpreadsheetTableProps<T>) {
-    // Column visibility
-    const [visibleCols, setVisibleCols] = useState<Set<string>>(
-        () => new Set(columns.filter((c) => c.defaultVisible).map((c) => c.key)),
-    );
+    const { visibleCols: savedVisibleCols, colWidths: savedColWidths, colOrder: savedColOrder, lockedCols: savedLockedCols,
+            setVisibleCols: saveVisibleCols, setColWidths: saveColWidths, setColOrder: saveColOrder, setLockedCols: saveLockedCols } = useTablePrefsStore();
+
+    // Column visibility — initialized from persisted prefs, falling back to defaultVisible.
+    // Columns with newRowVisible:true are only shown in the add-row form, never in the main table.
+    const [visibleCols, setVisibleCols] = useState<Set<string>>(() => {
+        const saved = savedVisibleCols[title];
+        if (saved && saved.length > 0) {
+            const validKeys = new Set(columns.filter((c) => !c.newRowVisible).map((c) => c.key));
+            const filtered = saved.filter((k) => validKeys.has(k));
+            if (filtered.length > 0) return new Set(filtered);
+        }
+        return new Set(columns.filter((c) => c.defaultVisible && !c.newRowVisible).map((c) => c.key));
+    });
+
+    // User-toggled column locks (persisted).
+    // col.locked = admin-toggleable hardcoded lock (non-admins cannot toggle).
+    // permanentlyLockedCols = config-driven locks that nobody can toggle, including admins.
+    const isHardLocked = (key: string) => !!(permanentlyLockedCols?.includes(key));
+    const isAdminOnlyLocked = (key: string) => !!(columns.find((c) => c.key === key)?.locked);
+    const isPermanentForRole = (key: string) => isHardLocked(key) || (!isAdmin && isAdminOnlyLocked(key));
+    const [userLockedCols, setUserLockedColsState] = useState<Set<string>>(() => {
+        const permanentKeys = [
+            ...columns.filter((c) => c.locked).map((c) => c.key),
+            ...(permanentlyLockedCols ?? []),
+        ];
+        const saved = savedLockedCols[title];
+        if (saved) {
+            const s = new Set(saved);
+            // Always enforce hard locks; non-admins also get col.locked enforced
+            permanentKeys.forEach((k) => s.add(k));
+            return s;
+        }
+        return new Set([...(initialLockedCols ?? []), ...permanentKeys]);
+    });
+    const isColLocked = (key: string) => isHardLocked(key) || userLockedCols.has(key);
+    const toggleColLock = (key: string) => {
+        if (isPermanentForRole(key)) return;
+        const next = new Set(userLockedCols);
+        next.has(key) ? next.delete(key) : next.add(key);
+        setUserLockedColsState(next);
+        saveLockedCols(title, [...next]);
+    };
+
     const [colMenuOpen, setColMenuOpen] = useState(false);
     const menuBtnRef = useRef<HTMLButtonElement>(null);
     const colMenuRef = useRef<HTMLDivElement>(null);
@@ -342,9 +412,10 @@ export default function SpreadsheetTable<T>({
         return () => { document.removeEventListener("mousedown", handler); document.removeEventListener("keydown", keyHandler); };
     }, [searchOpen]);
 
-    const openSearch = () => {
-        if (searchBtnRef.current) {
-            const r = searchBtnRef.current.getBoundingClientRect();
+    const openSearch = (anchor?: HTMLElement) => {
+        const el = anchor ?? searchBtnRef.current;
+        if (el) {
+            const r = el.getBoundingClientRect();
             setSearchPopupPos({ top: r.bottom + 6, right: window.innerWidth - r.right });
         }
         setSearchOpen((o) => !o);
@@ -362,10 +433,13 @@ export default function SpreadsheetTable<T>({
         return () => document.removeEventListener("mousedown", handler);
     }, [colMenuOpen]);
 
-    const openColMenu = () => {
-        if (!colMenuOpen && menuBtnRef.current) {
-            const r = menuBtnRef.current.getBoundingClientRect();
-            setColMenuPos({ top: r.bottom + 6, right: window.innerWidth - r.right });
+    const openColMenu = (anchor?: HTMLElement) => {
+        if (!colMenuOpen) {
+            const el = anchor ?? menuBtnRef.current;
+            if (el) {
+                const r = el.getBoundingClientRect();
+                setColMenuPos({ top: r.bottom + 6, right: window.innerWidth - r.right });
+            }
         }
         setColMenuOpen((o) => !o);
     };
@@ -390,25 +464,26 @@ export default function SpreadsheetTable<T>({
         });
     };
 
-    // Column order (drag-to-reorder, persisted to localStorage)
-    const colOrderKey = `col-order:${title}`;
+    // Sync visible cols to store whenever they change
+    useEffect(() => {
+        saveVisibleCols(title, [...visibleCols]);
+    }, [visibleCols]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Column order (drag-to-reorder, persisted via Zustand)
     const [colOrder, setColOrder] = useState<string[]>(() => {
         const defaultOrder = columns.map((c) => c.key);
-        try {
-            const saved = localStorage.getItem(colOrderKey);
-            if (saved) {
-                const parsed: string[] = JSON.parse(saved);
-                const kept = parsed.filter((k) => defaultOrder.includes(k));
-                const added = defaultOrder.filter((k) => !kept.includes(k));
-                return [...kept, ...added];
-            }
-        } catch {}
+        const saved = savedColOrder[title];
+        if (saved && saved.length > 0) {
+            const kept = saved.filter((k) => defaultOrder.includes(k));
+            const added = defaultOrder.filter((k) => !kept.includes(k));
+            return [...kept, ...added];
+        }
         return defaultOrder;
     });
 
     useEffect(() => {
-        try { localStorage.setItem(colOrderKey, JSON.stringify(colOrder)); } catch {}
-    }, [colOrder, colOrderKey]);
+        saveColOrder(title, colOrder);
+    }, [colOrder]); // eslint-disable-line react-hooks/exhaustive-deps
 
     useEffect(() => {
         setColOrder((prev) => {
@@ -423,7 +498,7 @@ export default function SpreadsheetTable<T>({
     const orderedColumns = colOrder
         .map((k) => columns.find((c) => c.key === k))
         .filter(Boolean) as Column<T>[];
-    const activeCols = orderedColumns.filter((c) => visibleCols.has(c.key));
+    const activeCols = orderedColumns.filter((c) => !c.newRowVisible && visibleCols.has(c.key));
 
     // Column menu drag-to-reorder
     const [menuDragKey, setMenuDragKey] = useState<string | null>(null);
@@ -516,8 +591,10 @@ export default function SpreadsheetTable<T>({
         setDragOverColIdx(i);
     };
 
-    // Column widths (resizable)
-    const [colWidths, setColWidths] = useState<Record<string, number>>({});
+    // Column widths (resizable, initialized from persisted prefs)
+    const [colWidths, setColWidths] = useState<Record<string, number>>(
+        () => savedColWidths[title] ?? {},
+    );
     const [stickyColWidth, setStickyColWidth] = useState<number | null>(null);
     const tableRef = useRef<HTMLTableElement>(null);
 
@@ -567,12 +644,14 @@ export default function SpreadsheetTable<T>({
             const lastCol = activeCols[activeCols.length - 1];
             const lastStartW = snap[lastCol.key];
             let prevW = lastStartW;
+            let finalSnap = snap;
 
             const onMove = (ev: MouseEvent) => {
                 const diff = ev.clientX - startX;
                 const lastW = Math.max(40, lastStartW - diff); // inverted
                 const delta = lastW - prevW;
                 prevW = lastW;
+                finalSnap = { ...finalSnap, [lastCol.key]: lastW };
                 setColWidths((prev) => ({ ...prev, [lastCol.key]: lastW }));
                 if (scrollContainerRef.current) {
                     scrollContainerRef.current.scrollLeft += delta;
@@ -581,6 +660,7 @@ export default function SpreadsheetTable<T>({
             const onUp = () => {
                 document.removeEventListener("mousemove", onMove);
                 document.removeEventListener("mouseup", onUp);
+                saveColWidths(title, finalSnap);
             };
             document.addEventListener("mousemove", onMove);
             document.addEventListener("mouseup", onUp);
@@ -589,16 +669,18 @@ export default function SpreadsheetTable<T>({
 
         const leftKey = activeCols[colIdx].key;
         const leftStartW = snap[leftKey];
+        let finalLeftW = leftStartW;
 
         const onMove = (ev: MouseEvent) => {
             const diff = ev.clientX - startX;
-            const leftW = Math.max(40, leftStartW + diff);
-            setColWidths((prev) => ({ ...prev, [leftKey]: leftW }));
+            finalLeftW = Math.max(40, leftStartW + diff);
+            setColWidths((prev) => ({ ...prev, [leftKey]: finalLeftW }));
         };
 
         const onUp = () => {
             document.removeEventListener("mousemove", onMove);
             document.removeEventListener("mouseup", onUp);
+            saveColWidths(title, { ...snap, [leftKey]: finalLeftW });
         };
 
         document.addEventListener("mousemove", onMove);
@@ -649,11 +731,24 @@ export default function SpreadsheetTable<T>({
         return () => document.removeEventListener("mousedown", handler);
     }, [ctxMenu]);
 
-    const handleContextMenu = (e: React.MouseEvent, colKey: string, rowItem: T | null) => {
+    // Clamp context menu to viewport after it renders
+    useEffect(() => {
+        if (!ctxMenu || !ctxRef.current) return;
+        const rect = ctxRef.current.getBoundingClientRect();
+        const pad = 6;
+        let x = ctxMenu.x;
+        let y = ctxMenu.y;
+        if (rect.right > window.innerWidth - pad) x = window.innerWidth - rect.width - pad;
+        if (rect.bottom > window.innerHeight - pad) y = window.innerHeight - rect.height - pad;
+        if (x !== ctxMenu.x || y !== ctxMenu.y) setCtxMenu((prev) => prev ? { ...prev, x, y } : null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [ctxMenu?.x, ctxMenu?.y]);
+
+    const handleContextMenu = (e: React.MouseEvent, colKey: string, rowItem: T | null, isNewRow = false) => {
         e.preventDefault();
         const td = (e.target as HTMLElement).closest("td, th");
         const cellText = td?.textContent?.trim() ?? "";
-        setCtxMenu({ x: e.clientX, y: e.clientY, colKey, rowItem: rowItem as unknown, cellText });
+        setCtxMenu({ x: e.clientX, y: e.clientY, colKey, rowItem: rowItem as unknown, cellText, isNewRow });
     };
 
     const closeCtx = () => setCtxMenu(null);
@@ -700,6 +795,25 @@ export default function SpreadsheetTable<T>({
     const [editingCell, setEditingCell] = useState<{ id: string | number; colKey: string } | null>(null);
     const [editingCellValue, setEditingCellValue] = useState<string>("");
     const suppressNextBlurRef = useRef(false);
+    const editingCellElRef = useRef<HTMLTableCellElement | null>(null);
+    const [editingCellPos, setEditingCellPos] = useState<{ top: number; left: number } | null>(null);
+
+    const measureEditingCell = useCallback(() => {
+        if (!editingCellElRef.current) return;
+        const r = editingCellElRef.current.getBoundingClientRect();
+        setEditingCellPos({ top: r.top, left: r.right });
+    }, []);
+
+    useEffect(() => {
+        if (!editingCell) { setEditingCellPos(null); return; }
+        measureEditingCell();
+        window.addEventListener("scroll", measureEditingCell, true);
+        window.addEventListener("resize", measureEditingCell);
+        return () => {
+            window.removeEventListener("scroll", measureEditingCell, true);
+            window.removeEventListener("resize", measureEditingCell);
+        };
+    }, [editingCell, measureEditingCell]);
 
     const ctxEditCell = () => {
         if (!ctxMenu?.rowItem || !onSaveEdits) return;
@@ -727,9 +841,15 @@ export default function SpreadsheetTable<T>({
     };
 
     const ctxAiFillCell = async () => {
-        if (!ctxMenu?.rowItem || !onSaveEdits || ctxAiLoading) return;
+        if (!ctxMenu || ctxAiLoading) return;
         const col = columns.find((c) => c.key === ctxMenu.colKey);
         if (!col?.editable || !col.aiGenerate) return;
+        if (ctxMenu.isNewRow) {
+            closeCtx();
+            handleNewRowAiGenerate(col);
+            return;
+        }
+        if (!ctxMenu.rowItem || !onSaveEdits) return;
         const item = ctxMenu.rowItem as T;
         const id = getRowId(item);
         setCtxAiLoading(true);
@@ -748,6 +868,52 @@ export default function SpreadsheetTable<T>({
             setCtxAiLoading(false);
             closeCtx();
         }
+    };
+
+    const handleNewRowAiGenerate = async (col: Column<T>) => {
+        if (!col.aiGenerate || newRowAiLoading[col.key]) return;
+        setNewRowAiLoading((prev) => ({ ...prev, [col.key]: true }));
+        try {
+            const result = await col.aiGenerate(newRowValues as unknown as T);
+            if (col.editType === "tags") {
+                const match = result.match(/\[[\s\S]*\]/);
+                const tags: string[] = match ? JSON.parse(match[0]) : [];
+                setNewRowValues((prev) => ({ ...prev, [col.key]: tags }));
+            } else {
+                setNewRowValues((prev) => ({ ...prev, [col.key]: result }));
+            }
+        } catch (e) {
+            alert("AI error: " + e);
+        } finally {
+            setNewRowAiLoading((prev) => ({ ...prev, [col.key]: false }));
+        }
+    };
+
+    const handleFillRowWithAi = async () => {
+        if (fillRowAiLoading || !newRowAiReady) return;
+        const aiCols = columns.filter((c) => c.editable && c.aiGenerate && c.editType !== "images");
+        if (aiCols.length === 0) return;
+        setFillRowAiLoading(true);
+        setNewRowAiLoading(Object.fromEntries(aiCols.map((c) => [c.key, true])));
+        const partialItem = newRowValues as unknown as T;
+        const results = await Promise.allSettled(
+            aiCols.map(async (col) => ({ col, result: await col.aiGenerate!(partialItem) }))
+        );
+        const updates: Record<string, string | string[]> = {};
+        for (const r of results) {
+            if (r.status === "fulfilled") {
+                const { col, result } = r.value;
+                if (col.editType === "tags") {
+                    const match = result.match(/\[[\s\S]*\]/);
+                    updates[col.key] = match ? JSON.parse(match[0]) : [];
+                } else {
+                    updates[col.key] = result;
+                }
+            }
+        }
+        setNewRowValues((prev) => ({ ...prev, ...updates }));
+        setNewRowAiLoading({});
+        setFillRowAiLoading(false);
     };
 
     const saveCellEdit = (andMoveDown = false) => {
@@ -787,6 +953,7 @@ export default function SpreadsheetTable<T>({
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const [mobileMenuPos, setMobileMenuPos] = useState({ top: 0, right: 0 });
     const mobileMenuRef = useRef<HTMLDivElement>(null);
+    const mobileBtnRef = useRef<HTMLButtonElement>(null);
 
     useEffect(() => {
         if (!mobileMenuOpen) return;
@@ -840,6 +1007,14 @@ export default function SpreadsheetTable<T>({
     // ── New row draft ────────────────────────────────────────────────────
     const [newRowOpen, setNewRowOpen] = useState(false);
     const [newRowValues, setNewRowValues] = useState<Record<string, string | string[]>>({});
+    const [newRowAiLoading, setNewRowAiLoading] = useState<Record<string, boolean>>({});
+    const [fillRowAiLoading, setFillRowAiLoading] = useState(false);
+
+    // AI is gated on required fields being filled (e.g. VIN, make, model, year for cars)
+    const newRowAiReady = !aiRequiredFields || aiRequiredFields.every((key) => {
+        const val = newRowValues[key];
+        return Array.isArray(val) ? val.length > 0 : String(val ?? "").trim() !== "";
+    });
     const totalPending = dirtyCount + (newRowOpen ? 1 : 0);
 
     const enterEditMode = () => { setIsEditMode(true); };
@@ -1054,12 +1229,18 @@ export default function SpreadsheetTable<T>({
         if (markdownPanelRowId === null || !markdownPanelColKey || markdownAiLoading) return;
         const col = columns.find(c => c.key === markdownPanelColKey);
         if (!col?.aiGenerate) return;
-        const item = data.find(d => getRowId(d) === markdownPanelRowId);
+        const item = markdownPanelRowId === "__new_row__"
+            ? (newRowValues as unknown as T)
+            : data.find(d => getRowId(d) === markdownPanelRowId);
         if (!item) return;
         setMarkdownAiLoading(true);
         try {
             const result = await col.aiGenerate(item);
-            setEditCell(markdownPanelRowId, markdownPanelColKey, result);
+            if (markdownPanelRowId === "__new_row__") {
+                setNewRowValues((prev) => ({ ...prev, [markdownPanelColKey]: result }));
+            } else {
+                setEditCell(markdownPanelRowId, markdownPanelColKey, result);
+            }
         } catch (e) {
             alert("AI error: " + e);
         } finally {
@@ -1143,6 +1324,20 @@ export default function SpreadsheetTable<T>({
     // ── Fullscreen overlay ───────────────────────────────────────────────
     const [isFullscreen, setIsFullscreen] = useState(false);
 
+    // ── Filter panel ─────────────────────────────────────────────────────
+    const filterBtnRef = useRef<HTMLButtonElement>(null);
+    const [filterOpen, setFilterOpen] = useState(false);
+    const [filterPos, setFilterPos] = useState<{ top: number; right: number }>({ top: 0, right: 0 });
+    const [filterEditingId, setFilterEditingId] = useState<string | null>(null);
+
+    const openFilter = (editId?: string) => {
+        if (!filterBtnRef.current) return;
+        const r = filterBtnRef.current.getBoundingClientRect();
+        setFilterPos({ top: r.bottom + 4, right: window.innerWidth - r.right });
+        setFilterEditingId(editId ?? null);
+        setFilterOpen(true);
+    };
+
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
             if (e.key === "Escape") {
@@ -1218,9 +1413,9 @@ export default function SpreadsheetTable<T>({
                         <>
                             {headerActions}
                             <button onClick={handleExportJson} className={styles.btnIcon} title="Export JSON" disabled={data.length === 0}><BiDownload /></button>
-                            <button ref={searchBtnRef} onClick={openSearch} className={`${styles.btnIcon} ${searchOpen ? styles.btnIconActive : ""}`} title="Search"><BiSearch /></button>
+                            <button ref={searchBtnRef} onClick={() => openSearch()} className={`${styles.btnIcon} ${searchOpen ? styles.btnIconActive : ""}`} title="Search"><BiSearch /></button>
                             <button onClick={onRefresh} disabled={loading || refreshing} className={styles.btnIcon} title="Refresh"><BiRefresh className={refreshing ? styles.spinning : ""} /></button>
-                            <button ref={menuBtnRef} onClick={openColMenu} className={`${styles.btnIcon} ${colMenuOpen ? styles.btnIconActive : ""}`} title="Columns"><BiMenu /></button>
+                            <button ref={menuBtnRef} onClick={() => openColMenu()} className={`${styles.btnIcon} ${colMenuOpen ? styles.btnIconActive : ""}`} title="Columns"><BiMenu /></button>
                             {renderPreview && <button onClick={togglePanel} className={`${styles.btnIcon} ${panelOpen ? styles.btnIconActive : ""}`} title="Preview"><BiColumns /></button>}
                             <button onClick={exitEditMode} className={styles.btnIcon} title="Exit edit mode"><BiX /></button>
                         </>
@@ -1229,9 +1424,20 @@ export default function SpreadsheetTable<T>({
                             {headerActions}
                             <button onClick={handleExportJson} className={styles.btnIcon} title="Export JSON" disabled={data.length === 0}><BiDownload /></button>
                             {onSaveEdits && <button onClick={enterEditMode} className={styles.btnIcon} title="Edit mode" disabled={data.length === 0}><BiPencil /></button>}
-                            <button ref={searchBtnRef} onClick={openSearch} className={`${styles.btnIcon} ${searchOpen ? styles.btnIconActive : ""}`} title="Search"><BiSearch /></button>
+                            {filterableColumns && filterableColumns.length > 0 && (
+                                <button
+                                    ref={filterBtnRef}
+                                    onClick={() => openFilter()}
+                                    className={`${styles.btnIcon} ${filterOpen ? styles.btnIconActive : ""} ${activeFilters?.length ? styles.btnIconBadge : ""}`}
+                                    title="Filter"
+                                    data-count={activeFilters?.length || undefined}
+                                >
+                                    <BiFilter />
+                                </button>
+                            )}
+                            <button ref={searchBtnRef} onClick={() => openSearch()} className={`${styles.btnIcon} ${searchOpen ? styles.btnIconActive : ""}`} title="Search"><BiSearch /></button>
                             <button onClick={onRefresh} disabled={loading || refreshing} className={styles.btnIcon} title="Refresh"><BiRefresh className={refreshing ? styles.spinning : ""} /></button>
-                            <button ref={menuBtnRef} onClick={openColMenu} className={`${styles.btnIcon} ${colMenuOpen ? styles.btnIconActive : ""}`} title="Columns"><BiMenu /></button>
+                            <button ref={menuBtnRef} onClick={() => openColMenu()} className={`${styles.btnIcon} ${colMenuOpen ? styles.btnIconActive : ""}`} title="Columns"><BiMenu /></button>
                             {renderPreview && <button onClick={togglePanel} className={`${styles.btnIcon} ${panelOpen ? styles.btnIconActive : ""}`} title="Preview"><BiColumns /></button>}
                         </>
                     )}
@@ -1239,6 +1445,7 @@ export default function SpreadsheetTable<T>({
 
                 {/* ── Mobile 3-dots button ─────────────────────────────── */}
                 <button
+                    ref={mobileBtnRef}
                     className={styles.headerMobileBtn}
                     onClick={(e) => {
                         const rect = e.currentTarget.getBoundingClientRect();
@@ -1249,6 +1456,33 @@ export default function SpreadsheetTable<T>({
                     <BiDotsVerticalRounded />
                 </button>
             </div>
+
+            {/* ── Filter chips ─────────────────────────────────────────── */}
+            {activeFilters && activeFilters.length > 0 && onFiltersChange && (
+                <div className={styles.filterChipsBar}>
+                    {activeFilters.map((f) => (
+                        <button
+                            key={f.id}
+                            className={styles.filterChip}
+                            onClick={() => openFilter(f.id)}
+                        >
+                            {formatFilterLabel(f)}
+                            <span
+                                className={styles.filterChipX}
+                                onMouseDown={(e) => {
+                                    e.stopPropagation();
+                                    onFiltersChange(activeFilters.filter((x) => x.id !== f.id));
+                                }}
+                            >
+                                <BiX size={12} />
+                            </span>
+                        </button>
+                    ))}
+                    <button className={styles.filterChipClear} onClick={() => onFiltersChange([])}>
+                        Clear filters
+                    </button>
+                </div>
+            )}
 
             {/* ── Column menu popup ─────────────────────────────────────── */}
             {colMenuOpen && createPortal(
@@ -1285,7 +1519,7 @@ export default function SpreadsheetTable<T>({
                             </button>
                         </div>
                     </div>
-                    {orderedColumns.map((col) => (
+                    {orderedColumns.filter((col) => !col.newRowVisible).map((col) => (
                         <div
                             key={col.key}
                             className={[
@@ -1310,6 +1544,16 @@ export default function SpreadsheetTable<T>({
                                 />
                                 {col.label}
                             </label>
+                            {col.editable && (
+                                <button
+                                    className={`${styles.colMenuLockBtn} ${isColLocked(col.key) ? styles.colMenuLockBtnActive : ""}`}
+                                    onClick={() => toggleColLock(col.key)}
+                                    title={isPermanentForRole(col.key) ? "Always locked" : isColLocked(col.key) ? "Unlock column" : "Lock column"}
+                                    disabled={isPermanentForRole(col.key)}
+                                >
+                                    <BiLock />
+                                </button>
+                            )}
                         </div>
                     ))}
                 </div>,
@@ -1340,7 +1584,7 @@ export default function SpreadsheetTable<T>({
             )}
 
             {/* ── Bulk actions ──────────────────────────────────────────── */}
-            {selected.size > 0 && isAdmin && onBulkDelete && (
+            {selected.size > 0 && onBulkDelete && (
                 <div className={styles.bulkBar}>
                     <span>{selected.size} selected</span>
                     <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -1399,7 +1643,7 @@ export default function SpreadsheetTable<T>({
                                 >
                                     <div className={styles.stickyColInner}>
                                         <span className={styles.dotsPlaceholder} />
-                                        {isAdmin && (
+                                        {onBulkDelete && (
                                             <input
                                                 type="checkbox"
                                                 className={styles.cb}
@@ -1437,7 +1681,7 @@ export default function SpreadsheetTable<T>({
                                             <div className={styles.thInner}>
                                                 <span className={styles.colLabelText}>
                                                     {col.label}
-                                                    {onSaveEdits && !col.editable && (
+                                                    {onSaveEdits && (!col.editable || isColLocked(col.key)) && (
                                                         <BiLock className={styles.colLockIcon} />
                                                     )}
                                                 </span>
@@ -1492,7 +1736,7 @@ export default function SpreadsheetTable<T>({
                                                 >
                                                     <BiDotsVerticalRounded />
                                                 </button>
-                                                {isAdmin && (
+                                                {onBulkDelete && (
                                                     <input
                                                         type="checkbox"
                                                         className={styles.cb}
@@ -1520,12 +1764,12 @@ export default function SpreadsheetTable<T>({
                                                     key={col.key}
                                                     className={[
                                                         wrap ? styles.wrappedCell : undefined,
-                                                        col.editable && isDirty ? styles.editedCell : undefined,
+                                                        col.editable && !isColLocked(col.key) && isDirty ? styles.editedCell : undefined,
                                                         isCellEditing || isEditModeFocused ? styles.editingActiveCell : undefined,
                                                     ].filter(Boolean).join(" ") || undefined}
                                                     onContextMenu={(e) => handleContextMenu(e, col.key, item)}
-                                                    onDoubleClick={() => {
-                                                        if (!col.editable || !onSaveEdits) return;
+                                                    onDoubleClick={(e) => {
+                                                        if (!col.editable || isColLocked(col.key) || !onSaveEdits) return;
                                                         if (col.editType === "markdown") {
                                                             openMarkdownPanel(id, col.key);
                                                             return;
@@ -1538,6 +1782,7 @@ export default function SpreadsheetTable<T>({
                                                         const initVal = editRow && col.key in editRow
                                                             ? String(editRow[col.key] ?? "")
                                                             : col.getValue ? String(col.getValue(item)) : "";
+                                                        editingCellElRef.current = e.currentTarget as HTMLTableCellElement;
                                                         setEditingCell({ id, colKey: col.key });
                                                         setEditingCellValue(initVal);
                                                     }}
@@ -1573,7 +1818,6 @@ export default function SpreadsheetTable<T>({
                                                                     onBlur={() => saveCellEdit()}
                                                                     onKeyDown={(e) => { if (e.key === "Escape") cancelCellEdit(); }}
                                                                 />
-                                                                <button className={styles.cellSaveBtn} onMouseDown={(e) => { e.preventDefault(); saveCellEdit(); }} title="Save"><BiCheck /></button>
                                                             </div>
                                                         ) : col.editType === "select" ? (
                                                             <div className={styles.cellEditRow}>
@@ -1592,7 +1836,6 @@ export default function SpreadsheetTable<T>({
                                                                         ))}
                                                                     </select>
                                                                 </div>
-                                                                <button className={styles.cellSaveBtn} onMouseDown={(e) => { e.preventDefault(); saveCellEdit(); }} title="Save"><BiCheck /></button>
                                                             </div>
                                                         ) : col.editType === "date" ? (
                                                             <div className={styles.cellEditRow}>
@@ -1628,10 +1871,9 @@ export default function SpreadsheetTable<T>({
                                                                         if (e.key === "Escape") cancelCellEdit();
                                                                     }}
                                                                 />
-                                                                <button className={styles.cellSaveBtn} onMouseDown={(e) => { e.preventDefault(); saveCellEdit(); }} title="Save"><BiCheck /></button>
                                                             </div>
                                                         )
-                                                    ) : isEditMode && col.editable ? (
+                                                    ) : isEditMode && col.editable && !isColLocked(col.key) ? (
                                                         // ── Full edit mode ──
                                                         col.editType === "images" ? (
                                                             <div className={styles.markdownCell}>
@@ -1769,13 +2011,26 @@ export default function SpreadsheetTable<T>({
                                         </div>
                                     </td>
                                     {activeCols.map((col) => (
-                                        <td key={col.key} style={{ minWidth: col.minWidth, width: colWidths[col.key] }}>
-                                            {col.editable ? (
+                                        <td key={col.key} style={{ minWidth: col.minWidth, width: colWidths[col.key] }}
+                                            onContextMenu={(e) => handleContextMenu(e, col.key, null, true)}>
+                                            {(col.editable && !isColLocked(col.key)) || col.newRowEditable || (col.editable && onCreateRow != null && permanentlyLockedCols?.includes(col.key)) ? (
                                                 col.editType === "tags" ? (
-                                                    <TagsEditor
-                                                        tags={(newRowValues[col.key] as string[]) ?? []}
-                                                        onChange={(tags) => setNewRowValues(prev => ({ ...prev, [col.key]: tags }))}
-                                                    />
+                                                    <div className={styles.newRowAiWrap}>
+                                                        <TagsEditor
+                                                            tags={(newRowValues[col.key] as string[]) ?? []}
+                                                            onChange={(tags) => setNewRowValues(prev => ({ ...prev, [col.key]: tags }))}
+                                                        />
+                                                        {col.aiGenerate && (
+                                                            <span className={styles.newRowAiBtn}>
+                                                                <button
+                                                                    className={`${styles.markdownCellBtn} ${styles.markdownCellBtnActive}`}
+                                                                    onClick={() => handleNewRowAiGenerate(col)}
+                                                                    disabled={newRowAiLoading[col.key] || !newRowAiReady}
+                                                                    title={!newRowAiReady ? "Fill in required fields first" : "Fill with AI"}
+                                                                ><PiSparkleFill className={newRowAiLoading[col.key] ? "animate-pulse" : ""} /></button>
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 ) : col.editType === "markdown" ? (
                                                     <div className={styles.markdownCell}>
                                                         <span style={{ color: "var(--color-foreground-light)", fontSize: 11, opacity: 0.6 }}>
@@ -1799,22 +2054,46 @@ export default function SpreadsheetTable<T>({
                                                         ><BiImages /></button>
                                                     </div>
                                                 ) : col.editType === "select" ? (
-                                                    <select
-                                                        className={styles.editInput}
-                                                        value={(newRowValues[col.key] as string) ?? ""}
-                                                        onChange={(e) => setNewRowValues(prev => ({ ...prev, [col.key]: e.target.value }))}
-                                                    >
-                                                        <option value="">—</option>
-                                                        {col.editOptions?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                                    </select>
+                                                    <div className={styles.newRowAiWrap}>
+                                                        <select
+                                                            className={styles.editInput}
+                                                            value={(newRowValues[col.key] as string) ?? ""}
+                                                            onChange={(e) => setNewRowValues(prev => ({ ...prev, [col.key]: e.target.value }))}
+                                                        >
+                                                            <option value="">—</option>
+                                                            {col.editOptions?.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                                        </select>
+                                                        {col.aiGenerate && (
+                                                            <span className={styles.newRowAiBtn}>
+                                                                <button
+                                                                    className={`${styles.markdownCellBtn} ${styles.markdownCellBtnActive}`}
+                                                                    onClick={() => handleNewRowAiGenerate(col)}
+                                                                    disabled={newRowAiLoading[col.key] || !newRowAiReady}
+                                                                    title={!newRowAiReady ? "Fill in required fields first" : "Fill with AI"}
+                                                                ><PiSparkleFill className={newRowAiLoading[col.key] ? "animate-pulse" : ""} /></button>
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 ) : col.editType === "textarea" ? (
-                                                    <textarea
-                                                        className={styles.editInput}
-                                                        rows={2}
-                                                        placeholder={col.label}
-                                                        value={(newRowValues[col.key] as string) ?? ""}
-                                                        onChange={(e) => setNewRowValues(prev => ({ ...prev, [col.key]: e.target.value }))}
-                                                    />
+                                                    <div className={styles.newRowAiWrap}>
+                                                        <textarea
+                                                            className={styles.editInput}
+                                                            rows={2}
+                                                            placeholder={col.label}
+                                                            value={(newRowValues[col.key] as string) ?? ""}
+                                                            onChange={(e) => setNewRowValues(prev => ({ ...prev, [col.key]: e.target.value }))}
+                                                        />
+                                                        {col.aiGenerate && (
+                                                            <span className={styles.newRowAiBtn}>
+                                                                <button
+                                                                    className={`${styles.markdownCellBtn} ${styles.markdownCellBtnActive}`}
+                                                                    onClick={() => handleNewRowAiGenerate(col)}
+                                                                    disabled={newRowAiLoading[col.key] || !newRowAiReady}
+                                                                    title={!newRowAiReady ? "Fill in required fields first" : "Fill with AI"}
+                                                                ><PiSparkleFill className={newRowAiLoading[col.key] ? "animate-pulse" : ""} /></button>
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 ) : col.editType === "date" ? (
                                                     <DatePicker
                                                         label={col.label}
@@ -1826,13 +2105,25 @@ export default function SpreadsheetTable<T>({
                                                         onSelect={(date) => setNewRowValues(prev => ({ ...prev, [col.key]: date ? dateFnsFormat(date, "yyyy-MM-dd") : "" }))}
                                                     />
                                                 ) : (
-                                                    <input
-                                                        className={styles.editInput}
-                                                        type={col.editType === "number" ? "number" : col.editType === "datetime-local" ? "datetime-local" : "text"}
-                                                        placeholder={col.label}
-                                                        value={(newRowValues[col.key] as string) ?? ""}
-                                                        onChange={(e) => setNewRowValues(prev => ({ ...prev, [col.key]: e.target.value }))}
-                                                    />
+                                                    <div className={styles.newRowAiWrap}>
+                                                        <input
+                                                            className={styles.editInput}
+                                                            type={col.editType === "number" ? "number" : col.editType === "datetime-local" ? "datetime-local" : "text"}
+                                                            placeholder={col.label}
+                                                            value={(newRowValues[col.key] as string) ?? ""}
+                                                            onChange={(e) => setNewRowValues(prev => ({ ...prev, [col.key]: e.target.value }))}
+                                                        />
+                                                        {col.aiGenerate && (
+                                                            <span className={styles.newRowAiBtn}>
+                                                                <button
+                                                                    className={`${styles.markdownCellBtn} ${styles.markdownCellBtnActive}`}
+                                                                    onClick={() => handleNewRowAiGenerate(col)}
+                                                                    disabled={newRowAiLoading[col.key] || !newRowAiReady}
+                                                                    title={!newRowAiReady ? "Fill in required fields first" : "Fill with AI"}
+                                                                ><PiSparkleFill className={newRowAiLoading[col.key] ? "animate-pulse" : ""} /></button>
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 )
                                             ) : (
                                                 <span style={{ color: "var(--color-foreground-light)", opacity: 0.3, fontSize: 13 }}>—</span>
@@ -1841,6 +2132,50 @@ export default function SpreadsheetTable<T>({
                                     ))}
                                 </tr>
                             )}
+                            {/* ── New row: extra fields for hidden-but-required columns ── */}
+                            {onCreateRow && newRowOpen && (() => {
+                                const extraCols = columns.filter(
+                                    (c) => c.newRowVisible && c.editable && !activeCols.find((a) => a.key === c.key)
+                                );
+                                if (extraCols.length === 0) return null;
+                                return (
+                                    <tr className={styles.newDraftRowExtra}>
+                                        <td colSpan={activeCols.length + 1}>
+                                            <div className={styles.newRowExtraFields}>
+                                                {extraCols.map((col) => (
+                                                    <div key={col.key} className={styles.newRowExtraField}>
+                                                        <label className={styles.newRowExtraLabel}>{col.label}</label>
+                                                        {col.editType === "date" ? (
+                                                            <input
+                                                                type="date"
+                                                                className={styles.editInput}
+                                                                value={(newRowValues[col.key] as string) ?? ""}
+                                                                onChange={(e) => setNewRowValues((prev) => ({ ...prev, [col.key]: e.target.value }))}
+                                                            />
+                                                        ) : col.editType === "number" ? (
+                                                            <input
+                                                                type="number"
+                                                                className={styles.editInput}
+                                                                placeholder={col.label}
+                                                                value={(newRowValues[col.key] as string) ?? ""}
+                                                                onChange={(e) => setNewRowValues((prev) => ({ ...prev, [col.key]: e.target.value }))}
+                                                            />
+                                                        ) : (
+                                                            <input
+                                                                type="text"
+                                                                className={styles.editInput}
+                                                                placeholder={col.label}
+                                                                value={(newRowValues[col.key] as string) ?? ""}
+                                                                onChange={(e) => setNewRowValues((prev) => ({ ...prev, [col.key]: e.target.value }))}
+                                                            />
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })()}
                             {/* ── Add row button ── */}
                             {onCreateRow && !newRowOpen && (
                                 <tr>
@@ -2037,6 +2372,41 @@ export default function SpreadsheetTable<T>({
                 </div>
             )}
 
+            {/* ── Filter panel ─────────────────────────────────────────── */}
+            {filterOpen && filterableColumns && onFiltersChange && (
+                <FilterPanel
+                    filterableColumns={filterableColumns}
+                    activeFilters={activeFilters ?? []}
+                    onAdd={(f) => onFiltersChange([...(activeFilters ?? []), f])}
+                    onRemove={(id) => onFiltersChange((activeFilters ?? []).filter((f) => f.id !== id))}
+                    onUpdate={(updated) => onFiltersChange((activeFilters ?? []).map((f) => f.id === updated.id ? updated : f))}
+                    onClose={() => setFilterOpen(false)}
+                    pos={filterPos}
+                    initialEditId={filterEditingId}
+                />
+            )}
+
+            {/* ── Inline cell edit action buttons ──────────────────────── */}
+            {editingCellPos && createPortal(
+                <div style={{ position: "fixed", top: editingCellPos.top, left: editingCellPos.left, transform: "translateX(-100%) translateY(-100%) translateY(-4px)", zIndex: 1000, display: "flex", gap: 4 }}>
+                    <button
+                        className={styles.cellSaveBtn}
+                        onMouseDown={(e) => { e.preventDefault(); saveCellEdit(); }}
+                        title="Save"
+                    >
+                        <BiCheck />
+                    </button>
+                    <button
+                        className={styles.cellCancelBtn}
+                        onMouseDown={(e) => { e.preventDefault(); cancelCellEdit(); }}
+                        title="Cancel"
+                    >
+                        <BiX />
+                    </button>
+                </div>,
+                document.body
+            )}
+
             {/* ── Right-click context menu ─────────────────────────────── */}
             {ctxMenu && createPortal(
                 <div
@@ -2044,8 +2414,8 @@ export default function SpreadsheetTable<T>({
                     className={styles.contextMenu}
                     style={{ top: ctxMenu.y, left: ctxMenu.x }}
                 >
-                    {/* Edit mode toggle */}
-                    {onSaveEdits && (
+                    {/* Edit mode toggle — not shown for new-row right-click */}
+                    {!ctxMenu.isNewRow && onSaveEdits && (
                         <>
                             <button
                                 className={`${styles.ctxItem} ${isEditMode ? styles.ctxItemActive : ""}`}
@@ -2065,6 +2435,22 @@ export default function SpreadsheetTable<T>({
                     <button className={styles.ctxItem} onClick={ctxHideColumn}>
                         <BiHide /> Hide Column
                     </button>
+                    {(() => {
+                        const col = columns.find((c) => c.key === ctxMenu.colKey);
+                        if (!col?.editable) return null;
+                        const locked = isColLocked(col.key);
+                        const permanent = isPermanentForRole(col.key);
+                        return (
+                            <button
+                                className={`${styles.ctxItem} ${locked ? styles.ctxItemActive : ""}`}
+                                onClick={() => { toggleColLock(col.key); closeCtx(); }}
+                                disabled={permanent}
+                                title={permanent ? "This column is always locked" : undefined}
+                            >
+                                <BiLock /> {locked ? "Unlock Column" : "Lock Column"}
+                            </button>
+                        );
+                    })()}
                     {(() => {
                         const col = columns.find((c) => c.key === ctxMenu.colKey);
                         const sortKey = col?.sortKey ?? col?.key;
@@ -2092,27 +2478,63 @@ export default function SpreadsheetTable<T>({
                     {/* Cell section */}
                     <div className={styles.ctxDivider} />
                     <div className={styles.ctxSection}>Cell</div>
-                    <button className={styles.ctxItem} onClick={ctxCopyCell}>
-                        <BiCopy /> Copy Cell
-                    </button>
-                    {ctxMenu.rowItem && (() => {
-                        const col = columns.find((c) => c.key === ctxMenu.colKey);
-                        return col?.editable && onSaveEdits ? (
-                            <>
-                                <button className={styles.ctxItem} onClick={ctxEditCell}>
-                                    <BiPencil /> Edit Cell
+                    {!ctxMenu.isNewRow && (
+                        <button className={styles.ctxItem} onClick={ctxCopyCell}>
+                            <BiCopy /> Copy Cell
+                        </button>
+                    )}
+                    {ctxMenu.isNewRow ? (
+                        // New row: only offer cell AI fill here
+                        (() => {
+                            const col = columns.find((c) => c.key === ctxMenu.colKey);
+                            const hasCellAi = !!col?.aiGenerate;
+                            return hasCellAi ? (
+                                <button
+                                    className={styles.ctxItem}
+                                    onClick={ctxAiFillCell}
+                                    disabled={ctxAiLoading || !newRowAiReady}
+                                    title={!newRowAiReady ? "Fill in required fields first" : undefined}
+                                >
+                                    <PiSparkleFill /> {ctxAiLoading ? "Generating…" : "Fill with AI"}
                                 </button>
-                                {col.aiGenerate && col.editType !== "markdown" && col.editType !== "images" && (
-                                    <button className={styles.ctxItem} onClick={ctxAiFillCell} disabled={ctxAiLoading}>
-                                        <BiCheck /> {ctxAiLoading ? "Generating…" : "Fill with AI"}
+                            ) : <span className={styles.ctxEmpty}>No actions</span>;
+                        })()
+                    ) : (
+                        ctxMenu.rowItem && (() => {
+                            const col = columns.find((c) => c.key === ctxMenu.colKey);
+                            return col?.editable && !isColLocked(col.key) && onSaveEdits ? (
+                                <>
+                                    <button className={styles.ctxItem} onClick={ctxEditCell}>
+                                        <BiPencil /> Edit Cell
                                     </button>
-                                )}
-                            </>
-                        ) : null;
-                    })()}
+                                    {col.aiGenerate && col.editType !== "markdown" && col.editType !== "images" && (
+                                        <button className={styles.ctxItem} onClick={ctxAiFillCell} disabled={ctxAiLoading}>
+                                            <PiSparkleFill /> {ctxAiLoading ? "Generating…" : "Fill with AI"}
+                                        </button>
+                                    )}
+                                </>
+                            ) : null;
+                        })()
+                    )}
 
-                    {/* Row section (only if right-clicked on a data row) */}
-                    {ctxMenu.rowItem && (
+                    {/* Row section for new row */}
+                    {ctxMenu.isNewRow && columns.some((c) => c.editable && c.aiGenerate && c.editType !== "images") && (
+                        <>
+                            <div className={styles.ctxDivider} />
+                            <div className={styles.ctxSection}>Row</div>
+                            <button
+                                className={styles.ctxItem}
+                                onClick={() => { closeCtx(); handleFillRowWithAi(); }}
+                                disabled={fillRowAiLoading || !newRowAiReady}
+                                title={!newRowAiReady ? "Fill in required fields first" : undefined}
+                            >
+                                <PiSparkleFill /> {fillRowAiLoading ? "Filling…" : "Fill Row with AI"}
+                            </button>
+                        </>
+                    )}
+
+                    {/* Row section (only if right-clicked on a data row, not new row) */}
+                    {!ctxMenu.isNewRow && ctxMenu.rowItem && (
                         <>
                             <div className={styles.ctxDivider} />
                             <div className={styles.ctxSection}>Row</div>
@@ -2135,7 +2557,7 @@ export default function SpreadsheetTable<T>({
                                     <BiEdit /> Edit Row
                                 </button>
                             )}
-                            {isAdmin && (
+                            {onBulkDelete && (
                                 <button className={styles.ctxItem} onClick={ctxSelectRow}>
                                     <input
                                         type="checkbox"
@@ -2146,7 +2568,7 @@ export default function SpreadsheetTable<T>({
                                     Select Row
                                 </button>
                             )}
-                            {isAdmin && onDeleteOne && (
+                            {onDeleteOne && (
                                 <button className={`${styles.ctxItem} ${styles.rowMenuDanger}`} onClick={ctxDeleteRow}>
                                     <BiTrash /> Delete Row
                                 </button>
@@ -2198,13 +2620,13 @@ export default function SpreadsheetTable<T>({
                     <button className={styles.ctxItem} onClick={() => { handleExportJson(); setMobileMenuOpen(false); }} disabled={data.length === 0}>
                         <BiDownload /> Export JSON
                     </button>
-                    <button className={styles.ctxItem} onClick={() => { openSearch(); setMobileMenuOpen(false); }}>
+                    <button className={styles.ctxItem} onClick={() => { openSearch(mobileBtnRef.current ?? undefined); setMobileMenuOpen(false); }}>
                         <BiSearch /> Search
                     </button>
                     <button className={styles.ctxItem} onClick={() => { onRefresh(); setMobileMenuOpen(false); }} disabled={loading || refreshing}>
                         <BiRefresh className={refreshing ? styles.spinning : ""} /> Refresh
                     </button>
-                    <button className={styles.ctxItem} onClick={() => { openColMenu(); setMobileMenuOpen(false); }}>
+                    <button className={styles.ctxItem} onClick={() => { openColMenu(mobileBtnRef.current ?? undefined); setMobileMenuOpen(false); }}>
                         <BiMenu /> Columns
                     </button>
                     {renderPreview && (

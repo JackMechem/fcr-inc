@@ -58,7 +58,6 @@
 	align-items: center;
 	gap: 14px;
 	padding: 20px;
-	border-bottom: 1px solid color-mix(in srgb, var(--color-third) 50%, transparent);
 }
 
 .avatarBorder {
@@ -97,33 +96,152 @@
 
 .profileActions {
 	display: flex;
+	flex-direction: row;
 	align-items: center;
-	gap: 12px;
+	gap: 4px;
+	flex-shrink: 0;
+}
+
+.profileBtns {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
 }
 
 .gearBtn {
 	font-size: 16pt;
 	color: var(--color-foreground-light);
-	transition: color 150ms;
+	transition: color 150ms, background 150ms;
 	cursor: pointer;
 	display: flex;
 	align-items: center;
+	justify-content: center;
+	width: 32px;
+	height: 32px;
+	border-radius: 8px;
 }
 
 .gearBtn:hover {
 	color: var(--color-accent);
+	background: var(--color-third);
+}
+
+.gearBtnActive {
+	color: var(--color-accent);
+	background: var(--color-third);
 }
 
 .signOutBtn {
-	font-size: 9.5pt;
+	font-size: 8.5pt;
 	font-weight: 500;
 	color: var(--color-foreground-light);
 	transition: color 150ms;
 	cursor: pointer;
+	padding: 2px 0;
 }
 
 .signOutBtn:hover {
 	color: var(--color-accent);
+}
+
+/* ── Account switcher popup ───────────────────────────────────── */
+
+.acctMenu {
+	position: fixed;
+	z-index: 9999;
+	background: var(--color-primary);
+	border: 1px solid var(--color-third);
+	border-radius: 10px;
+	box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+	padding: 4px;
+	min-width: 200px;
+}
+
+.acctMenuItem {
+	display: flex;
+	align-items: center;
+	gap: 9px;
+	width: 100%;
+	padding: 7px 10px;
+	border-radius: 7px;
+	border: none;
+	background: none;
+	cursor: pointer;
+	font-size: 12.5px;
+	color: var(--color-foreground);
+	text-align: left;
+	transition: background 0.1s;
+}
+
+.acctMenuItem:hover {
+	background: var(--color-third);
+}
+
+.acctMenuItemActive {
+	background: var(--color-third);
+	font-weight: 600;
+	cursor: default;
+}
+
+.acctMenuDivider {
+	height: 1px;
+	background: var(--color-third);
+	margin: 4px 0;
+}
+
+.acctMenuAvatar {
+	width: 24px;
+	height: 24px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.acctMenuInfo {
+	flex: 1;
+	min-width: 0;
+}
+
+.acctMenuName {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-size: 12.5px;
+}
+
+.acctMenuRole {
+	font-size: 9.5px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.acctMenuRemove {
+	background: none;
+	border: none;
+	padding: 2px;
+	cursor: pointer;
+	color: var(--color-foreground-light);
+	display: flex;
+	align-items: center;
+	font-size: 14px;
+	opacity: 0.4;
+	flex-shrink: 0;
+}
+
+.acctMenuRemove:hover {
+	opacity: 1;
+}
+
+.acctMenuDanger {
+	color: #ef4444;
+}
+
+.acctMenuDanger:hover {
+	background: rgba(239,68,68,0.08) !important;
 }
 
 .authBtns {
@@ -168,6 +286,10 @@
 	gap: 16px;
 }
 
+.cartSectionBorderTop {
+	border-top: 1px solid color-mix(in srgb, var(--color-third) 50%, transparent);
+}
+
 .bookmarkSection {
 	display: flex;
 	flex-direction: column;
@@ -183,6 +305,36 @@
 	align-items: center;
 	gap: 8px;
 	color: var(--color-foreground);
+	width: 100%;
+	background: none;
+	border: none;
+	padding: 0;
+	cursor: pointer;
+	text-align: left;
+}
+
+.cartHeaderBtn {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	background: none;
+	border: none;
+	padding: 0;
+	cursor: pointer;
+	color: inherit;
+	flex: 1;
+}
+
+.collapseIcon {
+	font-size: 16px;
+	color: var(--color-foreground-light);
+	flex-shrink: 0;
+}
+
+.accountList {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
 }
 
 .cartIcon {
@@ -197,10 +349,13 @@
 }
 
 .cartCount {
-	margin-left: auto;
 	font-size: 9pt;
 	font-weight: 500;
 	color: var(--color-foreground-light);
+}
+
+.cartHeaderSpacer {
+	flex: 1;
 }
 
 .clearBtn {
@@ -389,4 +544,129 @@
 .compareBtn:hover {
 	border-color: color-mix(in srgb, var(--color-accent) 40%, transparent);
 	color: var(--color-accent);
+}
+
+/* ── Account switcher ─────────────────────────────────────────── */
+
+
+.accountRow {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 7px 8px;
+	border-radius: 10px;
+	cursor: pointer;
+	transition: background 0.12s;
+}
+
+.accountRow:hover:not(.accountRowActive) {
+	background: var(--color-third);
+}
+
+.accountRowActive {
+	background: var(--color-third);
+	cursor: default;
+}
+
+.accountAvatar {
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.accountInfo {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+}
+
+.accountName {
+	font-size: 12.5px;
+	font-weight: 500;
+	color: var(--color-foreground);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.accountRole {
+	font-size: 10px;
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.accountCheck {
+	font-size: 17px;
+	flex-shrink: 0;
+}
+
+.accountRemove {
+	background: none;
+	border: none;
+	padding: 2px;
+	cursor: pointer;
+	color: var(--color-foreground-light);
+	display: flex;
+	align-items: center;
+	font-size: 15px;
+	opacity: 0.4;
+	flex-shrink: 0;
+}
+
+.accountRemove:hover {
+	opacity: 1;
+}
+
+.addAccountBtn {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	width: 100%;
+	padding: 7px 8px;
+	border-radius: 10px;
+	border: none;
+	background: none;
+	color: var(--color-foreground-light);
+	font-size: 12.5px;
+	font-weight: 500;
+	cursor: pointer;
+	transition: background 0.12s, color 0.12s;
+	margin-top: 2px;
+}
+
+.addAccountBtn:hover {
+	background: var(--color-third);
+	color: var(--color-foreground);
+}
+
+.accountListFooter {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-top: 2px;
+}
+
+.signOutAllBtn {
+	background: none;
+	border: none;
+	padding: 7px 8px;
+	border-radius: 10px;
+	color: #ef4444;
+	font-size: 12px;
+	font-weight: 500;
+	cursor: pointer;
+	transition: background 0.12s;
+	white-space: nowrap;
+}
+
+.signOutAllBtn:hover {
+	background: rgba(239, 68, 68, 0.08);
 }

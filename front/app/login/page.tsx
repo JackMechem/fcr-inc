@@ -11,11 +11,18 @@ function LoginInner() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const { isAuthenticated } = useUserDashboardStore();
+    const [addingAccount, setAddingAccount] = useState(false);
+
+    useEffect(() => {
+        setAddingAccount(sessionStorage.getItem("add-account") === "1");
+    }, []);
 
     const nextParam = searchParams.get("next");
 
     useEffect(() => {
         if (!isAuthenticated) return;
+        // If the user is adding a second account, don't redirect — let them log in.
+        if (sessionStorage.getItem("add-account") === "1") return;
         if (nextParam && nextParam !== "/login") {
             router.replace(nextParam);
             return;
@@ -78,7 +85,13 @@ function LoginInner() {
 
     return (
         <div className={styles.card}>
-            <h1 className={`page-title ${styles.title}`}>Sign In</h1>
+            <h1 className={`page-title ${styles.title}`}>{addingAccount ? "Add Account" : "Sign In"}</h1>
+
+            {addingAccount && (
+                <p className={styles.reasonNote} style={{ borderColor: "rgba(59,130,246,0.3)", background: "rgba(59,130,246,0.06)", color: "#3b82f6" }}>
+                    Sign in with another account to add it to your session switcher.
+                </p>
+            )}
 
             {reason === "inactivity" && (
                 <p className={styles.reasonNote} style={{ borderColor: "rgba(239,68,68,0.3)", background: "rgba(239,68,68,0.06)", color: "#ef4444" }}>

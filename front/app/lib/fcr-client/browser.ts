@@ -381,6 +381,16 @@ const reviews = {
         return safeJson(res);
     },
 
+    /** Update a review (admin/staff). */
+    async update(reviewId: number, patch: Record<string, unknown>): Promise<unknown> {
+        const res = await fetch(`/api/reviews/${reviewId}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(patch),
+        });
+        return safeJson(res);
+    },
+
     /** Delete a review. */
     async delete(reviewId: number): Promise<void> {
         const res = await fetch(`/api/reviews/${reviewId}`, { method: "DELETE" });

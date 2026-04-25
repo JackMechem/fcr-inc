@@ -6,7 +6,24 @@ import { getCarsFiltered, getCarById, deleteCar, updateCar, addCar } from "../..
 import { Car, CarStatus } from "@/app/types/CarTypes";
 import { useUserDashboardStore } from "@/stores/userDashboardStore";
 import SpreadsheetTable, { Column, RowEdit } from "../table/SpreadsheetTable";
+import { useTablePermissions } from "../../config/useTablePermissions";
+import { ActiveFilter, FilterableColumn, filtersToRecord } from "../table/FilterPanel";
+import { useTablePrefsStore } from "@/stores/tablePrefsStore";
 import styles from "../table/spreadsheetTable.module.css";
+
+const TABLE_TITLE = "Cars Database";
+const EMPTY_FILTERS: ActiveFilter[] = [];
+
+const FILTERABLE_COLUMNS: FilterableColumn[] = [
+    { field: "make",         label: "Make",         type: "text" },
+    { field: "model",        label: "Model",        type: "text" },
+    { field: "modelYear",    label: "Year",         type: "number" },
+    { field: "vehicleClass", label: "Class",        type: "select", options: ["ECONOMY", "LUXURY", "PERFORMANCE", "OFFROAD", "FULL_SIZE", "ELECTRIC"] },
+    { field: "carStatus",    label: "Status",       type: "select", options: ["AVAILABLE", "DISABLED", "ARCHIVED", "LOANED", "SERVICE"] },
+    { field: "transmission", label: "Transmission", type: "select", options: ["AUTOMATIC", "MANUAL"] },
+    { field: "bodyType",     label: "Body Type",    type: "select", options: ["SEDAN", "SUV", "TRUCK", "CONVERTIBLE", "HATCHBACK", "FULL_SIZE", "COMPACT", "WAGON", "ELECTRIC", "COUPE"] },
+    { field: "pricePerDay",  label: "Price / Day",  type: "number" },
+];
 import { BiSearch, BiX, BiImages } from "react-icons/bi";
 import ReactMarkdown from "react-markdown";
 import { callGemini } from "@/app/lib/gemini";
@@ -282,12 +299,8 @@ type SearchMode = "search" | "vin";
 
 // ── Panel ────────────────────────────────────────────────────────────────────
 
-interface Props {
-    role: string;
-}
-
-const InventoryPanel = ({ role }: Props) => {
-    const isAdmin = role === "ADMIN";
+const InventoryPanel = () => {
+    const { isAdmin, canEdit, canDelete, canAddRow, lockedCols, permanentlyLockedCols } = useTablePermissions("cars");
     const { openEditCar } = useUserDashboardStore();
 
     // Data
@@ -313,11 +326,17 @@ const InventoryPanel = ({ role }: Props) => {
     const [sortBy, setSortBy] = useState<string | null>(null);
     const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
+    // Filters
+    const storedFilters = useTablePrefsStore((s) => s.tableFilters[TABLE_TITLE]);
+    const storeSetFilters = useTablePrefsStore((s) => s.setTableFilters);
+    const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>((storedFilters ?? EMPTY_FILTERS) as ActiveFilter[]);
+    const handleFiltersChange = (f: ActiveFilter[]) => { setActiveFilters(f); storeSetFilters(TABLE_TITLE, f); };
+
     // Cancel any in-flight fetch when a new one starts
     const fetchIdRef = useRef(0);
 
     // Fetch paginated list
-    const fetchPage = useCallback(async (p: number, ps: number, search: string, sb: string | null, sd: "asc" | "desc", isRefresh = false) => {
+    const fetchPage = useCallback(async (p: number, ps: number, search: string, sb: string | null, sd: "asc" | "desc", filters: ActiveFilter[] = [], isRefresh = false) => {
         const id = ++fetchIdRef.current;
         if (isRefresh) setRefreshing(true); else setLoading(true);
         setVinResult(null);
@@ -328,6 +347,7 @@ const InventoryPanel = ({ role }: Props) => {
             };
             if (search) params.search = search;
             if (sb) { params.sortBy = sb; params.sortDir = sd; }
+            Object.assign(params, filtersToRecord(filters));
             const res = await getCarsFiltered(params);
             if (fetchIdRef.current !== id) return; // stale response
             setCars(res.data);
@@ -370,32 +390,33 @@ const InventoryPanel = ({ role }: Props) => {
     }, []);
 
     // Initial load
-    useEffect(() => { fetchPage(page, pageSize, "", null, "asc"); }, []);
+    useEffect(() => { fetchPage(page, pageSize, "", null, "asc", activeFilters); }, []);
+    useEffect(() => { setPage(1); fetchPage(1, pageSize, activeSearch, sortBy, sortDir, activeFilters); }, [activeFilters]);
 
     const handlePageChange = (p: number) => {
         setPage(p);
         setSelected(new Set());
-        fetchPage(p, pageSize, activeSearch, sortBy, sortDir);
+        fetchPage(p, pageSize, activeSearch, sortBy, sortDir, activeFilters);
     };
 
     const handlePageSizeChange = (ps: number) => {
         setPageSize(ps);
         setPage(1);
         setSelected(new Set());
-        fetchPage(1, ps, activeSearch, sortBy, sortDir);
+        fetchPage(1, ps, activeSearch, sortBy, sortDir, activeFilters);
     };
 
     const handleRefresh = () => {
         if (vinResult !== null && searchMode === "vin" && activeSearch) {
             fetchByVin(activeSearch);
         } else {
-            fetchPage(page, pageSize, activeSearch, sortBy, sortDir, true);
+            fetchPage(page, pageSize, activeSearch, sortBy, sortDir, activeFilters, true);
         }
     };
 
     const handleSortChange = (col: string, dir: "asc" | "desc") => {
         setSortBy(col); setSortDir(dir); setPage(1);
-        fetchPage(1, pageSize, activeSearch, col, dir);
+        fetchPage(1, pageSize, activeSearch, col, dir, activeFilters);
     };
 
     const handleSearchSubmit = () => {
@@ -404,13 +425,13 @@ const InventoryPanel = ({ role }: Props) => {
         setPage(1);
         setSelected(new Set());
         if (!q) {
-            fetchPage(1, pageSize, "", sortBy, sortDir);
+            fetchPage(1, pageSize, "", sortBy, sortDir, activeFilters);
             return;
         }
         if (searchMode === "vin") {
             fetchByVin(q);
         } else {
-            fetchPage(1, pageSize, q, sortBy, sortDir);
+            fetchPage(1, pageSize, q, sortBy, sortDir, activeFilters);
         }
     };
 
@@ -423,7 +444,7 @@ const InventoryPanel = ({ role }: Props) => {
         setActiveSearch("");
         setVinResult(null);
         setPage(1);
-        fetchPage(1, pageSize, "", sortBy, sortDir);
+        fetchPage(1, pageSize, "", sortBy, sortDir, activeFilters);
     };
 
     // Bulk delete
@@ -553,19 +574,25 @@ const InventoryPanel = ({ role }: Props) => {
             isAdmin={isAdmin}
             selected={selected}
             onSelectionChange={setSelected}
-            onBulkDelete={handleBulkDelete}
+            onBulkDelete={canDelete ? handleBulkDelete : undefined}
             bulkDeleting={bulkDeleting}
             onEdit={handleEdit}
-            onDeleteOne={handleDeleteOne}
+            onDeleteOne={canDelete ? handleDeleteOne : undefined}
             onRefresh={handleRefresh}
-            title="Car Database"
+            filterableColumns={FILTERABLE_COLUMNS}
+            activeFilters={activeFilters}
+            onFiltersChange={handleFiltersChange}
+            title="Cars Database"
             subtitle={activeSearch ? (searchMode === "vin" ? `VIN lookup: ${activeSearch}` : `Search: "${activeSearch}"`) : undefined}
             searchQuery={query}
             onSearchChange={setQuery}
             searchContent={searchBar}
             emptyMessage={searchMode === "vin" && activeSearch ? "No vehicle found with that VIN." : "No vehicles found."}
-            onSaveEdits={isAdmin ? handleSaveEdits : undefined}
-            onCreateRow={isAdmin ? handleCreateRow : undefined}
+            onSaveEdits={canEdit ? handleSaveEdits : undefined}
+            onCreateRow={canAddRow ? handleCreateRow : undefined}
+            aiRequiredFields={["vin", "make", "model", "modelYear"]}
+            initialLockedCols={lockedCols}
+            permanentlyLockedCols={permanentlyLockedCols}
             sortBy={sortBy}
             sortDir={sortDir}
             onSortChange={handleSortChange}

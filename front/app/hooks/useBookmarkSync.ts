@@ -10,15 +10,15 @@ import { fetchBookmarks } from "@/stores/bookmarkStore";
  */
 export function useBookmarkSync() {
     const { isAuthenticated, accountId } = useUserDashboardStore();
-    const fetched = useRef(false);
+    const lastFetchedId = useRef<number | null>(null);
 
     useEffect(() => {
-        if (isAuthenticated && accountId && !fetched.current) {
-            fetched.current = true;
+        if (isAuthenticated && accountId && lastFetchedId.current !== accountId) {
+            lastFetchedId.current = accountId;
             fetchBookmarks(accountId);
         }
         if (!isAuthenticated) {
-            fetched.current = false;
+            lastFetchedId.current = null;
         }
     }, [isAuthenticated, accountId]);
 }

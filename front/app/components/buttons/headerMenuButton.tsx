@@ -4,7 +4,7 @@ import { useSidebarStore } from "@/stores/sidebarStore";
 import { useBookmarkStore } from "@/stores/bookmarkStore";
 import { useUserDashboardStore } from "@/stores/userDashboardStore";
 import { BsBookmark } from "react-icons/bs";
-import { BiError, BiUser } from "react-icons/bi";
+import { BiUser } from "react-icons/bi";
 import CartButton from "./cartButton";
 import DefaultProfilePhoto from "../defaultProfilePhoto";
 import styles from "./headerMenuButton.module.css";
@@ -27,7 +27,7 @@ const HeaderMenuButton = () => {
             )}
             {role === "ADMIN" ? (
                 <div className={styles.rolePill} style={{ background: "#ef4444" }}>
-                    <BiError style={{ fontSize: 14, color: "#fff" }} />
+                    <BiUser style={{ fontSize: 14, color: "#fff" }} />
                     <span className={styles.rolePillText}>Admin</span>
                 </div>
             ) : role === "STAFF" ? (

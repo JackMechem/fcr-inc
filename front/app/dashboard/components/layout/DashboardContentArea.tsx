@@ -3,7 +3,7 @@
 import { useUserDashboardStore } from "@/stores/userDashboardStore";
 import { useWindowSize } from "@/app/hooks/useWindowSize";
 
-const TABLE_VIEWS = new Set(["view-data", "view-reservations", "view-accounts", "view-users", "view-reviews", "view-bookmarks"]);
+const TABLE_VIEWS = new Set(["view-data", "view-reservations", "view-accounts", "view-users", "view-reviews", "view-bookmarks", "view-payments"]);
 
 export default function DashboardContentArea({ children }: { children: React.ReactNode }) {
     const { collapsed, activeView } = useUserDashboardStore();

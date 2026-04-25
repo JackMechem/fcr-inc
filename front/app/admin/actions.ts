@@ -69,7 +69,7 @@ export const getReservations = (opts: {
     sortDir?: "asc" | "desc";
 } = {}) => browserApi.reservations.getAll(opts);
 
-export const createReservation = (data: { car: string; user: number; pickUpTime: number; dropOffTime: number }) =>
+export const createReservation = (data: { car: string; user: number; pickUpTime: number; dropOffTime: number; payments?: string[] }) =>
     browserApi.reservations.create(data);
 
 export const updateReservation = (reservationId: string | number, patch: Record<string, unknown>) =>
@@ -78,6 +78,54 @@ export const updateReservation = (reservationId: string | number, patch: Record<
 export const deleteReservation = (reservationId: string | number) =>
     browserApi.reservations.delete(reservationId);
 
+// ── Payments ──────────────────────────────────────────────────────────────────
+
+export const getPaymentsForReservation = async (reservationId: number) => {
+    const res = await fetch(`/api/payments?pageSize=500`, { cache: "no-store" });
+    if (!res.ok) throw new Error(`Failed to fetch payments (${res.status})`);
+    const data = await res.json();
+    const all: import("@/app/types/ReservationTypes").Payment[] = data?.data ?? data ?? [];
+    return all.filter((p) => {
+        const reservations = (p as unknown as Record<string, unknown>).reservations;
+        if (!Array.isArray(reservations)) return false;
+        return reservations.some((r) =>
+            typeof r === "object" && r !== null
+                ? (r as Record<string, unknown>).reservationId === reservationId
+                : Number(r) === reservationId
+        );
+    });
+};
+
+export const createPayment = (data: {
+    paymentId: string;
+    totalAmount: number;
+    amountPaid: number;
+    date: string;
+    paymentType: string;
+    reservations: number[];
+}) => fetch("/api/payments", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+}).then(async (res) => {
+    if (!res.ok) throw new Error(`Create payment failed (${res.status}): ${await res.text()}`);
+});
+
+export const updatePayment = (paymentId: string, patch: Record<string, unknown>) =>
+    fetch(`/api/payments/${encodeURIComponent(paymentId)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+    }).then(async (res) => {
+        if (!res.ok) throw new Error(`Update payment failed (${res.status}): ${await res.text()}`);
+    });
+
+export const deletePayment = (paymentId: string) =>
+    fetch(`/api/payments/${encodeURIComponent(paymentId)}`, { method: "DELETE" })
+        .then(async (res) => {
+            if (!res.ok && res.status !== 204) throw new Error(`Delete payment failed (${res.status})`);
+        });
+
 // ── Reviews ───────────────────────────────────────────────────────────────────
 
 export const getReviews = (opts: { page?: number; pageSize?: number } = {}) =>
@@ -85,6 +133,9 @@ export const getReviews = (opts: { page?: number; pageSize?: number } = {}) =>
 
 export const createReview = (data: { car: string; account: number; stars: number; title: string; bodyOfText: string; rentalDuration: number; publishedDate: number }) =>
     browserApi.reviews.create(data);
+
+export const updateReview = (reviewId: number, patch: Record<string, unknown>) =>
+    browserApi.reviews.update(reviewId, patch);
 
 export const deleteReview = (reviewId: number) =>
     browserApi.reviews.delete(reviewId);

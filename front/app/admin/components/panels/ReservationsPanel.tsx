@@ -1,15 +1,34 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Reservation } from "@/app/types/ReservationTypes";
-import { getReservations, createReservation, deleteReservation, updateReservation } from "../../actions";
-import { useUserDashboardStore } from "@/stores/userDashboardStore";
+import { Reservation, Payment } from "@/app/types/ReservationTypes";
+import {
+    getReservations, createReservation, deleteReservation, updateReservation,
+    getPaymentsForReservation, createPayment, updatePayment, deletePayment,
+} from "../../actions";
 import SpreadsheetTable, { Column, RowEdit } from "../table/SpreadsheetTable";
+import { useTablePermissions } from "../../config/useTablePermissions";
+import { ActiveFilter, FilterableColumn, filtersToRecord } from "../table/FilterPanel";
+import { useTablePrefsStore } from "@/stores/tablePrefsStore";
 import styles from "../table/spreadsheetTable.module.css";
+
+const TABLE_TITLE = "Reservations Database";
+const EMPTY_FILTERS: ActiveFilter[] = [];
+
+const FILTERABLE_COLUMNS: FilterableColumn[] = [
+    { field: "car",         label: "Car (VIN)",  type: "text" },
+    { field: "user",        label: "User ID",    type: "number" },
+    { field: "pickUpTime",  label: "Pick-up",    type: "date" },
+    { field: "dropOffTime", label: "Drop-off",   type: "date" },
+];
 import {
     BiSave,
     BiX,
     BiRefresh,
+    BiTrash,
+    BiPlus,
+    BiEdit,
+    BiCheck,
 } from "react-icons/bi";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -44,16 +63,252 @@ const userId = (r: Reservation) =>
 // ── Column definitions ───────────────────────────────────────────────────────
 
 const RES_COLUMNS: Column<Reservation>[] = [
-    { key: "reservationId", label: "Res #",     defaultVisible: true,  render: (r) => <span className={styles.badge}>#{r.reservationId}</span> },
-    { key: "car",           label: "Vehicle",   defaultVisible: true,  render: carLabel, minWidth: 140 },
-    { key: "carVin",        label: "Car VIN",   defaultVisible: false, render: (r) => carVin(r), minWidth: 170, editable: true, editType: "text", getValue: (r) => carVin(r) },
+    { key: "reservationId", label: "Res #",     defaultVisible: true,  locked: true,  render: (r) => <span className={styles.badge}>#{r.reservationId}</span> },
+    { key: "car",           label: "Car",       defaultVisible: true,  render: carLabel, minWidth: 140, editable: true, editType: "text", getValue: (r) => carVin(r) },
     { key: "userId",        label: "User ID",   defaultVisible: true,  render: (r) => userId(r) ?? "—", editable: true, editType: "number", getValue: (r) => userId(r) ?? 0 },
     { key: "pickUpTime",    label: "Pick-up",   defaultVisible: true,  render: (r) => fmtTimestamp(r.pickUpTime as number | string),  editable: true, editType: "date", getValue: (r) => toDateString(r.pickUpTime) },
     { key: "dropOffTime",   label: "Drop-off",  defaultVisible: true,  render: (r) => fmtTimestamp(r.dropOffTime as number | string), editable: true, editType: "date", getValue: (r) => toDateString(r.dropOffTime) },
     { key: "durationDays",  label: "Days",      defaultVisible: true,  render: (r) => `${r.durationDays}d ${r.durationHours % 24}h` },
     { key: "dateBooked",    label: "Booked",    defaultVisible: false, render: (r) => fmtTimestamp(r.dateBooked as number | string) },
-    { key: "payments",      label: "Payments",  defaultVisible: false, render: (r) => Array.isArray(r.payments) ? r.payments.length : 0 },
+    { key: "payments",      label: "Payments",  defaultVisible: true,  render: (r) => Array.isArray(r.payments) ? r.payments.length : 0,
+        editable: true, editType: "tags",
+        getTagsValue: (r) => Array.isArray(r.payments)
+            ? r.payments.map((p) => (typeof p === "string" ? p : (p as Payment).paymentId))
+            : [],
+    },
 ];
+
+// ── Payments Preview ─────────────────────────────────────────────────────────
+
+const PAYMENT_TYPES = ["CASH", "CREDIT", "DEBIT", "CHECK", "SERVICE", "INVOICE"];
+
+const fmtInstant = (val: number | string) => {
+    const d = typeof val === "number" ? new Date(val * 1000) : new Date(val);
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+};
+
+const toIsoDate = (epochSecOrStr: number | string): string => {
+    const d = typeof epochSecOrStr === "number" ? new Date(epochSecOrStr * 1000) : new Date(epochSecOrStr);
+    return d.toISOString().split("T")[0];
+};
+
+interface PaymentRowProps {
+    payment: Payment;
+    onSave: (patch: Partial<Payment>) => Promise<void>;
+    onDelete: () => Promise<void>;
+}
+
+const PaymentRow = ({ payment, onSave, onDelete }: PaymentRowProps) => {
+    const [editing, setEditing] = useState(false);
+    const [totalAmount, setTotalAmount] = useState(String(payment.totalAmount));
+    const [amountPaid, setAmountPaid] = useState(String(payment.amountPaid));
+    const [date, setDate] = useState(toIsoDate(payment.date));
+    const [paymentType, setPaymentType] = useState(payment.paymentType);
+    const [saving, setSaving] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+
+    const handleSave = async () => {
+        setSaving(true);
+        try {
+            await onSave({
+                totalAmount: Number(totalAmount),
+                amountPaid: Number(amountPaid),
+                date: new Date(date + "T00:00:00").toISOString() as unknown as number,
+                paymentType,
+            });
+            setEditing(false);
+        } catch (e) { alert("Save failed: " + e); }
+        finally { setSaving(false); }
+    };
+
+    const handleDelete = async () => {
+        if (!confirm("Delete this payment?")) return;
+        setDeleting(true);
+        try { await onDelete(); }
+        catch (e) { alert("Delete failed: " + e); }
+        finally { setDeleting(false); }
+    };
+
+    return (
+        <div className={styles.paymentRow}>
+            <div className={styles.paymentRowHeader}>
+                <span className={styles.paymentId} title={payment.paymentId}>
+                    {payment.paymentId.length > 24 ? payment.paymentId.slice(0, 24) + "…" : payment.paymentId}
+                </span>
+                <span className={`${styles.badge} ${payment.paid ? styles.badgeGreen : styles.badgeRed}`}>
+                    {payment.paid ? "Paid" : "Unpaid"}
+                </span>
+                <div className={styles.paymentRowActions}>
+                    {editing ? (
+                        <>
+                            <button className={styles.actionBtn} onClick={handleSave} disabled={saving} title="Save">
+                                {saving ? <BiRefresh className={styles.spinning} /> : <BiCheck />}
+                            </button>
+                            <button className={styles.actionBtn} onClick={() => setEditing(false)} title="Cancel">
+                                <BiX />
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <button className={styles.actionBtn} onClick={() => setEditing(true)} title="Edit">
+                                <BiEdit />
+                            </button>
+                            <button className={`${styles.actionBtn} ${styles.dangerBtn}`} onClick={handleDelete} disabled={deleting} title="Delete">
+                                {deleting ? <BiRefresh className={styles.spinning} /> : <BiTrash />}
+                            </button>
+                        </>
+                    )}
+                </div>
+            </div>
+            {editing ? (
+                <div className={styles.paymentEditGrid}>
+                    <div className={styles.fieldGroup}>
+                        <label className={styles.fieldLabel}>Total ($)</label>
+                        <input type="number" className={styles.fieldInput} value={totalAmount} onChange={(e) => setTotalAmount(e.target.value)} step="0.01" />
+                    </div>
+                    <div className={styles.fieldGroup}>
+                        <label className={styles.fieldLabel}>Paid ($)</label>
+                        <input type="number" className={styles.fieldInput} value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} step="0.01" />
+                    </div>
+                    <div className={styles.fieldGroup}>
+                        <label className={styles.fieldLabel}>Date</label>
+                        <input type="date" className={styles.fieldInput} value={date} onChange={(e) => setDate(e.target.value)} />
+                    </div>
+                    <div className={styles.fieldGroup}>
+                        <label className={styles.fieldLabel}>Type</label>
+                        <select className={styles.fieldInput} value={paymentType} onChange={(e) => setPaymentType(e.target.value)}>
+                            {PAYMENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                    </div>
+                </div>
+            ) : (
+                <div className={styles.paymentDetails}>
+                    <span>${payment.totalAmount.toFixed(2)} total</span>
+                    <span>${payment.amountPaid.toFixed(2)} paid</span>
+                    <span>{fmtInstant(payment.date)}</span>
+                    <span>{payment.paymentType}</span>
+                </div>
+            )}
+        </div>
+    );
+};
+
+interface AddPaymentFormProps {
+    reservationId: number;
+    onCreated: () => void;
+    onCancel: () => void;
+}
+
+const AddPaymentForm = ({ reservationId, onCreated, onCancel }: AddPaymentFormProps) => {
+    const [paymentId, setPaymentId] = useState(() => `manual_${Date.now()}`);
+    const [totalAmount, setTotalAmount] = useState("");
+    const [amountPaid, setAmountPaid] = useState("");
+    const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
+    const [paymentType, setPaymentType] = useState("CASH");
+    const [saving, setSaving] = useState(false);
+
+    const handleCreate = async () => {
+        if (!paymentId.trim() || !totalAmount || !date) { alert("Fill in all required fields."); return; }
+        setSaving(true);
+        try {
+            await createPayment({
+                paymentId: paymentId.trim(),
+                totalAmount: Number(totalAmount),
+                amountPaid: Number(amountPaid || 0),
+                date: new Date(date + "T00:00:00").toISOString(),
+                paymentType,
+                reservations: [reservationId],
+            });
+            onCreated();
+        } catch (e) { alert("Create failed: " + e); }
+        finally { setSaving(false); }
+    };
+
+    return (
+        <div className={styles.addPaymentForm}>
+            <div className={styles.paymentEditGrid}>
+                <div className={styles.fieldGroup}>
+                    <label className={styles.fieldLabel}>Payment ID *</label>
+                    <input className={styles.fieldInput} value={paymentId} onChange={(e) => setPaymentId(e.target.value)} placeholder="stripe_pi_... or manual_..." />
+                </div>
+                <div className={styles.fieldGroup}>
+                    <label className={styles.fieldLabel}>Total ($) *</label>
+                    <input type="number" className={styles.fieldInput} value={totalAmount} onChange={(e) => setTotalAmount(e.target.value)} step="0.01" placeholder="0.00" />
+                </div>
+                <div className={styles.fieldGroup}>
+                    <label className={styles.fieldLabel}>Paid ($)</label>
+                    <input type="number" className={styles.fieldInput} value={amountPaid} onChange={(e) => setAmountPaid(e.target.value)} step="0.01" placeholder="0.00" />
+                </div>
+                <div className={styles.fieldGroup}>
+                    <label className={styles.fieldLabel}>Date *</label>
+                    <input type="date" className={styles.fieldInput} value={date} onChange={(e) => setDate(e.target.value)} />
+                </div>
+                <div className={styles.fieldGroup}>
+                    <label className={styles.fieldLabel}>Type</label>
+                    <select className={styles.fieldInput} value={paymentType} onChange={(e) => setPaymentType(e.target.value)}>
+                        {PAYMENT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                </div>
+            </div>
+            <div className={styles.formActions}>
+                <button className={`${styles.actionBtn} ${styles.editBtn}`} onClick={handleCreate} disabled={saving}>
+                    {saving ? <BiRefresh className={styles.spinning} /> : <BiCheck />} Add
+                </button>
+                <button className={styles.actionBtn} onClick={onCancel} style={{ opacity: 0.6 }}><BiX /></button>
+            </div>
+        </div>
+    );
+};
+
+const PaymentsPreview = ({ reservation }: { reservation: Reservation }) => {
+    const [payments, setPayments] = useState<Payment[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [adding, setAdding] = useState(false);
+
+    const load = useCallback(async () => {
+        setLoading(true);
+        try { setPayments(await getPaymentsForReservation(reservation.reservationId)); }
+        catch { setPayments([]); }
+        finally { setLoading(false); }
+    }, [reservation.reservationId]);
+
+    useEffect(() => { load(); }, [load]);
+
+    return (
+        <div className={styles.previewPanel}>
+            <div className={styles.previewPanelHeader}>
+                <span className={styles.previewPanelTitle}>Reservation #{reservation.reservationId} — Payments</span>
+            </div>
+            {loading ? (
+                <div style={{ padding: "12px 16px", opacity: 0.5, fontSize: 13 }}>Loading…</div>
+            ) : payments.length === 0 && !adding ? (
+                <div style={{ padding: "12px 16px", opacity: 0.5, fontSize: 13 }}>No payments</div>
+            ) : (
+                <div className={styles.paymentsList}>
+                    {payments.map((p) => (
+                        <PaymentRow
+                            key={p.paymentId}
+                            payment={p}
+                            onSave={async (patch) => { await updatePayment(p.paymentId, patch as Record<string, unknown>); await load(); }}
+                            onDelete={async () => { await deletePayment(p.paymentId); await load(); }}
+                        />
+                    ))}
+                </div>
+            )}
+            {adding ? (
+                <AddPaymentForm
+                    reservationId={reservation.reservationId}
+                    onCreated={() => { setAdding(false); load(); }}
+                    onCancel={() => setAdding(false)}
+                />
+            ) : (
+                <button className={styles.addPaymentBtn} onClick={() => setAdding(true)}>
+                    <BiPlus /> Add Payment
+                </button>
+            )}
+        </div>
+    );
+};
 
 // ── Edit Form ────────────────────────────────────────────────────────────────
 
@@ -137,8 +392,7 @@ const EditForm = ({ res, onSave, onCancel }: EditFormProps) => {
 // ── Panel ────────────────────────────────────────────────────────────────────
 
 const ReservationsPanel = () => {
-    const { role } = useUserDashboardStore();
-    const isAdmin = role === "ADMIN";
+    const { isAdmin, canEdit, canDelete, canAddRow, lockedCols, permanentlyLockedCols } = useTablePermissions("reservations");
 
     const [reservations, setReservations] = useState<Reservation[]>([]);
     const [page, setPage] = useState(1);
@@ -153,14 +407,23 @@ const ReservationsPanel = () => {
     const [editing, setEditing] = useState<Reservation | null>(null);
     const [sortBy, setSortBy] = useState<string | null>(null);
     const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+    const storedFilters = useTablePrefsStore((s) => s.tableFilters[TABLE_TITLE]);
+    const storeSetFilters = useTablePrefsStore((s) => s.setTableFilters);
+    const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>((storedFilters ?? EMPTY_FILTERS) as ActiveFilter[]);
+    const handleFiltersChange = (f: ActiveFilter[]) => { setActiveFilters(f); storeSetFilters(TABLE_TITLE, f); };
 
-    const fetchPage = useCallback(async (p: number, ps: number, sb: string | null, sd: "asc" | "desc", isRefresh = false) => {
+    const fetchPage = useCallback(async (p: number, ps: number, sb: string | null, sd: "asc" | "desc", filters: ActiveFilter[] = [], isRefresh = false) => {
         if (isRefresh) setRefreshing(true); else setLoading(true);
         try {
-            const res = await getReservations({ page: p, pageSize: ps, sortBy: sb ?? undefined, sortDir: sd });
-            setReservations(res.data);
-            setTotalPages(res.totalPages);
-            setTotalItems(res.totalItems);
+            const params = new URLSearchParams({ page: String(p), pageSize: String(ps) });
+            if (sb) { params.set("sortBy", sb); params.set("sortDir", sd); }
+            Object.entries(filtersToRecord(filters)).forEach(([k, v]) => { if (v !== undefined) params.set(k, String(v)); });
+            const res = await fetch(`/api/reservations?${params}`, { cache: "no-store" });
+            if (!res.ok) throw new Error(`${res.status}`);
+            const data = await res.json();
+            setReservations(data?.data ?? []);
+            setTotalPages(data?.totalPages ?? 1);
+            setTotalItems(data?.totalItems ?? 0);
         } catch (e) {
             alert("Failed to fetch reservations: " + e);
         } finally {
@@ -169,15 +432,16 @@ const ReservationsPanel = () => {
         }
     }, []);
 
-    useEffect(() => { fetchPage(page, pageSize, sortBy, sortDir); }, [page, pageSize, fetchPage]);
+    useEffect(() => { fetchPage(page, pageSize, sortBy, sortDir, activeFilters); }, [page, pageSize, fetchPage]);
+    useEffect(() => { setPage(1); fetchPage(1, pageSize, sortBy, sortDir, activeFilters); }, [activeFilters]);
 
     const handlePageChange = (p: number) => { setPage(p); setSelected(new Set()); };
     const handlePageSizeChange = (ps: number) => { setPageSize(ps); setPage(1); setSelected(new Set()); };
-    const handleRefresh = () => fetchPage(page, pageSize, sortBy, sortDir, true);
+    const handleRefresh = () => fetchPage(page, pageSize, sortBy, sortDir, activeFilters, true);
 
     const handleSortChange = (col: string, dir: "asc" | "desc") => {
         setSortBy(col); setSortDir(dir); setPage(1);
-        fetchPage(1, pageSize, col, dir);
+        fetchPage(1, pageSize, col, dir, activeFilters);
     };
 
     const handleBulkDelete = async () => {
@@ -189,7 +453,7 @@ const ReservationsPanel = () => {
         setBulkDeleting(false);
         if (failed.length) alert(`${failed.length} deletion(s) failed.`);
         setSelected(new Set(failed));
-        fetchPage(page, pageSize, sortBy, sortDir, true);
+        fetchPage(page, pageSize, sortBy, sortDir, activeFilters, true);
     };
 
     const handleEdit = (res: Reservation) => setEditing(res);
@@ -198,20 +462,22 @@ const ReservationsPanel = () => {
         if (!window.confirm(`Delete reservation #${res.reservationId}? This cannot be undone.`)) return;
         try {
             await deleteReservation(res.reservationId);
-            fetchPage(page, pageSize, sortBy, sortDir, true);
+            fetchPage(page, pageSize, sortBy, sortDir, activeFilters, true);
         } catch (e) {
             alert("Delete failed: " + e);
         }
     };
 
     const handleCreateRow = async (data: Record<string, string | string[]>) => {
+        const paymentIds = Array.isArray(data.payments) ? data.payments as string[] : [];
         await createReservation({
-            car:         String(data.carVin ?? ""),
+            car:         String(data.car ?? ""),
             user:        Number(data.userId ?? 0),
             pickUpTime:  fromDateString(String(data.pickUpTime ?? "")),
             dropOffTime: fromDateString(String(data.dropOffTime ?? "")),
+            ...(paymentIds.length > 0 ? { payments: paymentIds } : {}),
         });
-        fetchPage(page, pageSize, sortBy, sortDir, true);
+        fetchPage(page, pageSize, sortBy, sortDir, activeFilters, true);
     };
 
     const handleSaveEdits = async (edits: RowEdit<Reservation>[]) => {
@@ -234,18 +500,19 @@ const ReservationsPanel = () => {
                 apiPatch.dropOffTime = patch.dropOffTime !== undefined ? fromDateString(String(patch.dropOffTime)) : original.dropOffTime;
                 apiPatch.pickUpTime  = patch.pickUpTime  !== undefined ? fromDateString(String(patch.pickUpTime))  : original.pickUpTime;
             }
-            if (patch.carVin !== undefined)  apiPatch.car  = String(patch.carVin);
+            if (patch.car !== undefined)     apiPatch.car  = String(patch.car);
             if (patch.userId !== undefined)  apiPatch.user = Number(patch.userId);
+            if (patch.payments !== undefined) (apiPatch as Record<string, unknown>).payments = patch.payments;
             return updateReservation(id as number, apiPatch);
         }));
-        fetchPage(page, pageSize, sortBy, sortDir, true);
+        fetchPage(page, pageSize, sortBy, sortDir, activeFilters, true);
     };
 
     const handleSaveEdit = async (patch: { pickUpTime?: number; dropOffTime?: number; car?: string; user?: number }) => {
         if (!editing) return;
         await updateReservation(editing.reservationId, patch);
         setEditing(null);
-        fetchPage(page, pageSize, sortBy, sortDir, true);
+        fetchPage(page, pageSize, sortBy, sortDir, activeFilters, true);
     };
 
     const filtered = query
@@ -273,22 +540,28 @@ const ReservationsPanel = () => {
                 isAdmin={isAdmin}
                 selected={selected}
                 onSelectionChange={setSelected}
-                onBulkDelete={handleBulkDelete}
+                onBulkDelete={canDelete ? handleBulkDelete : undefined}
                 bulkDeleting={bulkDeleting}
                 onEdit={handleEdit}
-                onDeleteOne={handleDeleteOne}
+                onDeleteOne={canDelete ? handleDeleteOne : undefined}
                 onRefresh={handleRefresh}
-                title="Reservation Database"
+                filterableColumns={FILTERABLE_COLUMNS}
+                activeFilters={activeFilters}
+                onFiltersChange={handleFiltersChange}
+                title="Reservations Database"
                 subtitle={query ? `${filtered.length} matching on this page` : undefined}
                 searchQuery={query}
                 onSearchChange={setQuery}
                 searchPlaceholder="Filter by vehicle, reservation ID or user ID\u2026"
                 emptyMessage="No reservations found."
-                onSaveEdits={isAdmin ? handleSaveEdits : undefined}
-                onCreateRow={isAdmin ? handleCreateRow : undefined}
+                onSaveEdits={canEdit ? handleSaveEdits : undefined}
+                onCreateRow={canAddRow ? handleCreateRow : undefined}
+                initialLockedCols={lockedCols}
+                permanentlyLockedCols={permanentlyLockedCols}
                 sortBy={sortBy}
                 sortDir={sortDir}
                 onSortChange={handleSortChange}
+                renderPreview={(r) => <PaymentsPreview reservation={r} />}
             />
             {editing && (
                 <EditForm

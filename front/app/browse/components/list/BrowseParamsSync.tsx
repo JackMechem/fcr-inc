@@ -6,6 +6,7 @@ import {
     getStoredDates,
     getStoredFilters,
     hasExplicitFilterParams,
+    setBrowseRedirectPending,
 } from "@/app/lib/browseStorage";
 
 /** Saves browse params to localStorage and restores them on initial load. */
@@ -44,7 +45,10 @@ const BrowseParamsSync = () => {
         }
 
         if (changed) {
+            setBrowseRedirectPending(true);
             router.replace(`/browse?${merged.toString()}`);
+        } else {
+            setBrowseRedirectPending(false);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);

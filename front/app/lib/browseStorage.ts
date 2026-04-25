@@ -1,3 +1,10 @@
+// Set to true by BrowseParamsSync when it's about to call router.replace() to
+// restore saved params. InfiniteCarList reads this flag and skips its initial
+// fetch so there's only one request once the redirect completes.
+let _redirectPending = false;
+export const setBrowseRedirectPending = (v: boolean) => { _redirectPending = v; };
+export const isBrowseRedirectPending = () => _redirectPending;
+
 const DATES_KEY = "fcr_browse_dates";
 const FILTERS_KEY = "fcr_browse_filters";
 
