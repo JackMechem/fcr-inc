@@ -64,7 +64,11 @@ const DatePicker = ({
         if (!open) return;
         if (portal && triggerRef.current) {
             const rect = triggerRef.current.getBoundingClientRect();
-            setPopupPos({ top: rect.bottom + 4, left: rect.left });
+            const POPUP_WIDTH = 280;
+            const rawLeft = rect.left;
+            const rightOverflow = rawLeft + POPUP_WIDTH - (window.innerWidth - 8);
+            const left = rightOverflow > 0 ? Math.max(8, rawLeft - rightOverflow) : rawLeft;
+            setPopupPos({ top: rect.bottom + 4, left });
         }
         if (!popupRef.current) return;
         const rect = popupRef.current.getBoundingClientRect();
@@ -112,6 +116,7 @@ const DatePicker = ({
     const popupEl = open && (
         <div
             ref={popupRef}
+            data-datepicker-portal="true"
             className={`${styles.popup} ${portal ? "" : `${popupPositionClass} ${popupAlignClass}`}`}
             style={portal && popupPos ? { position: "fixed", top: popupPos.top, left: popupPos.left, zIndex: 99999 } : undefined}
         >

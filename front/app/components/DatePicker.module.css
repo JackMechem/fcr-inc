@@ -8,6 +8,10 @@
 
 .trigger {
 	outline: none;
+	background: transparent;
+	border: none;
+	padding: 0;
+	cursor: pointer;
 	color: var(--color-foreground);
 	width: 100%;
 	text-align: left;
@@ -15,6 +19,8 @@
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+	-webkit-appearance: none;
+	appearance: none;
 }
 
 .placeholder {

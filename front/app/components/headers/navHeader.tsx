@@ -9,7 +9,7 @@ import smallLogo from "../../media/smallLogo.svg";
 import HeaderMenuButton from "../buttons/headerMenuButton";
 import DatePicker from "../DatePicker";
 import SuggestionsDropdown from "../ui/SuggestionsDropdown";
-import { BiSearch } from "react-icons/bi";
+import { BiSearch, BiCalendar } from "react-icons/bi";
 import { useFilterParams } from "@/app/hooks/useFilterParams";
 import { useScrollCollapse } from "@/app/hooks/useScrollCollapse";
 import { useSearchSuggestions } from "@/app/hooks/useSearchSuggestions";
@@ -30,6 +30,7 @@ interface NavHeaderProps {
 	activeFilters?: React.ReactNode;
 	mobileMenuTrigger?: React.ReactNode;
 	leftSlot?: React.ReactNode;
+	mobileLeftSlot?: React.ReactNode;
 }
 
 const NavHeader = ({
@@ -39,10 +40,13 @@ const NavHeader = ({
 	activeFilters,
 	mobileMenuTrigger,
 	leftSlot,
+	mobileLeftSlot,
 }: NavHeaderProps) => {
 	const [showSuggestions, setShowSuggestions] = useState(false);
 	const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
+	const [mobileDatesOpen, setMobileDatesOpen] = useState(false);
 	const searchBarRef = useRef<HTMLDivElement>(null);
+	const mobileDatesRef = useRef<HTMLDivElement>(null);
 
 	const router = useRouter();
 	const pathname = usePathname();
@@ -181,6 +185,32 @@ const NavHeader = ({
 		return () => document.removeEventListener("mousedown", handler);
 	}, []);
 
+	useEffect(() => {
+		if (!mobileDatesOpen) return;
+		const handler = (e: MouseEvent) => {
+			const target = e.target as Element;
+			if (
+				mobileDatesRef.current &&
+				!mobileDatesRef.current.contains(target) &&
+				!target.closest("[data-datepicker-portal]")
+			) {
+				setMobileDatesOpen(false);
+			}
+		};
+		document.addEventListener("mousedown", handler);
+		return () => document.removeEventListener("mousedown", handler);
+	}, [mobileDatesOpen]);
+
+	const formatShortDate = (d: Date) =>
+		d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+
+	const mobileDateLabel =
+		fromDate && untilDate
+			? `${formatShortDate(fromDate)} – ${formatShortDate(untilDate)}`
+			: fromDate
+			? `From ${formatShortDate(fromDate)}`
+			: "Dates";
+
 	const handleSearch = () => {
 		setShowSuggestions(false);
 		setHighlightedIndex(-1);
@@ -247,6 +277,11 @@ const NavHeader = ({
 			<div
 				className={`${styles.mainRow} ${isWhite ? styles.mainRowWhite : styles.mainRowCompact}`}
 			>
+				{/* Mobile-only left slot (e.g. back chevron on car detail page) */}
+				{!isWhite && mobileLeftSlot && (
+					<div className={styles.mobileLeftSlot}>{mobileLeftSlot}</div>
+				)}
+
 				{/* Logo */}
 				<Link href="/" className={styles.logoLink}>
 					{isWhite ? (
@@ -349,60 +384,82 @@ const NavHeader = ({
 			{/* ── Mobile search + filter row ── */}
 			{!isWhite && mobileFilterButton && (
 				<div className={`${styles.mobileRow} ${styles.mobileRowHideDesktop}`}>
-					<div ref={searchBarRef} className={styles.mobileSearchBar}>
-						<input
-							placeholder="Make & model"
-							value={searchText}
-							onChange={(e) => {
-								setSearchText(e.target.value);
-								setShowSuggestions(true);
-							}}
-							onFocus={() => {
-								if (suggestions.length > 0) setShowSuggestions(true);
-							}}
-							onKeyDown={handleKeyDown}
-							className={styles.mobileSearchInput}
-						/>
-						<div className={styles.mobileSeparator} />
-						<div className={styles.datepickerSlotDot}>
-							<DatePicker
-								label="From"
-								showLabel={false}
-								placeholder="From"
-								selected={fromDate}
-								onSelect={handleFromDateChange}
-								cartRanges={cartDateRanges}
+					<div className={styles.mobileDateWrapper} ref={mobileDatesRef}>
+						<div ref={searchBarRef} className={styles.mobileSearchBar}>
+							<input
+								placeholder="Make & model"
+								value={searchText}
+								onChange={(e) => {
+									setSearchText(e.target.value);
+									setShowSuggestions(true);
+								}}
+								onFocus={() => {
+									if (suggestions.length > 0) setShowSuggestions(true);
+								}}
+								onKeyDown={handleKeyDown}
+								className={styles.mobileSearchInput}
 							/>
-							{hasCartDateConflict && fromDate && (
-								<span className={styles.dateDotAbsolute} />
-							)}
+							<div className={styles.mobileSeparator} />
+							<button
+								type="button"
+								onClick={() => setMobileDatesOpen((v) => !v)}
+								className={`${styles.mobileDateBtn} ${mobileDatesOpen ? styles.mobileDateBtnOpen : ""}`}
+							>
+								<BiCalendar />
+								<span>{mobileDateLabel}</span>
+								{hasCartDateConflict && (fromDate || untilDate) && (
+									<span className={styles.dateDotInline} />
+								)}
+							</button>
+							<button type="button" onClick={handleSearch} className={styles.mobileSearchBtn}>
+								<BiSearch />
+							</button>
+							{showSuggestions &&
+								(loadingSuggestions || suggestions.length > 0) && (
+									<SuggestionsDropdown
+										suggestions={suggestions}
+										loading={loadingSuggestions}
+										highlightedIndex={highlightedIndex}
+										onSelect={handleSuggestionClick}
+										onHover={setHighlightedIndex}
+									/>
+								)}
 						</div>
-						<div className={styles.mobileSeparator} />
-						<div className={styles.datepickerSlotDot}>
-							<DatePicker
-								label="Until"
-								showLabel={false}
-								placeholder="Until"
-								selected={untilDate}
-								onSelect={handleUntilDateChange}
-								fromDate={fromDate}
-								cartRanges={cartDateRanges}
-							/>
-							{hasCartDateConflict && untilDate && (
-								<span className={styles.dateDotAbsolute} />
-							)}
-						</div>
-						{searchButton}
-						{showSuggestions &&
-							(loadingSuggestions || suggestions.length > 0) && (
-								<SuggestionsDropdown
-									suggestions={suggestions}
-									loading={loadingSuggestions}
-									highlightedIndex={highlightedIndex}
-									onSelect={handleSuggestionClick}
-									onHover={setHighlightedIndex}
-								/>
-							)}
+						{mobileDatesOpen && (
+							<div className={styles.mobileDatePopover}>
+								<div className={styles.mobileDateRow}>
+									<div className={styles.mobileDatePickerGroup}>
+										<p className={styles.mobileDatePickerLabel}>From</p>
+										<DatePicker
+											label="From"
+											showLabel={false}
+											placeholder="Add date"
+											selected={fromDate}
+											onSelect={handleFromDateChange}
+											cartRanges={cartDateRanges}
+											portal
+										/>
+									</div>
+									<div className={styles.mobileDateDivider} />
+									<div className={styles.mobileDatePickerGroup}>
+										<p className={styles.mobileDatePickerLabel}>Until</p>
+										<DatePicker
+											label="Until"
+											showLabel={false}
+											placeholder="Add date"
+											selected={untilDate}
+											onSelect={(d) => {
+												handleUntilDateChange(d);
+												if (d) setMobileDatesOpen(false);
+											}}
+											fromDate={fromDate}
+											cartRanges={cartDateRanges}
+											portal
+										/>
+									</div>
+								</div>
+							</div>
+						)}
 					</div>
 					{mobileFilterButton}
 				</div>

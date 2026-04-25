@@ -6,7 +6,6 @@ import { useCartStore } from "@/stores/cartStore";
 import { useUserDashboardStore } from "@/stores/userDashboardStore";
 import { fetchCarsPage, getUserReservations } from "../../actions";
 import { getAvailability } from "@/app/lib/availability";
-import { isBrowseRedirectPending } from "@/app/lib/browseStorage";
 import { saveBrowseListCache, getBrowseListCache } from "@/app/lib/browseListCache";
 import CarCard from "@/app/components/cars/CarListCard";
 import CarGridCard from "@/app/components/cars/carGridCard";
@@ -92,7 +91,11 @@ const InfiniteCarList = ({ filterParams, layout = "list", fromDate, untilDate }:
 	useEffect(() => {
 		if (!cached?.scrollY) return;
 		const id = setTimeout(() => {
-			window.scrollTo({ top: cached.scrollY, behavior: "instant" });
+			// On mobile the browser toolbar re-appears on back-navigation, shrinking
+			// the viewport and causing the restore to overshoot. Subtract the
+			// approximate toolbar height to compensate.
+			const mobileOffset = window.innerWidth < 768 ? 120 : 0;
+			window.scrollTo({ top: Math.max(0, cached.scrollY - mobileOffset), behavior: "instant" });
 		}, 0);
 		return () => clearTimeout(id);
 	// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -105,18 +108,13 @@ const InfiniteCarList = ({ filterParams, layout = "list", fromDate, untilDate }:
 	const [userReservations, setUserReservations] = useState<UserReservation[]>([]);
 
 	// Fetch first page of cars.
-	// Skip when:
-	//   a) BrowseParamsSync is about to redirect (would cause a double fetch)
-	//   b) We have cached cars for these exact filter params (navigating back)
-	//
-	// The skip condition uses only the immutable `cached` value and the current
-	// paramsKey, so it's safe under React 18 StrictMode's double-invoke of effects.
+	// Skip only when we have cached cars for these exact filter params (navigating back).
+	// The skip condition uses only the immutable `cached` value and is safe under
+	// React 18 StrictMode's double-invoke of effects.
 	useEffect(() => {
-		if (isBrowseRedirectPending()) return;
-
 		// If the cache already has data for these params, skip the fetch entirely.
 		// Any subsequent run of this effect (filter change) will have a different
-		// paramsKey, so `cached?.paramsKey !== paramsKey` will be true and we fetch.
+		// paramsKey, so the condition won't match and we fetch normally.
 		if (cached !== null && cached.paramsKey === paramsKey) return;
 
 		setCarsLoading(true);
