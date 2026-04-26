@@ -21,6 +21,12 @@ public class StatsController {
 
     private static final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
     private static final List<String> timeUnits = List.of("day", "week", "month", "year");
+    private static final Map<String, String> timeUnitFormats = Map.of(
+            "day", "%Y-%m-%d",
+            "week", "%Y-%u",
+            "month", "%Y-%m",
+            "year", "%Y"
+    ); // %Y = year, %m = month, %u = week, %d = day
 
     public static void getRevenue(Context ctx) {
         /*
@@ -41,31 +47,9 @@ public class StatsController {
             ctxParams.put("sortBy", List.of("popularity")); // Ensure sort by set for param parsing
             var params = new ParsedQueryParams(Car.class, ctxParams);
 
-            // Determine GROUP BY clause (for individual car popularity, time-based popularity, or both)
-            boolean groupByCar = ctx.queryParamAsClass("groupByCar", Boolean.class).getOrDefault(true);
-            boolean groupByTime = ctx.queryParamAsClass("groupByTime", Boolean.class).getOrDefault(true);
-            if (!groupByCar && !groupByTime) throw new QueryParamException("At least one of 'groupByCar' or 'groupByTime' must be true.");
-            String groupBy = (groupByCar ? "c.vin":"") + (groupByCar && groupByTime ? ", ":"") + (groupByTime ? "timeUnit":"");
-
-            // Determine time units to increment and group by
-            String timeUnit = ctx.queryParam("timeUnit");
-            if (timeUnit == null) {
-                var popularityRange = (List<Instant>) params.getPotentialParams().get("popularity");
-                long dayRange = ChronoUnit.DAYS.between(popularityRange.get(0), popularityRange.get(1));
-                if (dayRange <= 30) timeUnit = timeUnits.get(0); // day
-                else if (dayRange <= 124) timeUnit = timeUnits.get(1); // week
-                else if (dayRange <= 365) timeUnit = timeUnits.get(2); // month
-                else timeUnit = timeUnits.get(3); // year
-            } else if (!timeUnits.contains(timeUnit.toLowerCase())) {
-                throw new QueryParamException("Invalid timeUnit value. Supported values: " + timeUnits);
-            }
-            String dateFormat = switch (timeUnit.toLowerCase()) {
-                case "day" -> "%Y-%m-%d";
-                case "week" -> "%Y-%u"; // Year-Week number
-                case "month" -> "%Y-%m";
-                case "year" -> "%Y";
-                default -> null;
-            };
+            String groupBy = parseGroupBy(ctx);
+            String timeUnit = parseTimeUnit(ctx, params);
+            String dateFormat = timeUnitFormats.get(timeUnit);
 
             String queryString = "SELECT c AS car, COUNT(r.id) AS popularity, "+timeUnit+"(r.dateBooked) AS timeUnit, DATE_FORMAT(r.dateBooked, '"+dateFormat+"') as date FROM Car c" +
                     " LEFT JOIN Reservation r ON ((r.car = c) AND (r.dateBooked BETWEEN :popularityDate0 AND :popularityDate1 ))" +
@@ -74,22 +58,70 @@ public class StatsController {
             Session session = HibernateUtil.getSessionFactory().openSession();
             List<?> rows = params.setPotentialParams(session.createQuery(queryString, Map.class)).getResultList();
 
-            if (!params.isSelecting()) ctx.json(rows);
-            else { // Filter down to selected fields
-                ctx.json(rows.stream().map(row -> {
-                    Map<String, Object> map = mapper.convertValue(row, Map.class);
-                    Map<String, Object> carMap = (Map<String, Object>) map.get("car");
-                    carMap.keySet().removeIf(k -> !params.getSelectFields().contains(k));
-                    map.put("car", carMap);
-                    return map;
-                }).toList());
-            }
+            selectResultRows(ctx, params, rows);
             session.close();
 
         } catch (Exception e) {
             if (e instanceof QueryParamException) queryParamError(ctx, e);
             else if (e instanceof HibernateException) databaseError(ctx, e);
             else serverError(ctx, e);
+        }
+    }
+
+    // -- Helper Functions
+    // -------------------
+
+    /**
+     * Determines the GROUP BY clause contents based on whether to group by car and/or time.
+     * @param ctx the Javalin context containing query parameters
+     * @return the GROUP BY clause string (contents only, not including "GROUP BY")
+     * @throws QueryParamException if neither groupByCar nor groupByTime is true
+     */
+    private static String parseGroupBy(Context ctx) throws QueryParamException {
+        boolean groupByCar = ctx.queryParamAsClass("groupByCar", Boolean.class).getOrDefault(true);
+        boolean groupByTime = ctx.queryParamAsClass("groupByTime", Boolean.class).getOrDefault(true);
+        if (!groupByCar && !groupByTime) throw new QueryParamException("At least one of 'groupByCar' or 'groupByTime' must be true.");
+        return (groupByCar ? "c.vin":"") + (groupByCar && groupByTime ? ", ":"") + (groupByTime ? "timeUnit":"");
+    }
+
+    /**
+     * Determines the time unit for grouping reservations based on the date range or provided parameter.
+     * @param ctx the Javalin context
+     * @param params the parsed query parameters
+     * @return the time unit string (day, week, month, or year)
+     * @throws QueryParamException if the timeUnit parameter is invalid
+     */
+    private static String parseTimeUnit(Context ctx, ParsedQueryParams params) throws QueryParamException {
+        String timeUnit = ctx.queryParam("timeUnit");
+        if (timeUnit == null) {
+            var popularityRange = (List<Instant>) params.getPotentialParams().get("popularity");
+            long dayRange = ChronoUnit.DAYS.between(popularityRange.get(0), popularityRange.get(1));
+            if (dayRange <= 30) timeUnit = timeUnits.get(0); // day
+            else if (dayRange <= 124) timeUnit = timeUnits.get(1); // week
+            else if (dayRange <= 365) timeUnit = timeUnits.get(2); // month
+            else timeUnit = timeUnits.get(3); // year
+        } else if (!timeUnits.contains(timeUnit.toLowerCase())) {
+            throw new QueryParamException("Invalid timeUnit value. Supported values: " + timeUnits);
+        }
+        return timeUnit.toLowerCase();
+    }
+
+    /**
+     * Processes and JSON returns the query result rows, filtering car fields if select parameters are specified.
+     * @param ctx the Javalin context
+     * @param params the parsed query parameters
+     * @param rows the list of result rows from the query
+     */
+    private static void selectResultRows(Context ctx, ParsedQueryParams params, List<?> rows) {
+        if (!params.isSelecting()) ctx.json(rows);
+        else { // Filter down to selected fields
+            ctx.json(rows.stream().map(row -> {
+                Map<String, Object> map = mapper.convertValue(row, Map.class);
+                Map<String, Object> carMap = (Map<String, Object>) map.get("car");
+                carMap.keySet().removeIf(k -> !params.getSelectFields().contains(k));
+                map.put("car", carMap);
+                return map;
+            }).toList());
         }
     }
 }
