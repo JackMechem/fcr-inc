@@ -5,11 +5,12 @@ import com.inc.fcr.database.PagesWrapper;
 import com.inc.fcr.database.ParsedQueryParams;
 import com.inc.fcr.errorHandling.QueryParamException;
 import com.inc.fcr.errorHandling.ValidationException;
-import jakarta.persistence.PersistenceUnitUtil;
+import jakarta.persistence.*;
 import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import org.hibernate.Transaction;
 
+import java.lang.reflect.Field;
 import java.util.*;
 
 /**
@@ -150,11 +151,50 @@ public class DatabaseController {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
 
             var transaction = session.beginTransaction();
-            session.merge(obj);
+            if (inserting) {
+                resolveAssociations(session, obj);
+                session.persist(obj);
+            } else {
+                session.merge(obj);
+            }
             transaction.commit();
 
             System.out.println("Object successfully " + (inserting ? "inserted" : "updated") + ".");
         }
+    }
+
+    private static void resolveAssociations(Session session, Object obj) {
+        for (Field field : obj.getClass().getDeclaredFields()) {
+            field.setAccessible(true);
+            try {
+                if (field.isAnnotationPresent(ManyToOne.class) || field.isAnnotationPresent(OneToOne.class)) {
+                    Object assoc = field.get(obj);
+                    if (assoc == null) continue;
+                    Object proxy = toManagedProxy(session, assoc);
+                    if (proxy != null) field.set(obj, proxy);
+                } else if (field.isAnnotationPresent(ManyToMany.class) || field.isAnnotationPresent(OneToMany.class)) {
+                    Object val = field.get(obj);
+                    if (!(val instanceof List<?> list) || list.isEmpty()) continue;
+                    List<Object> resolved = new ArrayList<>();
+                    for (Object item : list) {
+                        Object proxy = toManagedProxy(session, item);
+                        resolved.add(proxy != null ? proxy : item);
+                    }
+                    field.set(obj, resolved);
+                }
+            } catch (IllegalAccessException ignored) {}
+        }
+    }
+
+    private static Object toManagedProxy(Session session, Object assoc) throws IllegalAccessException {
+        for (Field idField : assoc.getClass().getDeclaredFields()) {
+            if (!idField.isAnnotationPresent(Id.class)) continue;
+            idField.setAccessible(true);
+            Object id = idField.get(assoc);
+            if (id != null) return session.getReference(assoc.getClass(), id);
+            break;
+        }
+        return null;
     }
 
     /*

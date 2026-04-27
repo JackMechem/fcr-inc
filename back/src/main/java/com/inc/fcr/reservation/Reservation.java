@@ -1,8 +1,8 @@
 package com.inc.fcr.reservation;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSetter;
 import com.inc.fcr.car.Car;
 import com.inc.fcr.errorHandling.ValidationException;
 import com.inc.fcr.payment.Payment;
@@ -192,6 +192,23 @@ public class Reservation extends APIEntity {
     }
 
     // Setters
+
+    @JsonSetter("car")
+    public void setCarId(String vin) { Car c = new Car(); c.setVin(vin); this.car = c; }
+
+    @JsonSetter("user")
+    public void setUserId(long id) throws Exception {
+        User u = new User();
+        java.lang.reflect.Field f = User.class.getDeclaredField("userId");
+        f.setAccessible(true);
+        f.set(u, id);
+        this.user = u;
+    }
+
+    @JsonSetter("payments")
+    public void setPaymentIds(List<String> ids) {
+        this.payments = ids.stream().map(id -> { Payment p = new Payment(); p.setPaymentId(id); return p; }).toList();
+    }
 
     public void setCar(Car car) {
         this.car = car;
