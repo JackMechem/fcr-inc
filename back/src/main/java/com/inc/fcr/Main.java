@@ -16,6 +16,8 @@ import com.inc.fcr.car.enums.EnumController;
 
 import io.javalin.Javalin;
 
+import java.time.Instant;
+
 import static io.javalin.apibuilder.ApiBuilder.*;
 
 /**
@@ -64,6 +66,7 @@ public class Main {
     public static void main(String[] args) throws Exception {
 
         HibernateUtil.getSessionFactory();
+        ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
 
         // Check for the "PORT" environment variable, default to 8080 if not found
         String portProperty = System.getenv("PORT");
@@ -71,7 +74,7 @@ public class Main {
 
         Javalin app = Javalin.create(config -> {
 
-            ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
+            config.validation.register(Instant.class, Instant::parse);
 
             // Create controllers
             APIController accounts = new APIController(Account.class, Long.class);

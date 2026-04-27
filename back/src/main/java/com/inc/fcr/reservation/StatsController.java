@@ -11,6 +11,7 @@ import org.hibernate.Session;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,15 +30,35 @@ public class StatsController {
     ); // %Y = year, %m = month, %u = week, %d = day
 
     public static void getRevenue(Context ctx) {
-        /*
-            We get with a controllable granularity ('select' & 'group by') of  daily, monthly, yearly
-                (others you may have to calculate frontend/java unless I can work out a way to do it in SQL)
-            We have a 'where' filter range for the payment dates to get
-            Results return in order (we prob still need to specify which date it lines up with in the return, huh?)
-            All car filters should still be supported ideally
-            index the date columns for efficient access
-         */
-        // TODO
+        try {
+            var params = new ParsedQueryParams(Car.class, ctx.queryParamMap());
+
+            String groupBy = parseGroupBy(ctx);
+            String timeUnit = parseTimeUnit(ctx, params);
+            String dateFormat = timeUnitFormats.get(timeUnit);
+
+            List<Instant> revenueRange = Arrays.asList( // Range defaults to 4 months ago to now
+                    ctx.queryParamAsClass("revenueStartDate", Instant.class).getOrDefault(Instant.now().minusSeconds(10512000)),
+                    ctx.queryParamAsClass("revenueEndDate", Instant.class).getOrDefault(Instant.now())
+            );
+            params.getPotentialParams().put("revenueDate", revenueRange);
+
+            String queryString = "SELECT c AS car, (SUM(GREATEST(1,DATEDIFF(r.dropOffTime, r.pickUpTime)) * c.pricePerDay)) AS revenue, " +
+                    timeUnit + "(r.dateBooked) AS timeUnit, DATE_FORMAT(r.dateBooked, '"+dateFormat+"') AS date" +
+                    " FROM Car c LEFT JOIN Reservation r ON ((r.car = c) AND (r.dateBooked BETWEEN :revenueDate0 AND :revenueDate1 )) " +
+                    params.getFilterClause() + " GROUP BY "+ groupBy +" HAVING COUNT(r.id) > 0 ORDER BY revenue DESC, timeUnit DESC";
+
+            Session session = HibernateUtil.getSessionFactory().openSession();
+            List<?> rows = params.setPotentialParams(session.createQuery(queryString, Map.class)).getResultList();
+
+            selectResultRows(ctx, params, rows);
+            session.close();
+
+        } catch (Exception e) {
+            if (e instanceof QueryParamException) queryParamError(ctx, e);
+            else if (e instanceof HibernateException) databaseError(ctx, e);
+            else serverError(ctx, e);
+        }
     }
 
 
@@ -51,8 +72,8 @@ public class StatsController {
             String timeUnit = parseTimeUnit(ctx, params);
             String dateFormat = timeUnitFormats.get(timeUnit);
 
-            String queryString = "SELECT c AS car, COUNT(r.id) AS popularity, "+timeUnit+"(r.dateBooked) AS timeUnit, DATE_FORMAT(r.dateBooked, '"+dateFormat+"') as date FROM Car c" +
-                    " LEFT JOIN Reservation r ON ((r.car = c) AND (r.dateBooked BETWEEN :popularityDate0 AND :popularityDate1 ))" +
+            String queryString = "SELECT c AS car, COUNT(r.id) AS popularity, "+timeUnit+"(r.dateBooked) AS timeUnit, DATE_FORMAT(r.dateBooked, '"+dateFormat+"') AS date" +
+                    " FROM Car c LEFT JOIN Reservation r ON ((r.car = c) AND (r.dateBooked BETWEEN :popularityDate0 AND :popularityDate1 ))" +
                     params.getFilterClause() + " GROUP BY "+ groupBy +" HAVING COUNT(r.id) > 0 ORDER BY popularity DESC, timeUnit DESC";
 
             Session session = HibernateUtil.getSessionFactory().openSession();
