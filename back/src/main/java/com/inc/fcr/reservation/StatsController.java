@@ -33,15 +33,15 @@ public class StatsController {
         try {
             var params = new ParsedQueryParams(Car.class, ctx.queryParamMap());
 
-            GroupBy groupBy = parseGroupBy(ctx);
-            String timeUnit = parseTimeUnit(ctx, params);
-            String dateFormat = timeUnitFormats.get(timeUnit);
-
             List<Instant> revenueRange = Arrays.asList( // Range defaults to 4 months ago to now
-                    ctx.queryParamAsClass("revenueStartDate", Instant.class).getOrDefault(Instant.now().minusSeconds(10512000)),
-                    ctx.queryParamAsClass("revenueEndDate", Instant.class).getOrDefault(Instant.now())
+                    ctx.queryParamAsClass("startDate", Instant.class).getOrDefault(Instant.now().minusSeconds(10512000)),
+                    ctx.queryParamAsClass("endDate", Instant.class).getOrDefault(Instant.now())
             );
             params.getPotentialParams().put("revenueDate", revenueRange);
+
+            GroupBy groupBy = parseGroupBy(ctx);
+            String timeUnit = parseTimeUnit(ctx, revenueRange);
+            String dateFormat = timeUnitFormats.get(timeUnit);
 
             String queryString = "SELECT "+(groupBy.car ? "c AS car, ":"")+"(SUM(GREATEST(1,DATEDIFF(r.dropOffTime, r.pickUpTime)) * c.pricePerDay)) AS revenue" +
                     (groupBy.time ? ", "+timeUnit+"(r.dateBooked) AS timeUnit, DATE_FORMAT(r.dateBooked, '"+dateFormat+"') AS date":"") +
@@ -68,8 +68,14 @@ public class StatsController {
             ctxParams.put("sortBy", List.of("popularity")); // Ensure sort by set for param parsing
             var params = new ParsedQueryParams(Car.class, ctxParams);
 
+            List<Instant> popularityRange = Arrays.asList( // Range defaults to 4 months ago to now
+                    ctx.queryParamAsClass("startDate", Instant.class).getOrDefault(Instant.now().minusSeconds(10512000)),
+                    ctx.queryParamAsClass("endDate", Instant.class).getOrDefault(Instant.now())
+            );
+            params.getPotentialParams().put("popularityDate", popularityRange);
+
             GroupBy groupBy = parseGroupBy(ctx);
-            String timeUnit = parseTimeUnit(ctx, params);
+            String timeUnit = parseTimeUnit(ctx, popularityRange);
             String dateFormat = timeUnitFormats.get(timeUnit);
 
             String queryString = "SELECT "+(groupBy.car ? "c AS car, ":"")+" COUNT(r.id) AS popularity" +
@@ -111,15 +117,14 @@ public class StatsController {
     /**
      * Determines the time unit for grouping reservations based on the date range or provided parameter.
      * @param ctx the Javalin context
-     * @param params the parsed query parameters
+     * @param dateRange the start and end instants for the query range
      * @return the time unit string (day, week, month, or year)
      * @throws QueryParamException if the timeUnit parameter is invalid
      */
-    private static String parseTimeUnit(Context ctx, ParsedQueryParams params) throws QueryParamException {
+    private static String parseTimeUnit(Context ctx, List<Instant> dateRange) throws QueryParamException {
         String timeUnit = ctx.queryParam("timeUnit");
         if (timeUnit == null) {
-            var popularityRange = (List<Instant>) params.getPotentialParams().get("popularityDate");
-            long dayRange = ChronoUnit.DAYS.between(popularityRange.get(0), popularityRange.get(1));
+            long dayRange = ChronoUnit.DAYS.between(dateRange.get(0), dateRange.get(1));
             if (dayRange <= 30) timeUnit = timeUnits.get(0); // day
             else if (dayRange <= 124) timeUnit = timeUnits.get(1); // week
             else if (dayRange <= 365) timeUnit = timeUnits.get(2); // month

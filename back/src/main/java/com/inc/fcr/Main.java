@@ -181,8 +181,8 @@ public class Main {
                 });
 
                 path("stats", () -> {
-                    get("revenue", StatsController::getRevenue, Role.WRITE);
-                    get("popularity", StatsController::getPopularity, Role.WRITE);
+                    get("revenue", StatsController::getRevenue, Role.ANYONE);
+                    get("popularity", StatsController::getPopularity, Role.ANYONE);
                 });
 
                 // redirect to enums (/enums) and (/enums{enum})
