@@ -33,7 +33,7 @@ public class StatsController {
         try {
             var params = new ParsedQueryParams(Car.class, ctx.queryParamMap());
 
-            String groupBy = parseGroupBy(ctx);
+            GroupBy groupBy = parseGroupBy(ctx);
             String timeUnit = parseTimeUnit(ctx, params);
             String dateFormat = timeUnitFormats.get(timeUnit);
 
@@ -43,15 +43,15 @@ public class StatsController {
             );
             params.getPotentialParams().put("revenueDate", revenueRange);
 
-            String queryString = "SELECT c AS car, (SUM(GREATEST(1,DATEDIFF(r.dropOffTime, r.pickUpTime)) * c.pricePerDay)) AS revenue, " +
-                    timeUnit + "(r.dateBooked) AS timeUnit, DATE_FORMAT(r.dateBooked, '"+dateFormat+"') AS date" +
+            String queryString = "SELECT "+(groupBy.car ? "c AS car, ":"")+"(SUM(GREATEST(1,DATEDIFF(r.dropOffTime, r.pickUpTime)) * c.pricePerDay)) AS revenue" +
+                    (groupBy.time ? ", "+timeUnit+"(r.dateBooked) AS timeUnit, DATE_FORMAT(r.dateBooked, '"+dateFormat+"') AS date":"") +
                     " FROM Car c LEFT JOIN Reservation r ON ((r.car = c) AND (r.dateBooked BETWEEN :revenueDate0 AND :revenueDate1 )) " +
-                    params.getFilterClause() + " GROUP BY "+ groupBy +" HAVING COUNT(r.id) > 0 ORDER BY revenue DESC, timeUnit DESC";
+                    params.getFilterClause() + " GROUP BY "+ groupBy.clause +" HAVING COUNT(r.id) > 0 ORDER BY revenue DESC"+(groupBy.time ? ", timeUnit DESC":"");
 
             Session session = HibernateUtil.getSessionFactory().openSession();
             List<?> rows = params.setPotentialParams(session.createQuery(queryString, Map.class)).getResultList();
 
-            selectResultRows(ctx, params, rows);
+            selectResultRows(ctx, params, rows, groupBy.car);
             session.close();
 
         } catch (Exception e) {
@@ -68,18 +68,19 @@ public class StatsController {
             ctxParams.put("sortBy", List.of("popularity")); // Ensure sort by set for param parsing
             var params = new ParsedQueryParams(Car.class, ctxParams);
 
-            String groupBy = parseGroupBy(ctx);
+            GroupBy groupBy = parseGroupBy(ctx);
             String timeUnit = parseTimeUnit(ctx, params);
             String dateFormat = timeUnitFormats.get(timeUnit);
 
-            String queryString = "SELECT c AS car, COUNT(r.id) AS popularity, "+timeUnit+"(r.dateBooked) AS timeUnit, DATE_FORMAT(r.dateBooked, '"+dateFormat+"') AS date" +
+            String queryString = "SELECT "+(groupBy.car ? "c AS car, ":"")+" COUNT(r.id) AS popularity" +
+                    (groupBy.time ? ", "+timeUnit+"(r.dateBooked) AS timeUnit, DATE_FORMAT(r.dateBooked, '"+dateFormat+"') AS date":"") +
                     " FROM Car c LEFT JOIN Reservation r ON ((r.car = c) AND (r.dateBooked BETWEEN :popularityDate0 AND :popularityDate1 ))" +
-                    params.getFilterClause() + " GROUP BY "+ groupBy +" HAVING COUNT(r.id) > 0 ORDER BY popularity DESC, timeUnit DESC";
+                    params.getFilterClause() + " GROUP BY "+ groupBy.clause +" HAVING COUNT(r.id) > 0 ORDER BY popularity DESC"+(groupBy.time ? ", timeUnit DESC":"");
 
             Session session = HibernateUtil.getSessionFactory().openSession();
             List<?> rows = params.setPotentialParams(session.createQuery(queryString, Map.class)).getResultList();
 
-            selectResultRows(ctx, params, rows);
+            selectResultRows(ctx, params, rows, groupBy.car);
             session.close();
 
         } catch (Exception e) {
@@ -92,17 +93,19 @@ public class StatsController {
     // -- Helper Functions
     // -------------------
 
+    private record GroupBy(boolean car, boolean time, String clause) {}
     /**
      * Determines the GROUP BY clause contents based on whether to group by car and/or time.
      * @param ctx the Javalin context containing query parameters
      * @return the GROUP BY clause string (contents only, not including "GROUP BY")
      * @throws QueryParamException if neither groupByCar nor groupByTime is true
      */
-    private static String parseGroupBy(Context ctx) throws QueryParamException {
+    private static GroupBy parseGroupBy(Context ctx) throws QueryParamException {
         boolean groupByCar = ctx.queryParamAsClass("groupByCar", Boolean.class).getOrDefault(true);
         boolean groupByTime = ctx.queryParamAsClass("groupByTime", Boolean.class).getOrDefault(true);
         if (!groupByCar && !groupByTime) throw new QueryParamException("At least one of 'groupByCar' or 'groupByTime' must be true.");
-        return (groupByCar ? "c.vin":"") + (groupByCar && groupByTime ? ", ":"") + (groupByTime ? "timeUnit":"");
+        String clause = (groupByCar ? "c.vin":"") + (groupByCar && groupByTime ? ", ":"") + (groupByTime ? "timeUnit":"");
+        return new GroupBy(groupByCar, groupByTime, clause);
     }
 
     /**
@@ -133,8 +136,8 @@ public class StatsController {
      * @param params the parsed query parameters
      * @param rows the list of result rows from the query
      */
-    private static void selectResultRows(Context ctx, ParsedQueryParams params, List<?> rows) {
-        if (!params.isSelecting()) ctx.json(rows);
+    private static void selectResultRows(Context ctx, ParsedQueryParams params, List<?> rows, boolean groupByCar) {
+        if (!params.isSelecting() || !groupByCar) ctx.json(rows);
         else { // Filter down to selected fields
             ctx.json(rows.stream().map(row -> {
                 Map<String, Object> map = mapper.convertValue(row, Map.class);
