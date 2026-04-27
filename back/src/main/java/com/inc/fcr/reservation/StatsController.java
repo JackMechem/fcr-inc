@@ -29,6 +29,11 @@ public class StatsController {
             "year", "%Y"
     ); // %Y = year, %m = month, %u = week, %d = day
 
+    /**
+     * Retrieves estimated revenue statistics (estimated) for cars over time.
+     * Supports filtering, selecting, searching, groupByCar and/or groupByTime, timeUnit, and dateRange params.
+     * Returns car objects, timeUnit, date, and revenue values.
+     */
     public static void getRevenue(Context ctx) {
         try {
             var params = new ParsedQueryParams(Car.class, ctx.queryParamMap());
@@ -37,15 +42,9 @@ public class StatsController {
             String timeUnit = parseTimeUnit(ctx, params);
             String dateFormat = timeUnitFormats.get(timeUnit);
 
-            List<Instant> revenueRange = Arrays.asList( // Range defaults to 4 months ago to now
-                    ctx.queryParamAsClass("revenueStartDate", Instant.class).getOrDefault(Instant.now().minusSeconds(10512000)),
-                    ctx.queryParamAsClass("revenueEndDate", Instant.class).getOrDefault(Instant.now())
-            );
-            params.getPotentialParams().put("revenueDate", revenueRange);
-
             String queryString = "SELECT "+(groupBy.car ? "c AS car, ":"")+"(SUM(GREATEST(1,DATEDIFF(r.dropOffTime, r.pickUpTime)) * c.pricePerDay)) AS revenue" +
                     (groupBy.time ? ", "+timeUnit+"(r.dateBooked) AS timeUnit, DATE_FORMAT(r.dateBooked, '"+dateFormat+"') AS date":"") +
-                    " FROM Car c LEFT JOIN Reservation r ON ((r.car = c) AND (r.dateBooked BETWEEN :revenueDate0 AND :revenueDate1 )) " +
+                    " FROM Car c LEFT JOIN Reservation r ON ((r.car = c) AND (r.dateBooked BETWEEN :dateRange0 AND :dateRange1 )) " +
                     params.getFilterClause() + " GROUP BY "+ groupBy.clause +" HAVING COUNT(r.id) > 0 ORDER BY revenue DESC"+(groupBy.time ? ", timeUnit DESC":"");
 
             Session session = HibernateUtil.getSessionFactory().openSession();
@@ -62,6 +61,11 @@ public class StatsController {
     }
 
 
+    /**
+     * Retrieves popularity statistics (reservations) for cars over time.
+     * Supports filtering, selecting, searching, groupByCar and/or groupByTime, timeUnit, and dateRange params.
+     * Returns car objects, timeUnit, date, and popularity counts.
+     */
     public static void getPopularity(Context ctx) {
         try {
             var ctxParams = new LinkedHashMap<>(ctx.queryParamMap());
@@ -74,7 +78,7 @@ public class StatsController {
 
             String queryString = "SELECT "+(groupBy.car ? "c AS car, ":"")+" COUNT(r.id) AS popularity" +
                     (groupBy.time ? ", "+timeUnit+"(r.dateBooked) AS timeUnit, DATE_FORMAT(r.dateBooked, '"+dateFormat+"') AS date":"") +
-                    " FROM Car c LEFT JOIN Reservation r ON ((r.car = c) AND (r.dateBooked BETWEEN :popularityDate0 AND :popularityDate1 ))" +
+                    " FROM Car c LEFT JOIN Reservation r ON ((r.car = c) AND (r.dateBooked BETWEEN :dateRange0 AND :dateRange1 ))" +
                     params.getFilterClause() + " GROUP BY "+ groupBy.clause +" HAVING COUNT(r.id) > 0 ORDER BY popularity DESC"+(groupBy.time ? ", timeUnit DESC":"");
 
             Session session = HibernateUtil.getSessionFactory().openSession();
@@ -116,10 +120,15 @@ public class StatsController {
      * @throws QueryParamException if the timeUnit parameter is invalid
      */
     private static String parseTimeUnit(Context ctx, ParsedQueryParams params) throws QueryParamException {
+        // Range defaults from 4 months ago to now
+        List<Instant> dateRange = Arrays.asList(
+                ctx.queryParamAsClass("dateRangeStart", Instant.class).getOrDefault(Instant.now().minusSeconds(10512000)),
+                ctx.queryParamAsClass("dateRangeEnd", Instant.class).getOrDefault(Instant.now())
+        );
+
         String timeUnit = ctx.queryParam("timeUnit");
         if (timeUnit == null) {
-            var popularityRange = (List<Instant>) params.getPotentialParams().get("popularityDate");
-            long dayRange = ChronoUnit.DAYS.between(popularityRange.get(0), popularityRange.get(1));
+            long dayRange = ChronoUnit.DAYS.between(dateRange.get(0), dateRange.get(1));
             if (dayRange <= 30) timeUnit = timeUnits.get(0); // day
             else if (dayRange <= 124) timeUnit = timeUnits.get(1); // week
             else if (dayRange <= 365) timeUnit = timeUnits.get(2); // month
@@ -127,6 +136,7 @@ public class StatsController {
         } else if (!timeUnits.contains(timeUnit.toLowerCase())) {
             throw new QueryParamException("Invalid timeUnit value. Supported values: " + timeUnits);
         }
+        params.getPotentialParams().put("dateRange", dateRange);
         return timeUnit.toLowerCase();
     }
 
