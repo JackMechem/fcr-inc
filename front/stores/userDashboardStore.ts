@@ -26,7 +26,8 @@ export type UserDashboardView =
     | "list-reviews"
     | "list-payments"
     | "view-reservation"
-    | "stats-popularity";
+    | "stats-popularity"
+    | "stats-revenue";
 
 export interface DashboardReservation {
     reservationId: number;

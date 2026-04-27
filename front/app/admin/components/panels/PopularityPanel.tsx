@@ -3,7 +3,10 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useUserDashboardStore } from "@/stores/userDashboardStore";
-import { BiRefresh, BiLineChart, BiSearch, BiX, BiCircle, BiCalendar, BiFilter, BiListUl, BiChevronDown } from "react-icons/bi";
+import { BiRefresh, BiLineChart, BiBarChartAlt2, BiX, BiCircle, BiCalendar, BiFilter, BiListUl, BiChevronDown, BiTable, BiCode, BiImage } from "react-icons/bi";
+import ExportButton from "@/app/admin/components/table/ExportButton";
+import CarColorPicker from "./CarColorPicker";
+import { downloadData, safeFilename, buildCsv, exportSvg, exportSvgAsPng } from "@/app/admin/components/table/exportUtils";
 import { buildQuery } from "@/app/lib/fcr-client/core";
 import { FaRegEyeSlash } from "react-icons/fa6";
 import tableStyles from "@/app/admin/components/table/spreadsheetTable.module.css";
@@ -39,6 +42,63 @@ const CHART_MODE_LABELS: Record<ChartMode, string> = {
     "per-time":         "Reservations in a time range",
 };
 
+const CHART_MODE_ICONS: Record<ChartMode, React.ReactNode> = {
+    "per-car-per-time": <BiLineChart />,
+    "per-car":          <BiBarChartAlt2 />,
+    "per-time":         <BiLineChart />,
+};
+
+// Mini demo SVGs for the chart mode picker
+const CHART_MODE_PREVIEWS: Record<ChartMode, React.ReactNode> = {
+    "per-car-per-time": (
+        <svg viewBox="0 0 120 72" width="120" height="72" style={{ display: "block" }}>
+            <defs>
+                <linearGradient id="pm-g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#e53e3e" stopOpacity="0.18"/><stop offset="100%" stopColor="#e53e3e" stopOpacity="0"/></linearGradient>
+                <linearGradient id="pm-g2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#3b82f6" stopOpacity="0.14"/><stop offset="100%" stopColor="#3b82f6" stopOpacity="0"/></linearGradient>
+                <linearGradient id="pm-g3" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#10b981" stopOpacity="0.14"/><stop offset="100%" stopColor="#10b981" stopOpacity="0"/></linearGradient>
+            </defs>
+            <path d="M6,58 C22,50 34,28 55,18 C74,9 90,32 114,14 L114,64 L6,64 Z" fill="url(#pm-g1)" />
+            <path d="M6,58 C22,50 34,28 55,18 C74,9 90,32 114,14" fill="none" stroke="#e53e3e" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M6,62 C20,56 38,44 55,38 C72,32 88,46 114,36" fill="none" stroke="#3b82f6" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M6,60 C18,52 36,55 55,46 C72,38 90,52 114,48" fill="none" stroke="#10b981" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+            <line x1={6} x2={114} y1={64} y2={64} stroke="currentColor" strokeOpacity={0.12} strokeWidth={1} />
+        </svg>
+    ),
+    "per-car": (
+        <svg viewBox="0 0 120 72" width="120" height="72" style={{ display: "block" }}>
+            <defs>
+                {["#e53e3e","#3b82f6","#10b981","#f59e0b","#8b5cf6"].map((c, i) => (
+                    <linearGradient key={i} id={`pm-b${i}`} x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor={c} stopOpacity="0.9"/>
+                        <stop offset="100%" stopColor={c} stopOpacity="0.6"/>
+                    </linearGradient>
+                ))}
+            </defs>
+            {[
+                { x: 8,  h: 44, i: 0 },
+                { x: 28, h: 26, i: 1 },
+                { x: 48, h: 52, i: 2 },
+                { x: 68, h: 18, i: 3 },
+                { x: 88, h: 36, i: 4 },
+            ].map(({ x, h, i }) => (
+                <rect key={x} x={x} y={64 - h} width={18} height={h} fill={`url(#pm-b${i})`} rx={3} />
+            ))}
+            <line x1={6} x2={114} y1={64} y2={64} stroke="currentColor" strokeOpacity={0.12} strokeWidth={1} />
+        </svg>
+    ),
+    "per-time": (
+        <svg viewBox="0 0 120 72" width="120" height="72" style={{ display: "block" }}>
+            <defs>
+                <linearGradient id="pm-t1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#e53e3e" stopOpacity="0.22"/><stop offset="100%" stopColor="#e53e3e" stopOpacity="0"/></linearGradient>
+            </defs>
+            <path d="M6,60 C20,52 32,36 50,24 C66,13 82,30 114,16 L114,64 L6,64 Z" fill="url(#pm-t1)" />
+            <path d="M6,60 C20,52 32,36 50,24 C66,13 82,30 114,16" fill="none" stroke="#e53e3e" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+            {[6, 34, 62, 90, 114].map((x) => <line key={x} x1={x} x2={x} y1={62} y2={64} stroke="currentColor" strokeOpacity={0.2} strokeWidth={1} />)}
+            <line x1={6} x2={114} y1={64} y2={64} stroke="currentColor" strokeOpacity={0.12} strokeWidth={1} />
+        </svg>
+    ),
+};
+
 function buildFilterableColumns(makes: string[]): FilterableColumn[] {
     return [
         { field: "search",       label: "Search",         type: "text" },
@@ -63,12 +123,17 @@ function buildFilterableColumns(makes: string[]): FilterableColumn[] {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-// Golden-angle hue distribution — produces maximally distinct colors for any N
+// Curated palette of vivid, perceptually distinct colors for dark backgrounds
+const CHART_PALETTE = [
+    "#f87171", "#60a5fa", "#34d399", "#fbbf24", "#a78bfa",
+    "#f472b6", "#22d3ee", "#a3e635", "#fb923c", "#818cf8",
+    "#2dd4bf", "#e879f9", "#facc15", "#4ade80", "#38bdf8",
+    "#f43f5e", "#c084fc", "#fb7185", "#86efac", "#93c5fd",
+    "#fda4af", "#6ee7b7",
+];
+
 function chartColor(index: number): string {
-    const hue = (index * 137.508) % 360;
-    const sat = 62 + (index % 3) * 8;   // 62 / 70 / 78
-    const lit = 52 + (index % 2) * 6;   // 52 / 58
-    return `hsl(${hue.toFixed(1)},${sat}%,${lit}%)`;
+    return CHART_PALETTE[index % CHART_PALETTE.length];
 }
 
 function toISOLocal(date: Date): string {
@@ -85,14 +150,15 @@ function defaultEndDate(): string {
     return new Date().toISOString().slice(0, 10);
 }
 
-function carLabel(car: PopularityCar): string {
+function carLabel(car: PopularityCar | undefined): string {
+    if (!car) return "All";
     return `${car.modelYear ? car.modelYear + " " : ""}${car.make} ${car.model}`;
 }
 
 function groupByCar(entries: PopularityEntry[]): Map<string, PopularityEntry[]> {
     const map = new Map<string, PopularityEntry[]>();
     for (const entry of entries) {
-        const vin = entry.car.vin;
+        const vin = entry.car?.vin ?? "__all__";
         if (!map.has(vin)) map.set(vin, []);
         map.get(vin)!.push(entry);
     }
@@ -266,6 +332,7 @@ function LineChart({ seriesMap, dates, colors, visibleVins }: LineChartProps) {
     const svgRef       = useRef<SVGSVGElement>(null);
     const [size, setSize]       = useState({ width: 0, height: 0 });
     const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+    const [hoverChartPos, setHoverChartPos] = useState<{ x: number; y: number } | null>(null);
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
     const [zoom, setZoom]         = useState({ scaleX: 1, panX: 0, scaleY: 1 });
     const [dragging, setDragging] = useState(false);
@@ -276,6 +343,7 @@ function LineChart({ seriesMap, dates, colors, visibleVins }: LineChartProps) {
     const dragStartX   = useRef(0);
     const dragStartPan = useRef(0);
     const innerWRef    = useRef(0);
+    const lastMxRef    = useRef(0);   // last cursor X in inner-chart coords (set by mousemove)
 
     // Measure container
     useEffect(() => {
@@ -302,13 +370,13 @@ function LineChart({ seriesMap, dates, colors, visibleVins }: LineChartProps) {
                 const newScaleY = Math.max(0.05, Math.min(20, scaleY * factor));
                 setZoom(prev => ({ ...prev, scaleY: newScaleY }));
             } else {
-                const rect = el.getBoundingClientRect();
-                const mx   = e.clientX - rect.left - MARGIN.left;
-                const iW   = innerWRef.current;
+                const mx              = lastMxRef.current;
+                const iW              = innerWRef.current;
                 const { scaleX, panX } = zoomRef.current;
-                const newScaleX   = Math.max(1, scaleX * factor);
-                const rawPanX     = mx - (mx - panX) * (newScaleX / scaleX);
-                const clampedPanX = Math.min(0, Math.max(iW * (1 - newScaleX), rawPanX));
+                const newScaleX       = Math.max(1, scaleX * factor);
+                // Keep the data point under the cursor fixed: mx = xBase*scaleX + panX  →  newPanX = mx - (mx - panX)*(newScaleX/scaleX)
+                const rawPanX         = mx - (mx - panX) * (newScaleX / scaleX);
+                const clampedPanX     = Math.min(0, Math.max(iW * (1 - newScaleX), rawPanX));
                 setZoom(prev => ({ ...prev, scaleX: newScaleX, panX: clampedPanX }));
             }
         };
@@ -378,6 +446,10 @@ function LineChart({ seriesMap, dates, colors, visibleVins }: LineChartProps) {
     };
 
     const handleMouseMove = (e: React.MouseEvent<SVGRectElement>) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const mx   = e.clientX - rect.left;
+        const my   = e.clientY - rect.top;
+        lastMxRef.current = mx;
         if (isDragging.current) {
             const dx      = e.clientX - dragStartX.current;
             const { scaleX } = zoomRef.current;
@@ -385,8 +457,7 @@ function LineChart({ seriesMap, dates, colors, visibleVins }: LineChartProps) {
             const clamped = Math.min(0, Math.max(innerW * (1 - scaleX), rawPan));
             setZoom(prev => ({ ...prev, panX: clamped }));
         } else {
-            const rect  = e.currentTarget.getBoundingClientRect();
-            const mx    = e.clientX - rect.left;
+            setHoverChartPos({ x: mx, y: my });
             const { scaleX, panX } = zoomRef.current;
             const rawIdx = ((mx - panX) / (innerW * scaleX)) * (dates.length - 1);
             setHoverIdx(Math.max(0, Math.min(dates.length - 1, Math.round(rawIdx))));
@@ -395,7 +466,7 @@ function LineChart({ seriesMap, dates, colors, visibleVins }: LineChartProps) {
     };
 
     const handleMouseLeave = () => {
-        if (!isDragging.current) setHoverIdx(null);
+        if (!isDragging.current) { setHoverIdx(null); setHoverChartPos(null); }
     };
 
     const handleDoubleClick = () => setZoom({ scaleX: 1, panX: 0, scaleY: 1 });
@@ -407,7 +478,7 @@ function LineChart({ seriesMap, dates, colors, visibleVins }: LineChartProps) {
             name: entries[0]?.car ? carLabel(entries[0].car) : vin,
             value: chartData[hoverIdx][vin],
             color: colors.get(vin) ?? "#888",
-        }))
+        })).filter(item => item.value !== 0)
         : [];
 
     return (
@@ -463,25 +534,29 @@ function LineChart({ seriesMap, dates, colors, visibleVins }: LineChartProps) {
                                 const pts: [number, number][] = chartData.map((d, i) => [xScaled(i), yScale(d[vin])]);
                                 return (
                                     <path key={vin} d={catmullRomPath(pts, innerH)} fill="none"
-                                        stroke={color} strokeWidth={2}
+                                        stroke={color} strokeWidth={2.5}
                                         strokeLinejoin="round" strokeLinecap="round" />
                                 );
                             })}
-                            {/* Hover crosshair + dots */}
-                            {hoverIdx !== null && !dragging && (
-                                <>
-                                    <line x1={xScaled(hoverIdx)} x2={xScaled(hoverIdx)} y1={0} y2={innerH}
-                                        stroke="var(--color-foreground-light)" strokeWidth={1}
-                                        strokeDasharray="4,2" opacity={0.5} />
-                                    {visibleSeries.map(([vin]) => (
-                                        <circle key={vin}
-                                            cx={xScaled(hoverIdx)} cy={yScale(chartData[hoverIdx][vin])}
-                                            r={4} fill={colors.get(vin) ?? "#888"}
-                                            stroke="var(--color-primary)" strokeWidth={2} />
-                                    ))}
-                                </>
-                            )}
+                            {/* Dots snapped to nearest data point */}
+                            {hoverIdx !== null && !dragging && visibleSeries.map(([vin]) => (
+                                <circle key={vin}
+                                    cx={xScaled(hoverIdx)} cy={yScale(chartData[hoverIdx][vin])}
+                                    r={4} fill={colors.get(vin) ?? "#888"}
+                                    stroke="var(--color-primary)" strokeWidth={2} />
+                            ))}
                         </g>
+                        {/* Crosshair — exact cursor position, drawn above data but below capture rect */}
+                        {hoverChartPos && !dragging && (
+                            <>
+                                <line x1={hoverChartPos.x} x2={hoverChartPos.x} y1={0} y2={innerH}
+                                    stroke="var(--color-foreground-light)" strokeWidth={1}
+                                    strokeDasharray="4,2" opacity={0.5} />
+                                <line x1={0} x2={innerW} y1={hoverChartPos.y} y2={hoverChartPos.y}
+                                    stroke="var(--color-foreground-light)" strokeWidth={1}
+                                    strokeDasharray="4,2" opacity={0.5} />
+                            </>
+                        )}
                         {/* Mouse-capture rect */}
                         <rect x={0} y={0} width={innerW} height={innerH} fill="transparent"
                             onMouseDown={handleMouseDown}
@@ -638,9 +713,12 @@ export default function PopularityPanel() {
     const [error, setError] = useState<string | null>(null);
     const [mutedVins, setMutedVins] = useState<Set<string>>(new Set());
     const [soloedVins, setSoloedVins] = useState<Set<string>>(new Set());
-    const [legendSearch, setLegendSearch] = useState("");
+    const [colorOverrides, setColorOverrides] = useState<Map<string, string>>(new Map());
+    const [colorPickerVin, setColorPickerVin] = useState<string | null>(null);
+    const [colorPickerPos, setColorPickerPos] = useState({ top: 0, left: 0 });
     const [sidePanelOpen, setSidePanelOpen] = useState(true);
     const [panelWidth, setPanelWidth] = useState(280);
+    const chartAreaRef = useRef<HTMLDivElement>(null);
     const dragStartX = useRef<number | null>(null);
     const dragStartW = useRef<number>(280);
 
@@ -747,10 +825,15 @@ export default function PopularityPanel() {
     const colorMap = new Map<string, string>(
         sortedVins.map((vin, i) => [vin, chartColor(i)])
     );
+    const effectiveColorMap = new Map(colorMap);
+    for (const [vin, color] of colorOverrides) {
+        if (effectiveColorMap.has(vin)) effectiveColorMap.set(vin, color);
+    }
 
     useEffect(() => {
         setMutedVins(new Set());
         setSoloedVins(new Set());
+        setColorOverrides(new Map());
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [entries]);
 
@@ -769,17 +852,57 @@ export default function PopularityPanel() {
 
     const hasFilters = activeFilters.length > 0;
 
-    const q = legendSearch.trim().toLowerCase();
-    const filteredVins = q
-        ? sortedVins.filter((vin) => carLabel(carTotals.get(vin)!.car).toLowerCase().includes(q) || vin.toLowerCase().includes(q))
-        : sortedVins;
+    const panelFilename = (ext: string) => safeFilename("reservations", ext);
+
+    const exportOptions = [
+        {
+            label: "PNG",
+            icon: <BiImage />,
+            onClick: async () => {
+                const svgEl = chartAreaRef.current?.querySelector<SVGSVGElement>("svg");
+                if (svgEl) await exportSvgAsPng(svgEl, panelFilename("png"));
+            },
+            disabled: loading || entries.length === 0,
+        },
+        {
+            label: "SVG",
+            icon: <BiImage />,
+            onClick: () => {
+                const svgEl = chartAreaRef.current?.querySelector<SVGSVGElement>("svg");
+                if (svgEl) exportSvg(svgEl, panelFilename("svg"));
+            },
+            disabled: loading || entries.length === 0,
+        },
+        {
+            label: "CSV",
+            icon: <BiTable />,
+            onClick: () => {
+                const headers = groupByCarOn
+                    ? ["Car", "VIN", "Date", "Reservations"]
+                    : ["Date", "Reservations"];
+                const rows = entries.map(e => groupByCarOn
+                    ? [carLabel(e.car), e.car?.vin ?? "", e.date, e.popularity]
+                    : [e.date, e.popularity]
+                );
+                downloadData(buildCsv(headers, rows), "text/csv;charset=utf-8;", panelFilename("csv"));
+            },
+            disabled: entries.length === 0,
+            divider: true,
+        },
+        {
+            label: "JSON",
+            icon: <BiCode />,
+            onClick: () => downloadData(JSON.stringify(entries, null, 2), "application/json", panelFilename("json")),
+            disabled: entries.length === 0,
+        },
+    ];
+
     const anySoloed = soloedVins.size > 0;
 
     return (
         <div className={tableStyles.container}>
             {/* ── Top bar ── */}
             <div className={tableStyles.topBar}>
-                <BiLineChart className={s.topBarIcon} />
                 <button
                     ref={chartModeBtnRef}
                     className={s.chartModeTitle}
@@ -789,6 +912,7 @@ export default function PopularityPanel() {
                         setChartModeOpen((o) => !o);
                     }}
                 >
+                    <span className={s.chartModeTitleIcon}>{CHART_MODE_ICONS[chartMode]}</span>
                     {CHART_MODE_LABELS[chartMode]}
                     <BiChevronDown className={s.chartModeTitleChevron} />
                 </button>
@@ -824,6 +948,7 @@ export default function PopularityPanel() {
                         </button>
                     )}
                     <div className={tableStyles.topDivider} />
+                    <ExportButton options={exportOptions} disabled={loading || entries.length === 0} btnClassName={tableStyles.btnIcon} />
                     <button
                         className={tableStyles.btnIcon}
                         onClick={fetchData}
@@ -864,7 +989,7 @@ export default function PopularityPanel() {
 
             {/* ── Body: chart + filter panel + cars panel ── */}
             <div className={tableStyles.bodyRow}>
-                <div className={s.chartArea}>
+                <div ref={chartAreaRef} className={s.chartArea}>
                     {loading ? (
                         <div className={s.loadingState}>
                             <BiRefresh className={tableStyles.spinning} />
@@ -875,9 +1000,9 @@ export default function PopularityPanel() {
                     ) : (
                         <div className={s.chartWrapper}>
                             {groupByCarOn && !groupByTimeOn ? (
-                                <BarChart carTotals={carTotals} sortedVins={sortedVins} colors={colorMap} visibleVins={visibleVins} />
+                                <BarChart carTotals={carTotals} sortedVins={sortedVins} colors={effectiveColorMap} visibleVins={visibleVins} />
                             ) : (
-                                <LineChart seriesMap={effectiveSeriesMap} dates={dates} colors={colorMap} visibleVins={visibleVins} />
+                                <LineChart seriesMap={effectiveSeriesMap} dates={dates} colors={effectiveColorMap} visibleVins={visibleVins} />
                             )}
                         </div>
                     )}
@@ -921,34 +1046,38 @@ export default function PopularityPanel() {
                     <div className={tableStyles.previewPanel} style={{ width: panelWidth }}>
                         <div className={tableStyles.previewPanelHeader}>
                             <span className={tableStyles.previewPanelTitle}>Cars</span>
-                            <div className={s.panelSearchWrap} style={{ flex: 1 }}>
-                                <BiSearch className={s.panelSearchIcon} />
-                                <input
-                                    type="text" value={legendSearch}
-                                    onChange={(e) => setLegendSearch(e.target.value)}
-                                    placeholder="Filter…"
-                                    className={s.panelSearchInput}
-                                />
-                                {legendSearch && (
-                                    <button className={s.panelSearchClear} onClick={() => setLegendSearch("")}><BiX /></button>
-                                )}
-                            </div>
-                            {q && <span className={s.panelSearchCount}>{filteredVins.length}/{sortedVins.length}</span>}
+                            {(mutedVins.size > 0 || soloedVins.size > 0 || colorOverrides.size > 0) && (
+                                <button
+                                    className={s.panelResetBtn}
+                                    onClick={() => { setMutedVins(new Set()); setSoloedVins(new Set()); setColorOverrides(new Map()); }}
+                                >Reset</button>
+                            )}
+                            <div style={{ flex: 1 }} />
                             <button className={tableStyles.btnIcon} onClick={() => setSidePanelOpen(false)} title="Close"><BiX /></button>
                         </div>
 
                         <div className={tableStyles.previewPanelBody} style={{ padding: 0 }}>
-                            {filteredVins.length === 0 ? (
-                                <p className={tableStyles.previewPanelEmpty}>No cars match.</p>
-                            ) : filteredVins.map((vin) => {
+                            {sortedVins.length === 0 ? (
+                                <p className={tableStyles.previewPanelEmpty}>No data.</p>
+                            ) : sortedVins.map((vin) => {
                                 const info = carTotals.get(vin)!;
-                                const color = colorMap.get(vin) ?? "#888";
+                                const color = effectiveColorMap.get(vin) ?? "#888";
                                 const isMuted = mutedVins.has(vin);
                                 const isSoloed = soloedVins.has(vin);
                                 const isVisible = visibleVins.has(vin);
                                 return (
                                     <div key={vin} className={`${s.carRow} ${!isVisible ? s.carRowHidden : ""}`}>
-                                        <span className={s.carDot} style={{ background: color }} />
+                                        <button
+                                            className={s.carDotBtn}
+                                            title="Change color"
+                                            onClick={(e) => {
+                                                const r = e.currentTarget.getBoundingClientRect();
+                                                setColorPickerPos({ top: r.bottom + 4, left: r.left });
+                                                setColorPickerVin((prev) => prev === vin ? null : vin);
+                                            }}
+                                        >
+                                            <span className={s.carDot} style={{ background: color }} />
+                                        </button>
                                         <div className={s.carInfo}>
                                             <p className={s.carName}>{carLabel(info.car)}</p>
                                             <p className={s.carTotal}>{info.total} total</p>
@@ -972,20 +1101,23 @@ export default function PopularityPanel() {
                 )}
             </div>
 
-            {/* ── Chart mode dropdown ── */}
+            {/* ── Chart mode picker ── */}
             {chartModeOpen && typeof document !== "undefined" && createPortal(
                 <div
                     data-chartmode-menu="true"
-                    className={tableStyles.contextMenu}
+                    className={s.chartModePicker}
                     style={{ top: chartModePos.top, left: chartModePos.left }}
                 >
                     {(Object.keys(CHART_MODE_LABELS) as ChartMode[]).map((m) => (
                         <button
                             key={m}
-                            className={`${tableStyles.ctxItem} ${chartMode === m ? tableStyles.ctxItemActive : ""}`}
-                            onClick={() => { setChartMode(m); setChartModeOpen(false); }}
+                            className={`${s.chartModePickerOption} ${chartMode === m ? s.chartModePickerOptionActive : ""}`}
+                            onClick={() => { setChartMode(m as ChartMode); setChartModeOpen(false); }}
                         >
-                            {CHART_MODE_LABELS[m]}
+                            <div className={s.chartModePickerPreview}>
+                                {CHART_MODE_PREVIEWS[m as ChartMode]}
+                            </div>
+                            <span className={s.chartModePickerLabel}>{CHART_MODE_LABELS[m as ChartMode]}</span>
                         </button>
                     ))}
                 </div>,
@@ -1030,6 +1162,16 @@ export default function PopularityPanel() {
                 document.body
             )}
 
+            {colorPickerVin !== null && (
+                <CarColorPicker
+                    color={effectiveColorMap.get(colorPickerVin) ?? "#888"}
+                    defaultColor={colorMap.get(colorPickerVin) ?? "#888"}
+                    top={colorPickerPos.top}
+                    left={colorPickerPos.left}
+                    onChange={(c) => setColorOverrides(prev => { const n = new Map(prev); n.set(colorPickerVin!, c); return n; })}
+                    onClose={() => setColorPickerVin(null)}
+                />
+            )}
         </div>
     );
 }

@@ -31,7 +31,12 @@ import {
     BiPlus,
     BiImages,
     BiFilter,
+    BiTable,
+    BiCode,
+    BiPrinter,
 } from "react-icons/bi";
+import ExportButton, { ExportOption } from "./ExportButton";
+import { downloadData, safeFilename, buildCsv, escapeCell } from "./exportUtils";
 import { PiSortAscending, PiSortDescending, PiSparkleFill } from "react-icons/pi";
 import ReactMarkdown from "react-markdown";
 import { format as dateFnsFormat } from "date-fns";
@@ -1166,17 +1171,39 @@ export default function SpreadsheetTable<T>({
         }
     };
 
-    // ── Export JSON ─────────────────────────────────────────────────────
-    const handleExportJson = () => {
-        const json = JSON.stringify(data, null, 2);
-        const blob = new Blob([json], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${title.replace(/\s+/g, "_").toLowerCase()}_page${page}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
+    // ── Export ──────────────────────────────────────────────────────────
+    const exportFilename = (ext: string) => safeFilename(title, `page${page}.${ext}`);
+
+    const generateCsv = (): string => {
+        const headers = activeCols.map(c => c.label);
+        const rows = data.map(item =>
+            activeCols.map(c => {
+                if (c.getValue) return c.getValue(item);
+                const val = (item as Record<string, unknown>)[c.key];
+                return typeof val === "object" && val !== null ? JSON.stringify(val) : val;
+            })
+        );
+        return buildCsv(headers, rows);
     };
+
+    const handleExportCsv = () =>
+        downloadData(generateCsv(), "text/csv;charset=utf-8;", exportFilename("csv"));
+
+    const handleExportJson = () =>
+        downloadData(JSON.stringify(data, null, 2), "application/json", exportFilename("json"));
+
+    const handleCopyCsv = async () => {
+        try { await navigator.clipboard.writeText(generateCsv()); } catch { /* ignore */ }
+    };
+
+    const handlePrint = () => window.print();
+
+    const exportOptions: ExportOption[] = [
+        { label: "CSV",              icon: <BiTable />,   onClick: handleExportCsv,  disabled: data.length === 0 },
+        { label: "JSON",             icon: <BiCode />,    onClick: handleExportJson,  disabled: data.length === 0 },
+        { label: "Copy as CSV",      icon: <BiCopy />,    onClick: handleCopyCsv,     disabled: data.length === 0, divider: true },
+        { label: "Print",            icon: <BiPrinter />, onClick: handlePrint },
+    ];
 
     // ── Preview panel ────────────────────────────────────────────────────
     const [panelOpen, setPanelOpen] = useState(false);
@@ -1407,7 +1434,7 @@ export default function SpreadsheetTable<T>({
                     {isEditMode ? (
                         <>
                             {headerActions}
-                            <button onClick={handleExportJson} className={styles.btnIcon} title="Export JSON" disabled={data.length === 0}><BiDownload /></button>
+                            <ExportButton options={exportOptions} disabled={data.length === 0} btnClassName={styles.btnIcon} />
                             <button ref={searchBtnRef} onClick={() => openSearch()} className={`${styles.btnIcon} ${searchOpen ? styles.btnIconActive : ""}`} title="Search"><BiSearch /></button>
                             <button onClick={onRefresh} disabled={loading || refreshing} className={styles.btnIcon} title="Refresh"><BiRefresh className={refreshing ? styles.spinning : ""} /></button>
                             <button ref={menuBtnRef} onClick={() => openColMenu()} className={`${styles.btnIcon} ${colMenuOpen ? styles.btnIconActive : ""}`} title="Columns"><BiMenu /></button>
@@ -1417,7 +1444,7 @@ export default function SpreadsheetTable<T>({
                     ) : (
                         <>
                             {headerActions}
-                            <button onClick={handleExportJson} className={styles.btnIcon} title="Export JSON" disabled={data.length === 0}><BiDownload /></button>
+                            <ExportButton options={exportOptions} disabled={data.length === 0} btnClassName={styles.btnIcon} />
                             {onSaveEdits && <button onClick={enterEditMode} className={styles.btnIcon} title="Edit mode" disabled={data.length === 0}><BiPencil /></button>}
                             {filterableColumns && filterableColumns.length > 0 && (
                                 <button
@@ -2610,8 +2637,11 @@ export default function SpreadsheetTable<T>({
                             <div className={styles.ctxDivider} />
                         </>
                     )}
+                    <button className={styles.ctxItem} onClick={() => { handleExportCsv(); setMobileMenuOpen(false); }} disabled={data.length === 0}>
+                        <BiTable /> Export CSV
+                    </button>
                     <button className={styles.ctxItem} onClick={() => { handleExportJson(); setMobileMenuOpen(false); }} disabled={data.length === 0}>
-                        <BiDownload /> Export JSON
+                        <BiCode /> Export JSON
                     </button>
                     <button className={styles.ctxItem} onClick={() => { openSearch(mobileBtnRef.current ?? undefined); setMobileMenuOpen(false); }}>
                         <BiSearch /> Search

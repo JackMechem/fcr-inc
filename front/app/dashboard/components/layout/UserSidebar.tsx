@@ -138,7 +138,8 @@ const ADMIN_SECTIONS: NavSection[] = [
         icon: <BiLineChart />,
         label: "Statistics",
         items: [
-            { icon: <BiLineChart />, label: "Car Popularity", view: "stats-popularity" },
+            { icon: <BiLineChart />, label: "Reservations", view: "stats-popularity" },
+            { icon: <BiReceipt />,   label: "Revenue",       view: "stats-revenue"    },
         ],
     },
 ];
@@ -150,6 +151,7 @@ const ADMIN_VIEWS = new Set<UserDashboardView>([
     "view-permissions-admin", "view-permissions-staff",
     "create-invoice", "view-payments",
     "stats-popularity",
+    "stats-revenue",
 ]);
 
 const DesktopSidebar = () => {
