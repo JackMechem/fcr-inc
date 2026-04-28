@@ -64,7 +64,8 @@ function groupReservations(reservations: DashboardReservation[]) {
 }
 
 const CUSTOMER_ITEMS: NavItem[] = [
-    { icon: <BiUser />, label: "My Profile", view: "user-details" },
+    { icon: <BiReceipt />, label: "Payments",   view: "user-payments" },
+    { icon: <BiUser />,    label: "My Profile", view: "user-details"  },
 ];
 
 const ADMIN_SECTIONS: NavSection[] = [

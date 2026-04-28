@@ -5,6 +5,7 @@ export type UserDashboardView =
     | "reservations"
     | "edit-reservation"
     | "user-details"
+    | "user-payments"
     // Admin/Staff views
     | "admin-dashboard"
     | "add-car"
@@ -30,11 +31,21 @@ export type UserDashboardView =
     | "stats-revenue"
     | "csv-generator";
 
+export interface DashboardPayment {
+    paymentId: string | number;
+    totalAmount: number;
+    amountPaid: number;
+    date: string | number | null;
+    paymentType: string;
+    paid: boolean;
+    reservations: number[];
+}
+
 export interface DashboardReservation {
     reservationId: number;
     car: { vin: string; make: string; model: string; images: string[] } | null;
     user: number | { userId: number; [key: string]: unknown };
-    paymentIds: string[];
+    payments: DashboardPayment[];
     pickUpTime: number | string;
     dropOffTime: number | string;
     dateBooked: number | string;

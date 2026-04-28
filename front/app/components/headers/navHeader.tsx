@@ -336,15 +336,23 @@ const NavHeader = ({
 					)}
 				</Link>
 
-				{/* Browse icon link */}
-				<Link href="/browse" className={`${styles.browseNavLink} ${isWhite ? styles.browseNavLinkWhite : styles.browseNavLinkCompact}`}>
-					<MdOutlineExplore />
-					<span className={styles.browseNavLinkText}>Browse Cars</span>
-				</Link>
+				{/* Browse icon link — white mode only (compact mode has it inside the search group) */}
+				{isWhite && (
+					<Link href="/browse" className={`${styles.browseNavLink} ${styles.browseNavLinkWhite}`}>
+						<MdOutlineExplore />
+						<span className={styles.browseNavLinkText}>Browse Cars</span>
+					</Link>
+				)}
 
 				{/* Desktop search pills (centered) */}
 				{!isWhite && (
 					<div className={`${styles.desktopSearch} ${mobileFilterButton ? styles.desktopSearchHideLg : styles.desktopSearchHideMd}`}>
+
+						{/* Browse icon link */}
+						<Link href="/browse" className={`${styles.browseNavLink} ${styles.browseNavLinkCompact}`}>
+							<MdOutlineExplore />
+							<span className={styles.browseNavLinkText}>Browse Cars</span>
+						</Link>
 
 						{/* Search pill */}
 						<div ref={searchPillRef} className={`${styles.headerPill} ${searchOpen ? styles.headerPillOpen : ""}`}>
