@@ -161,7 +161,7 @@ public class MailController {
         }
     }
 
-    private static String buildHtml(String firstName, long userId, String paymentId, List<Long> reservationIds, List<Map<String, String>> cars) {
+    public static String buildHtml(String firstName, long userId, String paymentId, List<Long> reservationIds, List<Map<String, String>> cars) {
         StringBuilder sb = new StringBuilder();
         sb.append("<div style='font-family: sans-serif; max-width: 600px; margin: auto;'>");
         sb.append("<h2>Reservation Confirmed</h2>");
