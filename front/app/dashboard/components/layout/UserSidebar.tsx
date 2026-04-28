@@ -1,11 +1,11 @@
 "use client";
 
-import { useUserDashboardStore, UserDashboardView, DashboardReservation } from "@/stores/userDashboardStore";
+import { useUserDashboardStore, UserDashboardView } from "@/stores/userDashboardStore";
 import { useWindowSize } from "@/app/hooks/useWindowSize";
 import {
     BiCalendar, BiUser, BiChevronLeft, BiChevronRight, BiChevronDown,
     BiLogOut, BiCar, BiPlus, BiEdit, BiTable, BiGridAlt, BiShieldQuarter,
-    BiStar, BiBookmark, BiX, BiMenu, BiSlider, BiReceipt, BiListUl, BiGroup, BiIdCard, BiError, BiLineChart, BiData,
+    BiStar, BiBookmark, BiX, BiSlider, BiReceipt, BiListUl, BiGroup, BiIdCard, BiError, BiLineChart, BiData, BiCode,
 } from "react-icons/bi";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { createPortal } from "react-dom";
@@ -24,47 +24,14 @@ interface NavSection {
     icon: React.ReactNode;
     label: string;
     items: NavItem[];
+    /** If true, only shown to ADMIN (not STAFF) */
+    adminOnly?: boolean;
 }
 
-const fmtShort = (d: string | number) =>
-    new Date(typeof d === "number" ? d * 1000 : new Date(d).getTime())
-        .toLocaleDateString("en-US", { month: "short", day: "numeric" });
-
-const toMs = (d: string | number) => typeof d === "number" ? d * 1000 : new Date(d).getTime();
-
-function groupReservations(reservations: DashboardReservation[]) {
-    const nowMs = Date.now();
-    const threeWeeks = 3 * 7 * 24 * 60 * 60 * 1000;
-    return [
-        {
-            label: "Future",
-            items: reservations
-                .filter((r) => toMs(r.pickUpTime) > nowMs)
-                .sort((a, b) => toMs(a.pickUpTime) - toMs(b.pickUpTime)),
-        },
-        {
-            label: "Active",
-            items: reservations
-                .filter((r) => toMs(r.pickUpTime) <= nowMs && toMs(r.dropOffTime) > nowMs)
-                .sort((a, b) => toMs(a.dropOffTime) - toMs(b.dropOffTime)),
-        },
-        {
-            label: "Recent",
-            items: reservations
-                .filter((r) => toMs(r.dropOffTime) <= nowMs && toMs(r.dropOffTime) >= nowMs - threeWeeks)
-                .sort((a, b) => toMs(b.dropOffTime) - toMs(a.dropOffTime)),
-        },
-        {
-            label: "Past",
-            items: reservations
-                .filter((r) => toMs(r.dropOffTime) < nowMs - threeWeeks)
-                .sort((a, b) => toMs(b.dropOffTime) - toMs(a.dropOffTime)),
-        },
-    ].filter((g) => g.items.length > 0);
-}
 
 const CUSTOMER_ITEMS: NavItem[] = [
-    { icon: <BiUser />, label: "My Profile", view: "user-details" },
+    { icon: <BiReceipt />, label: "Payments",   view: "user-payments" },
+    { icon: <BiUser />,    label: "My Profile", view: "user-details"  },
 ];
 
 const ADMIN_SECTIONS: NavSection[] = [
@@ -150,6 +117,17 @@ const ADMIN_SECTIONS: NavSection[] = [
             { icon: <BiData />, label: "CSV Generator", view: "csv-generator" },
         ],
     },
+    {
+        id: "api-tester",
+        icon: <BiCode />,
+        label: "API Tester",
+        adminOnly: true,
+        items: [
+            { icon: <BiCode />, label: "Guest Checkout",      view: "api-test-guest-checkout"      },
+            { icon: <BiCode />, label: "Create Reservation",  view: "api-test-create-reservation"  },
+            { icon: <BiCode />, label: "Mock Stripe Webhook", view: "api-test-webhook"              },
+        ],
+    },
 ];
 
 const ADMIN_VIEWS = new Set<UserDashboardView>([
@@ -161,19 +139,23 @@ const ADMIN_VIEWS = new Set<UserDashboardView>([
     "stats-popularity",
     "stats-revenue",
     "csv-generator",
+    "api-test-guest-checkout",
+    "api-test-create-reservation",
+    "api-test-webhook",
 ]);
 
 const DesktopSidebar = () => {
-    const { collapsed, toggle, activeView, setActiveView, userEmail, stripeUserId, role, clearSession, reservations, selectedReservation, openReservation } = useUserDashboardStore();
+    const { collapsed, toggle, activeView, setActiveView, userEmail, stripeUserId, role, clearSession } = useUserDashboardStore();
     const isPrivileged = role === "ADMIN" || role === "STAFF";
     const hasUser = !!stripeUserId;
+    const visibleSections = ADMIN_SECTIONS.filter((s) => !s.adminOnly || role === "ADMIN");
 
     const sidebarRef = useRef<HTMLDivElement>(null);
     const [permWarn, setPermWarn] = useState(false);
     const [permWarnCallback, setPermWarnCallback] = useState<(() => void) | null>(null);
 
     const [openSection, setOpenSection] = useState<string | null>(() => {
-        const adminId = ADMIN_SECTIONS.find((s) => s.items.some((i) => i.view === activeView))?.id ?? null;
+        const adminId = visibleSections.find((s) => s.items.some((i) => i.view === activeView))?.id ?? null;
         if (adminId) return adminId;
         if (activeView === "reservations" || activeView === "view-reservation") return "reservations";
         return null;
@@ -192,7 +174,7 @@ const DesktopSidebar = () => {
     }, [flyout]);
 
     useEffect(() => {
-        const sectionId = ADMIN_SECTIONS.find((s) => s.items.some((i) => i.view === activeView))?.id
+        const sectionId = visibleSections.find((s) => s.items.some((i) => i.view === activeView))?.id
             ?? (activeView === "view-permissions-admin" || activeView === "view-permissions-staff" ? "permissions" : undefined)
             ?? (activeView === "reservations" || activeView === "view-reservation" ? "reservations" : undefined);
         if (sectionId) setOpenSection(sectionId);
@@ -214,7 +196,7 @@ const DesktopSidebar = () => {
         });
     }, []);
 
-    const flyoutSection = ADMIN_SECTIONS.find((s) => s.id === flyout);
+    const flyoutSection = visibleSections.find((s) => s.id === flyout);
 
     const handleSignOut = () => {
         Cookies.remove("user-session", { path: "/" });
@@ -260,7 +242,7 @@ const DesktopSidebar = () => {
                             >
                                 <span className={styles.collapsedBtnIcon}><BiShieldQuarter /></span>
                             </button>
-                            {ADMIN_SECTIONS.map((s) => {
+                            {visibleSections.map((s) => {
                                 const sectionActive = s.items.some((i) => i.view === activeView);
                                 return (
                                     <button
@@ -318,48 +300,16 @@ const DesktopSidebar = () => {
                                     </p>
                                 </div>
 
-                                {/* Reservations collapsible section */}
-                                {(() => {
-                                    const isOpen = openSection === "reservations";
-                                    const hasActive = activeView === "reservations" || activeView === "view-reservation";
-                                    return (
-                                        <div className={`${styles.navSection} ${isOpen ? styles.navSectionOpen : ""}`}>
-                                            <button
-                                                onClick={() => { setActiveView("reservations"); handleSection("reservations"); }}
-                                                className={`${styles.sectionBtn} ${isOpen || hasActive ? styles.sectionBtnOpen : ""}`}
-                                            >
-                                                <span className={styles.sectionBtnIcon}><BiCalendar /></span>
-                                                <span className={styles.sectionBtnLabel}>Reservations</span>
-                                                <BiChevronDown className={`${styles.sectionChevron} ${isOpen ? styles.sectionChevronOpen : ""}`} />
-                                            </button>
-                                            <div className={`${styles.subItemsWrap} ${isOpen ? styles.subItemsWrapOpen : ""}`}>
-                                                <div className={styles.subItems}>
-                                                    {groupReservations(reservations).filter((g) => g.label === "Future" || g.label === "Active").map((group) => (
-                                                        <div key={group.label}>
-                                                            <p className={styles.subItemGroupLabel}>{group.label}</p>
-                                                            {group.items.map((r) => {
-                                                                const isActive = activeView === "view-reservation" && selectedReservation?.reservationId === r.reservationId;
-                                                                const label = `${fmtShort(r.pickUpTime)} – ${fmtShort(r.dropOffTime)}`;
-                                                                return (
-                                                                    <button
-                                                                        key={r.reservationId}
-                                                                        onClick={() => openReservation(r)}
-                                                                        className={`${styles.subItem} ${isActive ? styles.subItemActive : ""}`}
-                                                                    >
-                                                                        <span className={`${styles.subItemIcon} ${isActive ? styles.subItemIconActive : ""}`}><BiReceipt /></span>
-                                                                        <span className={styles.subItemLabel}>{label}</span>
-                                                                    </button>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })()}
+                                {/* Reservations — simple button */}
+                                <button
+                                    onClick={() => setActiveView("reservations")}
+                                    className={`${styles.dashBtn} ${(activeView === "reservations" || activeView === "view-reservation") ? styles.dashBtnActive : ""}`}
+                                >
+                                    <span className={styles.dashBtnIcon}><BiCalendar /></span>
+                                    <span className={styles.dashBtnLabel}>Reservations</span>
+                                </button>
 
-                                {/* Other personal items (My Profile) */}
+                                {/* Other personal items */}
                                 {CUSTOMER_ITEMS.map((item) => (
                                     <button
                                         key={item.view}
@@ -423,7 +373,7 @@ const DesktopSidebar = () => {
                                     <span className={styles.dashBtnLabel}>Overview</span>
                                 </button>
 
-                                {ADMIN_SECTIONS.map((s) => {
+                                {visibleSections.map((s) => {
                                     const isOpen = openSection === s.id;
                                     const hasActive = s.items.some((i) => i.view === activeView);
                                     return (
@@ -640,19 +590,20 @@ const DesktopSidebar = () => {
 };
 
 const MobileSidebar = () => {
-    const { activeView, setActiveView, userEmail, stripeUserId, role, clearSession, reservations, selectedReservation, openReservation } = useUserDashboardStore();
+    const { activeView, setActiveView, userEmail, stripeUserId, role, clearSession } = useUserDashboardStore();
     const isPrivileged = role === "ADMIN" || role === "STAFF";
     const hasUser = !!stripeUserId;
     const { open, setOpen } = useMobileSidebarStore();
+    const visibleSections = ADMIN_SECTIONS.filter((s) => !s.adminOnly || role === "ADMIN");
     const [openSection, setOpenSection] = useState<string | null>(() => {
-        const adminId = ADMIN_SECTIONS.find((s) => s.items.some((i) => i.view === activeView))?.id ?? null;
+        const adminId = visibleSections.find((s) => s.items.some((i) => i.view === activeView))?.id ?? null;
         if (adminId) return adminId;
         if (activeView === "reservations" || activeView === "view-reservation") return "reservations";
         return null;
     });
 
     useEffect(() => {
-        const sectionId = ADMIN_SECTIONS.find((s) => s.items.some((i) => i.view === activeView))?.id
+        const sectionId = visibleSections.find((s) => s.items.some((i) => i.view === activeView))?.id
             ?? (activeView === "reservations" || activeView === "view-reservation" ? "reservations" : undefined);
         if (sectionId) setOpenSection(sectionId);
     }, [activeView]);
@@ -697,46 +648,14 @@ const MobileSidebar = () => {
                                     Personal
                                 </p>
 
-                                {/* Reservations collapsible section */}
-                                {(() => {
-                                    const isOpen = openSection === "reservations";
-                                    const hasActive = activeView === "reservations" || activeView === "view-reservation";
-                                    return (
-                                        <div className={styles.navSection}>
-                                            <button
-                                                onClick={() => { pick("reservations"); setOpenSection((prev) => prev === "reservations" ? null : "reservations"); }}
-                                                className={`${styles.sectionBtn} ${isOpen || hasActive ? styles.sectionBtnOpen : ""}`}
-                                            >
-                                                <span className={styles.sectionBtnIcon}><BiCalendar /></span>
-                                                <span className={styles.sectionBtnLabel}>Reservations</span>
-                                                <BiChevronDown className={`${styles.sectionChevron} ${isOpen ? styles.sectionChevronOpen : ""}`} />
-                                            </button>
-                                            {isOpen && (
-                                                <div className={styles.subItems}>
-                                                    {groupReservations(reservations).filter((g) => g.label === "Future" || g.label === "Active").map((group) => (
-                                                        <div key={group.label}>
-                                                            <p className={styles.subItemGroupLabel}>{group.label}</p>
-                                                            {group.items.map((r) => {
-                                                                const isActive = activeView === "view-reservation" && selectedReservation?.reservationId === r.reservationId;
-                                                                const label = `${fmtShort(r.pickUpTime)} – ${fmtShort(r.dropOffTime)}`;
-                                                                return (
-                                                                    <button
-                                                                        key={r.reservationId}
-                                                                        onClick={() => { openReservation(r); setOpen(false); }}
-                                                                        className={`${styles.subItem} ${isActive ? styles.subItemActive : ""}`}
-                                                                    >
-                                                                        <span className={`${styles.subItemIcon} ${isActive ? styles.subItemIconActive : ""}`}><BiReceipt /></span>
-                                                                        <span className={styles.subItemLabel}>{label}</span>
-                                                                    </button>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })()}
+                                {/* Reservations — simple button */}
+                                <button
+                                    onClick={() => pick("reservations")}
+                                    className={`${styles.dashBtn} ${(activeView === "reservations" || activeView === "view-reservation") ? styles.dashBtnActive : ""}`}
+                                >
+                                    <span className={styles.dashBtnIcon}><BiCalendar /></span>
+                                    <span className={styles.dashBtnLabel}>Reservations</span>
+                                </button>
 
                                 {/* My Profile */}
                                 {CUSTOMER_ITEMS.map((item) => (
@@ -764,7 +683,7 @@ const MobileSidebar = () => {
                                     <BiGridAlt className={styles.dashBtnIcon} />
                                     <span className={styles.dashBtnLabel}>Overview</span>
                                 </button>
-                                {ADMIN_SECTIONS.map((s) => {
+                                {visibleSections.map((s) => {
                                     const isOpen = openSection === s.id;
                                     const hasActive = s.items.some((i) => i.view === activeView);
                                     return (

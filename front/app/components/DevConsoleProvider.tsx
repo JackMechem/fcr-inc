@@ -7,7 +7,14 @@ import { useUserDashboardStore } from "@/stores/userDashboardStore";
 const BACKEND_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? "";
 
 function toBackendUrl(nextUrl: string): string {
-    // /api/cars?foo=1  →  http://localhost:8080/cars?foo=1
+    // Routes where the Next.js path differs from the actual backend path
+    const cartMatch = nextUrl.match(/^\/api\/(accounts\/\d+)\/cart(\?.*)?$/);
+    if (cartMatch) return `${BACKEND_BASE}/${cartMatch[1]}${cartMatch[2] ?? ""}`;
+
+    const bookmarksMatch = nextUrl.match(/^\/api\/(accounts\/\d+)\/bookmarks(\?.*)?$/);
+    if (bookmarksMatch) return `${BACKEND_BASE}/${bookmarksMatch[1]}${bookmarksMatch[2] ?? ""}`;
+
+    // Default: strip /api prefix
     const withoutPrefix = nextUrl.replace(/^\/api/, "");
     return `${BACKEND_BASE}${withoutPrefix}`;
 }

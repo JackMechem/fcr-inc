@@ -6,6 +6,7 @@ import ReservationsPanel from "../panels/ReservationsPanel";
 import ReservationDetailPanel from "../panels/ReservationDetailPanel";
 import EditReservationPanel from "../panels/EditReservationPanel";
 import UserDetailsPanel from "../panels/UserDetailsPanel";
+import PaymentsPanel from "../panels/PaymentsPanel";
 import AdminContentWrapper, { isAdminView } from "./AdminContentWrapper";
 import { useUserDashboardStore } from "@/stores/userDashboardStore";
 import { useCartStore } from "@/stores/cartStore";
@@ -57,6 +58,7 @@ export default function DashboardShell({ paymentSuccess: initialPaymentSuccess, 
             case "view-reservation": return <ReservationDetailPanel />;
             case "edit-reservation": return <EditReservationPanel />;
             case "user-details":     return <UserDetailsPanel />;
+            case "user-payments":    return <PaymentsPanel />;
             default:                 return <ReservationsPanel />;
         }
     };

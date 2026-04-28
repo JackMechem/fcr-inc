@@ -225,7 +225,7 @@ function FutureRentalSection({ r, fmtDate, fmtDateTime }: {
 export default function ReservationDetailPanel() {
     const {
         selectedReservation, setActiveView, openEditReservation,
-        accountId, stripeUserId, reservations, setReservations,
+        accountId, stripeUserId,
     } = useUserDashboardStore();
     const r = selectedReservation;
 
@@ -233,6 +233,8 @@ export default function ReservationDetailPanel() {
     const [deleting, setDeleting] = useState(false);
     const [reviewTarget, setReviewTarget] = useState<DashboardReservation | null>(null);
     const [userReviews, setUserReviews] = useState<Map<string, Review>>(new Map());
+
+    const payments = r?.payments ?? [];
 
     useEffect(() => {
         if (!accountId) return;
@@ -270,7 +272,6 @@ export default function ReservationDetailPanel() {
         setDeleting(true);
         try {
             await deleteReservation(r.reservationId);
-            setReservations(reservations.filter((res) => res.reservationId !== r.reservationId));
             setActiveView("reservations");
         } catch {
             alert("Failed to cancel reservation. Please try again.");
@@ -381,14 +382,59 @@ export default function ReservationDetailPanel() {
                             <div>
                                 <p className={styles.detailLabel}>Payments</p>
                                 <p className={styles.detailValue}>
-                                    {r.paymentIds.length > 0
-                                        ? `${r.paymentIds.length} payment${r.paymentIds.length !== 1 ? "s" : ""}`
+                                    {payments.length > 0
+                                        ? `${payments.length} payment${payments.length !== 1 ? "s" : ""}`
                                         : "None"}
                                 </p>
                             </div>
                         </div>
                     </div>
                 </div>
+
+                {/* Payment details block */}
+                {payments.length > 0 && (
+                    <div className={styles.formSection}>
+                        <p className={styles.sectionTitle}>
+                            <BiReceipt className={styles.sectionIcon} /> Payment Details
+                        </p>
+                        <div className={styles.pmtList}>
+                            {payments.map((p) => {
+                                const fmtD = (d: number | string | null) => {
+                                    if (!d) return "—";
+                                    const ms = typeof d === "number" ? d * 1000 : new Date(d).getTime();
+                                    return new Date(ms).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+                                };
+                                const fmtM = (n: number) => n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+                                const color = p.paid
+                                    ? { color: "#15803d", bg: "#dcfce7", border: "#bbf7d0" }
+                                    : { color: "#b45309", bg: "#fef9c3", border: "#fde68a" };
+                                return (
+                                    <div key={String(p.paymentId)} className={styles.pmtRow}>
+                                        <div className={styles.pmtRowLeft}>
+                                            <p className={styles.pmtRowId}>#{p.paymentId}</p>
+                                            <p className={styles.pmtRowDate}>{fmtD(p.date)}</p>
+                                        </div>
+                                        <div className={styles.pmtRowMid}>
+                                            {p.paymentType && <span className={styles.pmtRowType}>{p.paymentType}</span>}
+                                        </div>
+                                        <div className={styles.pmtRowRight}>
+                                            <span className={styles.pmtBadge} style={{ color: color.color, background: color.bg, borderColor: color.border }}>
+                                                {p.paid ? "Paid" : "Pending"}
+                                            </span>
+                                            <p className={styles.pmtRowAmount}>{fmtM(p.amountPaid)}</p>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <div className={styles.pmtTotal}>
+                            <span className={styles.pmtTotalLabel}>Total</span>
+                            <span className={styles.pmtTotalValue}>
+                                {payments.reduce((s, p) => s + p.amountPaid, 0).toLocaleString("en-US", { style: "currency", currency: "USD" })}
+                            </span>
+                        </div>
+                    </div>
+                )}
 
                 {/* Actions */}
                 {!isPast && (

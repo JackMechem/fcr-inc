@@ -613,8 +613,8 @@ function groupToOHLC(entries: RevenueEntry[], unit: CandleUnit): OHLCCandle[] {
         });
 }
 
-function CandlestickTooltip({ candle, mouseX, mouseY }: { candle: OHLCCandle; mouseX: number; mouseY: number }) {
-    const bullish = candle.close >= candle.open;
+function CandlestickTooltip({ candle, prevClose, mouseX, mouseY }: { candle: OHLCCandle; prevClose: number; mouseX: number; mouseY: number }) {
+    const bullish = candle.close >= prevClose;
     const flipX   = mouseX > window.innerWidth - 210;
     const rows: { label: string; color: string; value: number }[] = [
         { label: "Open",  color: "var(--color-foreground-light)", value: candle.open  },
@@ -899,7 +899,12 @@ function CandlestickChart({ candles, startDate, endDate, candleUnit, onExpandRan
                             {visibleRange.map(i => {
                                 const c = candles[i];
                                 if (c.empty) return null;
-                                const bullish = c.close >= c.open;
+                                // Find the previous non-empty candle's close for color comparison
+                                let prevClose = c.open;
+                                for (let j = i - 1; j >= 0; j--) {
+                                    if (!candles[j].empty) { prevClose = candles[j].close; break; }
+                                }
+                                const bullish = c.close >= prevClose;
                                 const color   = bullish ? "#22c55e" : "#ef4444";
                                 const cx      = xCenter(i);
                                 const bodyTop = yScale(Math.max(c.open, c.close));
@@ -948,7 +953,12 @@ function CandlestickChart({ candles, startDate, endDate, candleUnit, onExpandRan
                 </svg>
             )}
             {hoverIdx !== null && !dragging && typeof document !== "undefined" && createPortal(
-                <CandlestickTooltip candle={candles[hoverIdx]} mouseX={mousePos.x} mouseY={mousePos.y} />,
+                <CandlestickTooltip
+                    candle={candles[hoverIdx]}
+                    prevClose={(() => { for (let j = hoverIdx - 1; j >= 0; j--) { if (!candles[j].empty) return candles[j].close; } return candles[hoverIdx].open; })()}
+                    mouseX={mousePos.x}
+                    mouseY={mousePos.y}
+                />,
                 document.body
             )}
         </div>
