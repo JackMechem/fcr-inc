@@ -7,15 +7,18 @@ import { useTablePermissions } from "../../config/useTablePermissions";
 import { createPayment } from "../../actions";
 import { ActiveFilter, FilterableColumn, filtersToRecord } from "../table/FilterPanel";
 import { useTablePrefsStore } from "@/stores/tablePrefsStore";
+import { consumePendingJump } from "../../config/pendingJump";
 
 const TABLE_TITLE = "All Payments";
 const EMPTY_FILTERS: ActiveFilter[] = [];
 
 const FILTERABLE_COLUMNS: FilterableColumn[] = [
-    { field: "paymentType", label: "Type",    type: "select", options: ["CASH", "CREDIT", "DEBIT", "CHECK", "SERVICE", "INVOICE"] },
-    { field: "paid",        label: "Paid",    type: "select", options: ["true", "false"] },
-    { field: "totalAmount", label: "Total",   type: "number" },
-    { field: "amountPaid",  label: "Amount Paid", type: "number" },
+    { field: "paymentId",   label: "Payment ID",  type: "text" },
+    { field: "paymentType", label: "Type",         type: "select", options: ["CASH", "CREDIT", "DEBIT", "CHECK", "SERVICE", "INVOICE"] },
+    { field: "paid",        label: "Paid",         type: "select", options: ["true", "false"] },
+    { field: "date",        label: "Date",         type: "date" },
+    { field: "totalAmount", label: "Total",        type: "number" },
+    { field: "amountPaid",  label: "Amount Paid",  type: "number" },
 ];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -251,12 +254,17 @@ export default function ViewPaymentsPanel() {
     const [totalItems, setTotalItems] = useState(0);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [query, setQuery] = useState("");
     const [selected, setSelected] = useState<Set<string | number>>(new Set());
     const [bulkDeleting, setBulkDeleting] = useState(false);
     const storedFilters = useTablePrefsStore((s) => s.tableFilters[TABLE_TITLE]);
     const storeSetFilters = useTablePrefsStore((s) => s.setTableFilters);
-    const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>((storedFilters ?? EMPTY_FILTERS) as ActiveFilter[]);
+    const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>(() => {
+        const jumpId = consumePendingJump("view-payments");
+        if (jumpId) {
+            return [{ id: crypto.randomUUID(), field: "paymentId", label: "Payment ID", type: "text", operator: "equals", value: jumpId }];
+        }
+        return (storedFilters ?? EMPTY_FILTERS) as ActiveFilter[];
+    });
     const handleFiltersChange = (f: ActiveFilter[]) => { setActiveFilters(f); storeSetFilters(TABLE_TITLE, f); };
 
     const fetchPage = useCallback(async (p: number, ps = pageSize, filters: ActiveFilter[] = [], isRefresh = false) => {
@@ -280,13 +288,6 @@ export default function ViewPaymentsPanel() {
 
     useEffect(() => { fetchPage(page, pageSize, activeFilters); }, [page, pageSize, fetchPage]);
     useEffect(() => { setPage(1); fetchPage(1, pageSize, activeFilters); }, [activeFilters]);
-
-    const filtered = query
-        ? payments.filter((p) =>
-              `${p.paymentId} ${p.paymentType} ${p.totalAmount} ${p.amountPaid}`
-                  .toLowerCase()
-                  .includes(query.toLowerCase()))
-        : payments;
 
     const handleCreateRow = canAddRow ? async (data: Record<string, string | string[]>) => {
         await createPayment({
@@ -342,7 +343,7 @@ export default function ViewPaymentsPanel() {
     return (
         <SpreadsheetTable<Payment>
             columns={COLUMNS}
-            data={filtered}
+            data={payments}
             getRowId={(p) => p.paymentId}
             page={page}
             totalPages={totalPages}
@@ -367,10 +368,9 @@ export default function ViewPaymentsPanel() {
             activeFilters={activeFilters}
             onFiltersChange={handleFiltersChange}
             title="All Payments"
-            subtitle={query ? `${filtered.length} matching on this page` : undefined}
-            searchQuery={query}
-            onSearchChange={setQuery}
-            searchPlaceholder="Filter by ID, type, amount…"
+            searchQuery=""
+            onSearchChange={() => {}}
+            searchContent={<></>}
             emptyMessage="No payments found."
             renderPreview={(p) => <PaymentPreview payment={p} />}
         />

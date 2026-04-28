@@ -7,6 +7,8 @@ import SpreadsheetTable, { Column, RowEdit } from "../table/SpreadsheetTable";
 import { useTablePermissions } from "../../config/useTablePermissions";
 import { ActiveFilter, FilterableColumn, filtersToRecord } from "../table/FilterPanel";
 import { useTablePrefsStore } from "@/stores/tablePrefsStore";
+import { useUserDashboardStore } from "@/stores/userDashboardStore";
+import { setPendingJump } from "../../config/pendingJump";
 
 const TABLE_TITLE = "Accounts Database";
 const EMPTY_FILTERS: ActiveFilter[] = [];
@@ -52,7 +54,8 @@ const ACCOUNT_COLUMNS: Column<Account>[] = [
     { key: "role",               label: "Role",           defaultVisible: true,  render: (a) => <RoleBadge role={a.role} />, editable: true, editType: "select", editOptions: ["CUSTOMER", "STAFF", "ADMIN"], getValue: (a) => a.role },
     { key: "dateCreated",        label: "Created",        defaultVisible: true,  render: (a) => fmtDate(a.dateCreated) },
     { key: "dateEmailConfirmed", label: "Email Confirmed",defaultVisible: false, render: (a) => fmtDate(a.dateEmailConfirmed) },
-    { key: "user",               label: "Linked User",    defaultVisible: false, render: (a) => a.user != null ? `#${a.user}` : "—", editable: true, editType: "number", getValue: (a) => a.user ?? "" },
+    { key: "user",               label: "Linked User",    defaultVisible: false, render: (a) => a.user != null ? `#${a.user}` : "—", editable: true, editType: "number", getValue: (a) => a.user ?? "",
+        references: { view: "view-users", label: "User", getSearchTerm: (a) => a.user != null ? String(a.user) : null } },
     { key: "bookmarkedCars",     label: "Bookmarks",      defaultVisible: false, render: (a) => a.bookmarkedCars?.length ?? 0 },
 ];
 
@@ -266,6 +269,11 @@ const UsersPanel = () => {
                 sortBy={sortBy}
                 sortDir={sortDir}
                 onSortChange={handleSortChange}
+                onGoToReference={(view, search) => {
+                    setPendingJump(view, search);
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    useUserDashboardStore.getState().setActiveView(view as any);
+                }}
             />
             {editing && (
                 <EditForm

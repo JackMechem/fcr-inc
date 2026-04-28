@@ -71,6 +71,12 @@ export interface Column<T> {
     // Always show this column as an editable field in the new-row form,
     // even when the column is hidden in the main table.
     newRowVisible?: boolean;
+    // If this cell links to a record in another table, define the jump target here.
+    references?: {
+        view: string;           // UserDashboardView to navigate to
+        label: string;          // e.g. "User", "Car", "Payment"
+        getSearchTerm: (item: T) => string | null; // the search string to pre-fill
+    };
     // Permanently locked — cannot be unlocked by the user (e.g. primary-key columns).
     locked?: boolean;
     // Allow editing this column in the new-row form even when it is locked.
@@ -138,6 +144,8 @@ export interface SpreadsheetTableProps<T> {
     renderPreview?: (item: T) => ReactNode;
     // Row link (adds "Go to" in right-click menu)
     getRowLink?: (item: T) => string;
+    // Called when user clicks "Go to reference" on a cell with references defined
+    onGoToReference?: (view: string, searchTerm: string) => void;
     // Server-side sort (controlled)
     sortBy?: string | null;
     sortDir?: "asc" | "desc";
@@ -355,6 +363,7 @@ export default function SpreadsheetTable<T>({
     onSortChange,
     renderPreview,
     getRowLink,
+    onGoToReference,
     onCreateRow,
     aiRequiredFields,
     initialLockedCols,
@@ -2813,6 +2822,23 @@ export default function SpreadsheetTable<T>({
                             ) : null;
                         })()
                     )}
+
+                    {/* Go to reference */}
+                    {!ctxMenu.isNewRow && ctxMenu.rowItem && (() => {
+                        const col = columns.find((c) => c.key === ctxMenu.colKey);
+                        if (!col?.references || !onGoToReference) return null;
+                        const { view, label, getSearchTerm } = col.references;
+                        const term = getSearchTerm(ctxMenu.rowItem as T);
+                        if (!term) return null;
+                        return (
+                            <button
+                                className={styles.ctxItem}
+                                onClick={() => { onGoToReference(view, term); closeCtx(); }}
+                            >
+                                <BiLinkExternal /> Go to {label}
+                            </button>
+                        );
+                    })()}
 
                     {/* Row section for new row */}
                     {ctxMenu.isNewRow && ctxMenu.draftId && (

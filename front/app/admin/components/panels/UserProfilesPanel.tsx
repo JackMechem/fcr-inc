@@ -7,6 +7,7 @@ import SpreadsheetTable, { Column, RowEdit } from "../table/SpreadsheetTable";
 import { useTablePermissions } from "../../config/useTablePermissions";
 import { ActiveFilter, FilterableColumn, filtersToRecord } from "../table/FilterPanel";
 import { useTablePrefsStore } from "@/stores/tablePrefsStore";
+import { consumePendingJump } from "../../config/pendingJump";
 import styles from "../table/spreadsheetTable.module.css";
 
 const TABLE_TITLE = "Users Database";
@@ -14,9 +15,12 @@ const EMPTY_FILTERS: ActiveFilter[] = [];
 import { BiSave, BiX, BiRefresh } from "react-icons/bi";
 
 const FILTERABLE_COLUMNS: FilterableColumn[] = [
-    { field: "firstName", label: "First Name", type: "text" },
-    { field: "lastName",  label: "Last Name",  type: "text" },
-    { field: "email",     label: "Email",      type: "text" },
+    { field: "userId",          label: "ID",          type: "number" },
+    { field: "firstName",       label: "First Name",  type: "text" },
+    { field: "lastName",        label: "Last Name",   type: "text" },
+    { field: "email",           label: "Email",       type: "text" },
+    { field: "phoneNumber",     label: "Phone",       type: "text" },
+{ field: "dateCreated",     label: "Created",     type: "date" },
 ];
 
 // ── Helpers ──────────────────────────────────────────���───────────────────────
@@ -199,7 +203,7 @@ const UserProfilesPanel = () => {
     const [totalItems, setTotalItems] = useState(0);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [query, setQuery] = useState("");
+    const [query, setQuery] = useState(() => consumePendingJump("view-users") ?? "");
     const [selected, setSelected] = useState<Set<string | number>>(new Set());
     const [bulkDeleting, setBulkDeleting] = useState(false);
     const [editing, setEditing] = useState<User | null>(null);
