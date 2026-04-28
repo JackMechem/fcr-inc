@@ -1,6 +1,7 @@
 package com.inc.fcr.reservation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.inc.fcr.car.Car;
 import com.inc.fcr.database.ParsedQueryParams;
 import com.inc.fcr.errorHandling.QueryParamException;
@@ -20,7 +21,7 @@ import static com.inc.fcr.errorHandling.ApiErrors.*;
 
 public class StatsController {
 
-    private static final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
+    private static final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules().registerModule(new JavaTimeModule());
     private static final List<String> timeUnits = List.of("day", "week", "month", "year");
     private static final Map<String, String> timeUnitFormats = Map.of(
             "day", "%Y-%m-%d",

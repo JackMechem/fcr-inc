@@ -1,6 +1,8 @@
 package com.inc.fcr;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import io.javalin.json.JavalinJackson;
 import com.inc.fcr.auth.Account;
 import com.inc.fcr.auth.AuthController;
 import com.inc.fcr.car.Car;
@@ -74,6 +76,7 @@ public class Main {
         int port = (portProperty != null) ? Integer.parseInt(portProperty) : 8080;
 
         Javalin app = Javalin.create(config -> {
+            config.jsonMapper(new JavalinJackson(new ObjectMapper().findAndRegisterModules().registerModule(new JavaTimeModule()), false));
 
             config.validation.register(Instant.class, Instant::parse);
 
