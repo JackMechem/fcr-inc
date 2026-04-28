@@ -23,6 +23,7 @@ import PaymentsListPanel from "@/app/admin/components/panels/PaymentsListPanel";
 import PopularityPanel from "@/app/admin/components/panels/PopularityPanel";
 import RevenuePanel from "@/app/admin/components/panels/RevenuePanel";
 import CsvGeneratorPanel from "@/app/admin/components/panels/CsvGeneratorPanel";
+import ApiTesterPanel from "@/app/dashboard/components/panels/ApiTesterPanel";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -35,6 +36,9 @@ const ADMIN_VIEWS = new Set<UserDashboardView>([
     "stats-popularity",
     "stats-revenue",
     "csv-generator",
+    "api-test-guest-checkout",
+    "api-test-create-reservation",
+    "api-test-webhook",
 ]);
 
 export function isAdminView(view: UserDashboardView): boolean {
@@ -103,6 +107,12 @@ export default function AdminContentWrapper() {
             return <RevenuePanel />;
         case "csv-generator":
             return <CsvGeneratorPanel />;
+        case "api-test-guest-checkout":
+            return <ApiTesterPanel flowKey="guest-checkout" />;
+        case "api-test-create-reservation":
+            return <ApiTesterPanel flowKey="create-reservation" />;
+        case "api-test-webhook":
+            return <ApiTesterPanel flowKey="stripe-webhook" />;
         case "admin-dashboard":
         default:
             return <AdminDashboardPanel />;

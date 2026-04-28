@@ -29,7 +29,11 @@ export type UserDashboardView =
     | "view-reservation"
     | "stats-popularity"
     | "stats-revenue"
-    | "csv-generator";
+    | "csv-generator"
+    // Admin-only API Tester
+    | "api-test-guest-checkout"
+    | "api-test-create-reservation"
+    | "api-test-webhook";
 
 export interface DashboardPayment {
     paymentId: string | number;
