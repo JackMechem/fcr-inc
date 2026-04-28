@@ -27,6 +27,9 @@ public class APIController {
     /** The type of the entity's primary key (e.g., {@code String.class} for VIN, {@code Long.class} for auto-increment IDs). */
     public final Class<?> idClazz;
 
+    private static final boolean STRICT_QUERY_PARAMS = Boolean
+            .parseBoolean(System.getenv().getOrDefault("STRICT_QUERY_PARAMS", "true"));
+
     /**
      * Constructs an {@code APIController} for the given entity and ID types.
      *
@@ -132,7 +135,7 @@ public class APIController {
 
             // Merge specified fields
             ObjectMapper mapper = new ObjectMapper().findAndRegisterModules().registerModule(new JavaTimeModule());
-            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+            mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, STRICT_QUERY_PARAMS); // default true, false on prod
             // If set to true (default), changes to json objects will be appended to the existing content, not overridden
             mapper.setDefaultMergeable(false);
             // NOTE: Shallow merge, nested trees overridden!
