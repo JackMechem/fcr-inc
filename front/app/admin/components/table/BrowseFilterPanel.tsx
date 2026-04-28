@@ -5,6 +5,7 @@ import { BiX } from "react-icons/bi";
 import styles from "./spreadsheetTable.module.css";
 import PillSelect from "@/app/browse/components/filters/pillSelect";
 import FilterBarNumberRangeInline from "@/app/browse/components/filters/filterBarNumberRangeInline";
+import DatePicker from "@/app/components/DatePicker";
 import { FilterableColumn, ActiveFilter } from "./FilterPanel";
 
 // ── Internal state types ──────────────────────────────────────────────────────
@@ -12,6 +13,7 @@ import { FilterableColumn, ActiveFilter } from "./FilterPanel";
 type SelectState = Record<string, string[]>;
 type RangeState = Record<string, { min: string; max: string }>;
 type TextState = Record<string, string>;
+type DateState = Record<string, { min: string; max: string }>;
 
 function initSelectState(cols: FilterableColumn[], filters: ActiveFilter[]): SelectState {
     const state: SelectState = {};
@@ -37,6 +39,17 @@ function initRangeState(cols: FilterableColumn[], filters: ActiveFilter[]): Rang
     return state;
 }
 
+function initDateState(cols: FilterableColumn[], filters: ActiveFilter[]): DateState {
+    const state: DateState = {};
+    for (const col of cols) {
+        if (col.type !== "date") continue;
+        const minF = filters.find((x) => x.id === `browse_${col.field}_min`);
+        const maxF = filters.find((x) => x.id === `browse_${col.field}_max`);
+        state[col.field] = { min: minF?.value ?? "", max: maxF?.value ?? "" };
+    }
+    return state;
+}
+
 function initTextState(cols: FilterableColumn[], filters: ActiveFilter[]): TextState {
     const state: TextState = {};
     for (const col of cols) {
@@ -56,6 +69,7 @@ function stateToFilters(
     selectState: SelectState,
     rangeState: RangeState,
     textState: TextState,
+    dateState: DateState = {},
 ): ActiveFilter[] {
     const out: ActiveFilter[] = [];
     for (const col of cols) {
@@ -97,6 +111,28 @@ function stateToFilters(
                         value: range.max,
                     });
                 }
+            }
+        } else if (col.type === "date") {
+            const range = dateState[col.field];
+            if (range?.min) {
+                out.push({
+                    id: `browse_${col.field}_min`,
+                    field: col.field,
+                    label: col.label,
+                    type: "date",
+                    operator: "after",
+                    value: range.min,
+                });
+            }
+            if (range?.max) {
+                out.push({
+                    id: `browse_${col.field}_max`,
+                    field: col.field,
+                    label: col.label,
+                    type: "date",
+                    operator: "before",
+                    value: range.max,
+                });
             }
         } else if (col.type === "text" || (col.type === "number" && (col.min == null || col.max == null))) {
             const text = textState[col.field]?.trim();
@@ -143,10 +179,13 @@ export default function BrowseFilterPanel({
     const [textState, setTextState] = useState<TextState>(
         () => initTextState(filterableColumns, activeFilters),
     );
+    const [dateState, setDateState] = useState<DateState>(
+        () => initDateState(filterableColumns, activeFilters),
+    );
 
     const emit = useCallback(
-        (sel: SelectState, rng: RangeState, txt: TextState) => {
-            onFiltersChange(stateToFilters(filterableColumns, sel, rng, txt));
+        (sel: SelectState, rng: RangeState, txt: TextState, dt: DateState) => {
+            onFiltersChange(stateToFilters(filterableColumns, sel, rng, txt, dt));
         },
         [filterableColumns, onFiltersChange],
     );
@@ -155,14 +194,16 @@ export default function BrowseFilterPanel({
     const selectRef = useRef(selectState);
     const rangeRef = useRef(rangeState);
     const textRef = useRef(textState);
+    const dateRef = useRef(dateState);
     useEffect(() => { selectRef.current = selectState; }, [selectState]);
     useEffect(() => { rangeRef.current = rangeState; }, [rangeState]);
     useEffect(() => { textRef.current = textState; }, [textState]);
+    useEffect(() => { dateRef.current = dateState; }, [dateState]);
 
     // Debounced text emission (350 ms)
     useEffect(() => {
         const t = setTimeout(
-            () => emit(selectRef.current, rangeRef.current, textRef.current),
+            () => emit(selectRef.current, rangeRef.current, textRef.current, dateRef.current),
             350,
         );
         return () => clearTimeout(t);
@@ -176,21 +217,25 @@ export default function BrowseFilterPanel({
             const r = rangeState[col.field];
             return r && (r.min !== col.min.toString() || r.max !== col.max.toString());
         }) ||
-        Object.values(textState).some((v) => v.trim() !== "");
+        Object.values(textState).some((v) => v.trim() !== "") ||
+        Object.values(dateState).some((v) => v.min || v.max);
 
     const handleClearAll = () => {
         const newSel: SelectState = {};
         const newRng: RangeState = {};
         const newTxt: TextState = {};
+        const newDt: DateState = {};
         for (const col of filterableColumns) {
             if (col.type === "select") newSel[col.field] = [];
             else if (col.type === "number" && col.min != null && col.max != null)
                 newRng[col.field] = { min: col.min.toString(), max: col.max.toString() };
             else if (col.type === "text") newTxt[col.field] = "";
+            else if (col.type === "date") newDt[col.field] = { min: "", max: "" };
         }
         setSelectState(newSel);
         setRangeState(newRng);
         setTextState(newTxt);
+        setDateState(newDt);
         onFiltersChange([]);
     };
 
@@ -264,7 +309,7 @@ export default function BrowseFilterPanel({
                                             onChangeMulti={(vals) => {
                                                 const next = { ...selectState, [col.field]: vals };
                                                 setSelectState(next);
-                                                emit(next, rangeState, textState);
+                                                emit(next, rangeState, textState, dateState);
                                             }}
                                         />
                                     </div>
@@ -288,9 +333,60 @@ export default function BrowseFilterPanel({
                                         onChange={(min, max) => {
                                             const next = { ...rangeState, [col.field]: { min, max } };
                                             setRangeState(next);
-                                            emit(selectState, next, textState);
+                                            emit(selectState, next, textState, dateState);
                                         }}
                                     />
+                                );
+                            }
+
+                            /* ── Date → from/to date pickers ── */
+                            if (col.type === "date") {
+                                const range = dateState[col.field] ?? { min: "", max: "" };
+                                const minDate = range.min ? new Date(range.min) : undefined;
+                                const maxDate = range.max ? new Date(range.max) : undefined;
+                                const toIso = (d: Date) => d.toISOString();
+                                return (
+                                    <div key={col.field}>
+                                        <div className={styles.filterSectionLabel}>{col.label}</div>
+                                        <div style={{ display: "flex", gap: 8 }}>
+                                            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+                                                <div className={styles.filterSectionLabel} style={{ marginBottom: 0 }}>Min</div>
+                                                <div className={styles.fieldInput} style={{ cursor: "pointer", padding: "4px 10px" }}>
+                                                    <DatePicker
+                                                        label="Min"
+                                                        showLabel={false}
+                                                        placeholder="Min date"
+                                                        selected={minDate}
+                                                        allowPast
+                                                        portal
+                                                        onSelect={(d) => {
+                                                            const next = { ...dateState, [col.field]: { ...range, min: d ? toIso(d) : "" } };
+                                                            setDateState(next);
+                                                            emit(selectState, rangeState, textState, next);
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+                                                <div className={styles.filterSectionLabel} style={{ marginBottom: 0 }}>Max</div>
+                                                <div className={styles.fieldInput} style={{ cursor: "pointer", padding: "4px 10px" }}>
+                                                    <DatePicker
+                                                        label="Max"
+                                                        showLabel={false}
+                                                        placeholder="Max date"
+                                                        selected={maxDate}
+                                                        allowPast
+                                                        portal
+                                                        onSelect={(d) => {
+                                                            const next = { ...dateState, [col.field]: { ...range, max: d ? toIso(d) : "" } };
+                                                            setDateState(next);
+                                                            emit(selectState, rangeState, textState, next);
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 );
                             }
 
@@ -307,7 +403,7 @@ export default function BrowseFilterPanel({
                                                 setTextState((prev) => ({ ...prev, [col.field]: e.target.value }))
                                             }
                                             onKeyDown={(e) => {
-                                                if (e.key === "Enter") emit(selectState, rangeState, textState);
+                                                if (e.key === "Enter") emit(selectState, rangeState, textState, dateState);
                                             }}
                                             placeholder={`Filter by ${col.label.toLowerCase()}…`}
                                         />

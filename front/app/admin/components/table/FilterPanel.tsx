@@ -118,10 +118,10 @@ export function filtersToRecord(filters: ActiveFilter[]): Record<string, string 
                 result[`max${cap(f.field)}`] = f.value;
                 break;
             case "before":
-                result[`${f.field}Before`] = f.value;
+                result[`max${cap(f.field)}`] = f.value;
                 break;
             case "after":
-                result[`${f.field}After`] = f.value;
+                result[`min${cap(f.field)}`] = f.value;
                 break;
             case "is_true":
                 result[f.field] = "true";

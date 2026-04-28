@@ -8,6 +8,7 @@ import { useUserDashboardStore } from "@/stores/userDashboardStore";
 import SpreadsheetTable, { Column, RowEdit } from "../table/SpreadsheetTable";
 import { useTablePermissions } from "../../config/useTablePermissions";
 import { ActiveFilter, FilterableColumn, filtersToRecord } from "../table/FilterPanel";
+import { consumePendingJump } from "../../config/pendingJump";
 import { useTablePrefsStore } from "@/stores/tablePrefsStore";
 import { getFilterBarData } from "@/app/browse/actions";
 import styles from "../table/spreadsheetTable.module.css";
@@ -304,7 +305,7 @@ const InventoryPanel = () => {
 
     // Search
     const [searchMode, setSearchMode] = useState<SearchMode>("search");
-    const [query, setQuery] = useState("");
+    const [query, setQuery] = useState(() => consumePendingJump("view-data") ?? "");
     const [activeSearch, setActiveSearch] = useState("");
     const [vinResult, setVinResult] = useState<Car[] | null>(null);
 

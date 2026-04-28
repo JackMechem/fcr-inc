@@ -10,6 +10,8 @@ import SpreadsheetTable, { Column, RowEdit } from "../table/SpreadsheetTable";
 import { useTablePermissions } from "../../config/useTablePermissions";
 import { ActiveFilter, FilterableColumn, filtersToRecord } from "../table/FilterPanel";
 import { useTablePrefsStore } from "@/stores/tablePrefsStore";
+import { useUserDashboardStore } from "@/stores/userDashboardStore";
+import { setPendingJump } from "../../config/pendingJump";
 import styles from "../table/spreadsheetTable.module.css";
 
 const TABLE_TITLE = "Reservations Database";
@@ -20,6 +22,7 @@ const FILTERABLE_COLUMNS: FilterableColumn[] = [
     { field: "user",        label: "User ID",    type: "number" },
     { field: "pickUpTime",  label: "Pick-up",    type: "date" },
     { field: "dropOffTime", label: "Drop-off",   type: "date" },
+    { field: "dateBooked",  label: "Booked",     type: "date" },
 ];
 import {
     BiSave,
@@ -64,8 +67,10 @@ const userId = (r: Reservation) =>
 
 const RES_COLUMNS: Column<Reservation>[] = [
     { key: "reservationId", label: "Res #",     defaultVisible: true,  locked: true,  render: (r) => <span className={styles.badge}>#{r.reservationId}</span> },
-    { key: "car",           label: "Car",       defaultVisible: true,  render: carLabel, minWidth: 140, editable: true, editType: "text", getValue: (r) => carVin(r) },
-    { key: "userId",        label: "User ID",   defaultVisible: true,  render: (r) => userId(r) ?? "—", editable: true, editType: "number", getValue: (r) => userId(r) ?? 0 },
+    { key: "car",           label: "Car",       defaultVisible: true,  render: carLabel, minWidth: 140, editable: true, editType: "text", getValue: (r) => carVin(r),
+        references: { view: "view-data", label: "Car", getSearchTerm: (r) => carVin(r) || null } },
+    { key: "userId",        label: "User ID",   defaultVisible: true,  render: (r) => userId(r) ?? "—", editable: true, editType: "number", getValue: (r) => userId(r) ?? 0,
+        references: { view: "view-users", label: "User", getSearchTerm: (r) => userId(r) != null ? String(userId(r)) : null } },
     { key: "pickUpTime",    label: "Pick-up",   defaultVisible: true,  render: (r) => fmtTimestamp(r.pickUpTime as number | string),  editable: true, editType: "date", getValue: (r) => toDateString(r.pickUpTime) },
     { key: "dropOffTime",   label: "Drop-off",  defaultVisible: true,  render: (r) => fmtTimestamp(r.dropOffTime as number | string), editable: true, editType: "date", getValue: (r) => toDateString(r.dropOffTime) },
     { key: "durationDays",  label: "Days",      defaultVisible: true,  render: (r) => `${r.durationDays}d ${r.durationHours % 24}h` },
@@ -75,6 +80,12 @@ const RES_COLUMNS: Column<Reservation>[] = [
         getTagsValue: (r) => Array.isArray(r.payments)
             ? r.payments.map((p) => (typeof p === "string" ? p : (p as Payment).paymentId))
             : [],
+        references: { view: "view-payments", label: "Payments", getSearchTerm: (r) => {
+            const ids = Array.isArray(r.payments)
+                ? r.payments.map((p) => (typeof p === "string" ? p : (p as Payment).paymentId))
+                : [];
+            return ids.length > 0 ? ids[0] : null;
+        } },
     },
 ];
 
@@ -573,6 +584,11 @@ const ReservationsPanel = () => {
                 sortDir={sortDir}
                 onSortChange={handleSortChange}
                 renderPreview={(r) => <PaymentsPreview reservation={r} />}
+                onGoToReference={(view, search) => {
+                    setPendingJump(view, search);
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    useUserDashboardStore.getState().setActiveView(view as any);
+                }}
             />
             {editing && (
                 <EditForm

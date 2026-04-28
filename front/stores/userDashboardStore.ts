@@ -89,9 +89,11 @@ interface UserDashboardStore {
     selectedReservation: DashboardReservation | null;
     reservations: DashboardReservation[];
     editVin: string | null;
+    splitView: UserDashboardView | null;
 
     toggle: () => void;
     setActiveView: (view: UserDashboardView) => void;
+    setSplitView: (view: UserDashboardView | null) => void;
     setAccountId: (id: number | null) => void;
     setUserEmail: (email: string | null) => void;
     setUserName: (name: string | null) => void;
@@ -167,8 +169,11 @@ export const useUserDashboardStore = create<UserDashboardStore>()(
             reservations: [],
             editVin: null,
 
+            splitView: null,
+
             toggle: () => set({ collapsed: !get().collapsed }),
             setActiveView: (view) => set({ activeView: view }),
+            setSplitView: (view) => set({ splitView: view }),
             setAccountId: (id) => set({ accountId: id }),
             setUserEmail: (email) => {
                 set({ userEmail: email });

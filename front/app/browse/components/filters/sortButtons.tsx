@@ -1,29 +1,44 @@
 "use client";
 import FilterBarDropdown from "./filterBarDropdown";
-import { PiSortAscending, PiSortDescending } from "react-icons/pi";
+import { TbSortAZ, TbSortZA, TbSortAscendingNumbers, TbSortDescendingNumbers } from "react-icons/tb";
 import { useFilterParams } from "./useFilterParams";
 import styles from "./browseBar.module.css";
 
+const NUMERIC_SORT_FIELDS = new Set([
+	"modelYear", "pricePerDay", "cylinders", "gears", "horsepower", "seats", "torque", "mpg",
+]);
+
+function SortDirIcon({ sortBy, sortDir }: { sortBy: string; sortDir: string }) {
+	const isDesc = sortDir === "desc";
+	if (NUMERIC_SORT_FIELDS.has(sortBy)) {
+		return isDesc ? <TbSortDescendingNumbers /> : <TbSortAscendingNumbers />;
+	}
+	return isDesc ? <TbSortZA /> : <TbSortAZ />;
+}
+
 const SortButtons = () => {
 	const { get, set } = useFilterParams();
+	const sortBy = get("sortBy") ?? "popularity";
+	const sortDir = get("sortDir") ?? "asc";
+	const isPopularity = sortBy === "popularity";
 
 	return (
 		<div className={styles.sortGroup}>
-			<button
-				key={get("sortDir") ?? "asc"}
-				onClick={() => {
-					set({ sortDir: get("sortDir") == "desc" ? "asc" : "desc" });
-				}}
-				className={styles.sortDirBtn}
-			>
-				{get("sortDir") == "desc" ? <PiSortAscending /> : <PiSortDescending />}
-			</button>
+			{!isPopularity && (
+				<button
+					onClick={() => set({ sortDir: sortDir === "desc" ? "asc" : "desc" })}
+					className={styles.sortDirBtn}
+				>
+					<SortDirIcon sortBy={sortBy} sortDir={sortDir} />
+				</button>
+			)}
 			{get("sortBy") !== null && (
 				<FilterBarDropdown
-					key={get("sortBy") ?? "make"}
+					key={get("sortBy") ?? "popularity"}
 					label=""
 					showAll={false}
 					options={[
+						{ paramId: "popularity", displayText: "Popularity" },
 						{ paramId: "make", displayText: "Make" },
 						{ paramId: "model", displayText: "Model" },
 						{ paramId: "modelYear", displayText: "Model Year" },
@@ -35,8 +50,14 @@ const SortButtons = () => {
 						{ paramId: "torque", displayText: "Torque" },
 						{ paramId: "mpg", displayText: "MPG" },
 					]}
-					defaultValue={get("sortBy") ?? "make"}
-					onChange={(v) => set({ sortBy: v ?? undefined })}
+					defaultValue={get("sortBy") ?? "popularity"}
+					onChange={(v) => {
+						if (v === "popularity") {
+							set({ sortBy: "popularity", sortDir: "desc" });
+						} else {
+							set({ sortBy: v ?? undefined });
+						}
+					}}
 				/>
 			)}
 		</div>
