@@ -28,9 +28,7 @@ export default async function DashboardPage({
         <>
             <NavHeader white={false} mobileMenuTrigger={<MobileMenuButton />} />
             <UserSidebar />
-            <DashboardContentArea>
-                <DashboardShell paymentSuccess={sp?.payment === "success"} editCarVin={editCarVin} />
-            </DashboardContentArea>
+            <DashboardContentArea />
         </>
     );
 }

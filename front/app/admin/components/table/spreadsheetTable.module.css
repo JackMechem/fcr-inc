@@ -119,6 +119,26 @@
 }
 
 /* Icon-only buttons in header */
+.trafficLight {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+    transition: filter 120ms, opacity 120ms;
+}
+
+.trafficLight:hover {
+    filter: brightness(1.15);
+}
+
+.trafficLight:disabled {
+    cursor: default;
+    opacity: 0.35;
+}
+
 .btnIcon {
     width: 28px;
     height: 28px;
@@ -1219,6 +1239,29 @@ textarea.editInput {
     background: var(--color-accent);
 }
 
+/* ── Options side panel — shared tab content styles ─────────────────────── */
+
+.tabPanel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+
+.tabField {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.tabLabel {
+    font-size: 8pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-foreground-light);
+}
+
 /* ── Browse filter side panel ───────────────────────────────────────────── */
 .filterSidePanel {
     display: flex;
@@ -2218,7 +2261,7 @@ tr:hover .markdownCellBtn {
 }
 
 .headerMobileBtn {
-    display: none;
+    display: flex;
     align-items: center;
     justify-content: center;
     width: 32px;
@@ -2240,14 +2283,6 @@ tr:hover .markdownCellBtn {
 /* ── Mobile: side panels fill the body area ─────────────────────────────── */
 
 @media (max-width: 768px) {
-    .headerBtns {
-        display: none;
-    }
-
-    .headerMobileBtn {
-        display: flex;
-    }
-
     .panelResizeHandle {
         display: none;
     }

@@ -89,11 +89,11 @@ interface UserDashboardStore {
     selectedReservation: DashboardReservation | null;
     reservations: DashboardReservation[];
     editVin: string | null;
-    splitView: UserDashboardView | null;
-
+    /** Views currently open in non-focused panes (updated by DashboardContentArea) */
+    openPaneViews: UserDashboardView[];
     toggle: () => void;
     setActiveView: (view: UserDashboardView) => void;
-    setSplitView: (view: UserDashboardView | null) => void;
+    setOpenPaneViews: (views: UserDashboardView[]) => void;
     setAccountId: (id: number | null) => void;
     setUserEmail: (email: string | null) => void;
     setUserName: (name: string | null) => void;
@@ -168,12 +168,11 @@ export const useUserDashboardStore = create<UserDashboardStore>()(
             selectedReservation: null,
             reservations: [],
             editVin: null,
-
-            splitView: null,
+            openPaneViews: [],
 
             toggle: () => set({ collapsed: !get().collapsed }),
             setActiveView: (view) => set({ activeView: view }),
-            setSplitView: (view) => set({ splitView: view }),
+            setOpenPaneViews: (views) => set({ openPaneViews: views }),
             setAccountId: (id) => set({ accountId: id }),
             setUserEmail: (email) => {
                 set({ userEmail: email });

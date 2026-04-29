@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { BiX } from "react-icons/bi";
 import styles from "./spreadsheetTable.module.css";
 import PillSelect from "@/app/browse/components/filters/pillSelect";
@@ -154,40 +154,46 @@ function stateToFilters(
 // ── Component ─────────────────────────────────────────────────────────────────
 
 interface BrowseFilterPanelProps {
-    filterableColumns: FilterableColumn[];
-    activeFilters: ActiveFilter[];
-    onFiltersChange: (filters: ActiveFilter[]) => void;
-    width: number;
-    onWidthChange: (w: number) => void;
-    onClose: () => void;
+    /** When true: renders only filter fields, no panel shell/header/resize-handle */
+    contentOnly?: boolean;
+    filterableColumns?: FilterableColumn[];
+    activeFilters?: ActiveFilter[];
+    onFiltersChange?: (filters: ActiveFilter[]) => void;
+    width?: number;
+    onWidthChange?: (w: number) => void;
+    onClose?: () => void;
 }
 
 export default function BrowseFilterPanel({
+    contentOnly,
     filterableColumns,
     activeFilters,
     onFiltersChange,
-    width,
+    width = 280,
     onWidthChange,
     onClose,
 }: BrowseFilterPanelProps) {
+    const cols = filterableColumns ?? [];
+    const filters = activeFilters ?? [];
+
     const [selectState, setSelectState] = useState<SelectState>(
-        () => initSelectState(filterableColumns, activeFilters),
+        () => initSelectState(cols, filters),
     );
     const [rangeState, setRangeState] = useState<RangeState>(
-        () => initRangeState(filterableColumns, activeFilters),
+        () => initRangeState(cols, filters),
     );
     const [textState, setTextState] = useState<TextState>(
-        () => initTextState(filterableColumns, activeFilters),
+        () => initTextState(cols, filters),
     );
     const [dateState, setDateState] = useState<DateState>(
-        () => initDateState(filterableColumns, activeFilters),
+        () => initDateState(cols, filters),
     );
 
     const emit = useCallback(
         (sel: SelectState, rng: RangeState, txt: TextState, dt: DateState) => {
-            onFiltersChange(stateToFilters(filterableColumns, sel, rng, txt, dt));
+            if (onFiltersChange) onFiltersChange(stateToFilters(cols, sel, rng, txt, dt));
         },
-        [filterableColumns, onFiltersChange],
+        [cols, onFiltersChange],
     );
 
     // Keep refs so debounced callback always reads latest state
@@ -212,7 +218,7 @@ export default function BrowseFilterPanel({
 
     const hasAny =
         Object.values(selectState).some((v) => v.length > 0) ||
-        filterableColumns.some((col) => {
+        cols.some((col) => {
             if (col.type !== "number" || col.min == null || col.max == null) return false;
             const r = rangeState[col.field];
             return r && (r.min !== col.min.toString() || r.max !== col.max.toString());
@@ -225,7 +231,7 @@ export default function BrowseFilterPanel({
         const newRng: RangeState = {};
         const newTxt: TextState = {};
         const newDt: DateState = {};
-        for (const col of filterableColumns) {
+        for (const col of cols) {
             if (col.type === "select") newSel[col.field] = [];
             else if (col.type === "number" && col.min != null && col.max != null)
                 newRng[col.field] = { min: col.min.toString(), max: col.max.toString() };
@@ -236,7 +242,7 @@ export default function BrowseFilterPanel({
         setRangeState(newRng);
         setTextState(newTxt);
         setDateState(newDt);
-        onFiltersChange([]);
+        if (onFiltersChange) onFiltersChange([]);
     };
 
     // Resize drag
@@ -247,7 +253,7 @@ export default function BrowseFilterPanel({
         const onMove = (e: MouseEvent) => {
             if (resizeStartX.current === null) return;
             const dx = resizeStartX.current - e.clientX;
-            onWidthChange(Math.max(220, Math.min(560, resizeStartW.current + dx)));
+            onWidthChange?.(Math.max(220, Math.min(560, resizeStartW.current + dx)));
         };
         const onUp = () => { resizeStartX.current = null; };
         document.addEventListener("mousemove", onMove);
@@ -257,6 +263,110 @@ export default function BrowseFilterPanel({
             document.removeEventListener("mouseup", onUp);
         };
     }, [onWidthChange]);
+
+    // ── Shared filter field rendering ─────────────────────────────────────────
+    const filterBody = cols.map((col) => {
+        if (col.type === "select" && col.options) {
+            return (
+                <div key={col.field}>
+                    <div className={styles.filterSectionLabel}>{col.label}</div>
+                    <PillSelect
+                        options={col.options.map((o) => ({ paramId: o, displayText: o }))}
+                        selectedValues={selectState[col.field] ?? []}
+                        onChangeMulti={(vals) => {
+                            const next = { ...selectState, [col.field]: vals };
+                            setSelectState(next);
+                            emit(next, rangeState, textState, dateState);
+                        }}
+                    />
+                </div>
+            );
+        }
+        if (col.type === "number" && col.min != null && col.max != null) {
+            const range = rangeState[col.field] ?? { min: col.min.toString(), max: col.max.toString() };
+            return (
+                <FilterBarNumberRangeInline
+                    key={col.field}
+                    label={col.label}
+                    min={col.min}
+                    max={col.max}
+                    defaultMin={range.min}
+                    defaultMax={range.max}
+                    onChange={(min, max) => {
+                        const next = { ...rangeState, [col.field]: { min, max } };
+                        setRangeState(next);
+                        emit(selectState, next, textState, dateState);
+                    }}
+                />
+            );
+        }
+        if (col.type === "date") {
+            const range = dateState[col.field] ?? { min: "", max: "" };
+            const minDate = range.min ? new Date(range.min) : undefined;
+            const maxDate = range.max ? new Date(range.max) : undefined;
+            const toIso = (d: Date) => d.toISOString();
+            return (
+                <div key={col.field}>
+                    <div className={styles.filterSectionLabel}>{col.label}</div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+                            <div className={styles.filterSectionLabel} style={{ marginBottom: 0 }}>Min</div>
+                            <div className={styles.fieldInput} style={{ cursor: "pointer", padding: "4px 10px" }}>
+                                <DatePicker label="Min" showLabel={false} placeholder="Min date" selected={minDate} allowPast portal
+                                    onSelect={(d) => { const next = { ...dateState, [col.field]: { ...range, min: d ? toIso(d) : "" } }; setDateState(next); emit(selectState, rangeState, textState, next); }}
+                                />
+                            </div>
+                        </div>
+                        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
+                            <div className={styles.filterSectionLabel} style={{ marginBottom: 0 }}>Max</div>
+                            <div className={styles.fieldInput} style={{ cursor: "pointer", padding: "4px 10px" }}>
+                                <DatePicker label="Max" showLabel={false} placeholder="Max date" selected={maxDate} allowPast portal
+                                    onSelect={(d) => { const next = { ...dateState, [col.field]: { ...range, max: d ? toIso(d) : "" } }; setDateState(next); emit(selectState, rangeState, textState, next); }}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+        if (col.type === "text" || col.type === "number") {
+            return (
+                <div key={col.field}>
+                    <div className={styles.filterSectionLabel}>{col.label}</div>
+                    <input
+                        className={styles.fieldInput}
+                        type={col.type === "number" ? "number" : "text"}
+                        value={textState[col.field] ?? ""}
+                        onChange={(e) => setTextState((prev) => ({ ...prev, [col.field]: e.target.value }))}
+                        onKeyDown={(e) => { if (e.key === "Enter") emit(selectState, rangeState, textState, dateState); }}
+                        placeholder={`Filter by ${col.label.toLowerCase()}…`}
+                    />
+                </div>
+            );
+        }
+        return null;
+    });
+
+    // ── Content-only mode (used as a tab inside OptionsSidePanel) ─────────────
+    if (contentOnly) {
+        return (
+            <div style={{ display: "flex", flexDirection: "column", gap: 22, width: "100%" }}>
+                {hasAny && (
+                    <button
+                        className={styles.colMenuActionBtn}
+                        onClick={handleClearAll}
+                        style={{ alignSelf: "flex-start", fontSize: "8pt", padding: "2px 8px" }}
+                    >
+                        Clear all
+                    </button>
+                )}
+                {cols.length === 0
+                    ? <p className={styles.previewPanelEmpty}>No filters available.</p>
+                    : filterBody
+                }
+            </div>
+        );
+    }
 
     return (
         <>
@@ -282,7 +392,7 @@ export default function BrowseFilterPanel({
                                 onClick={handleClearAll}
                                 style={{ fontSize: "8pt", padding: "2px 8px" }}
                             >
-                                Clear all
+                                Clear filters
                             </button>
                         )}
                         <button className={styles.btnIcon} onClick={onClose} title="Close">
@@ -294,125 +404,10 @@ export default function BrowseFilterPanel({
                 {/* ── Body ───────────────────────────────────────────────── */}
                 <div className={styles.previewPanelBody}>
                     <div style={{ display: "flex", flexDirection: "column", gap: 22 }}>
-                        {filterableColumns.map((col) => {
-                            /* ── Select → pill multi-select ── */
-                            if (col.type === "select" && col.options) {
-                                return (
-                                    <div key={col.field}>
-                                        <div className={styles.filterSectionLabel}>{col.label}</div>
-                                        <PillSelect
-                                            options={col.options.map((o) => ({
-                                                paramId: o,
-                                                displayText: o,
-                                            }))}
-                                            selectedValues={selectState[col.field] ?? []}
-                                            onChangeMulti={(vals) => {
-                                                const next = { ...selectState, [col.field]: vals };
-                                                setSelectState(next);
-                                                emit(next, rangeState, textState, dateState);
-                                            }}
-                                        />
-                                    </div>
-                                );
-                            }
-
-                            /* ── Number with bounds → range slider ── */
-                            if (col.type === "number" && col.min != null && col.max != null) {
-                                const range = rangeState[col.field] ?? {
-                                    min: col.min.toString(),
-                                    max: col.max.toString(),
-                                };
-                                return (
-                                    <FilterBarNumberRangeInline
-                                        key={col.field}
-                                        label={col.label}
-                                        min={col.min}
-                                        max={col.max}
-                                        defaultMin={range.min}
-                                        defaultMax={range.max}
-                                        onChange={(min, max) => {
-                                            const next = { ...rangeState, [col.field]: { min, max } };
-                                            setRangeState(next);
-                                            emit(selectState, next, textState, dateState);
-                                        }}
-                                    />
-                                );
-                            }
-
-                            /* ── Date → from/to date pickers ── */
-                            if (col.type === "date") {
-                                const range = dateState[col.field] ?? { min: "", max: "" };
-                                const minDate = range.min ? new Date(range.min) : undefined;
-                                const maxDate = range.max ? new Date(range.max) : undefined;
-                                const toIso = (d: Date) => d.toISOString();
-                                return (
-                                    <div key={col.field}>
-                                        <div className={styles.filterSectionLabel}>{col.label}</div>
-                                        <div style={{ display: "flex", gap: 8 }}>
-                                            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
-                                                <div className={styles.filterSectionLabel} style={{ marginBottom: 0 }}>Min</div>
-                                                <div className={styles.fieldInput} style={{ cursor: "pointer", padding: "4px 10px" }}>
-                                                    <DatePicker
-                                                        label="Min"
-                                                        showLabel={false}
-                                                        placeholder="Min date"
-                                                        selected={minDate}
-                                                        allowPast
-                                                        portal
-                                                        onSelect={(d) => {
-                                                            const next = { ...dateState, [col.field]: { ...range, min: d ? toIso(d) : "" } };
-                                                            setDateState(next);
-                                                            emit(selectState, rangeState, textState, next);
-                                                        }}
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 4 }}>
-                                                <div className={styles.filterSectionLabel} style={{ marginBottom: 0 }}>Max</div>
-                                                <div className={styles.fieldInput} style={{ cursor: "pointer", padding: "4px 10px" }}>
-                                                    <DatePicker
-                                                        label="Max"
-                                                        showLabel={false}
-                                                        placeholder="Max date"
-                                                        selected={maxDate}
-                                                        allowPast
-                                                        portal
-                                                        onSelect={(d) => {
-                                                            const next = { ...dateState, [col.field]: { ...range, max: d ? toIso(d) : "" } };
-                                                            setDateState(next);
-                                                            emit(selectState, rangeState, textState, next);
-                                                        }}
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            }
-
-                            /* ── Text or number without bounds → plain input ── */
-                            if (col.type === "text" || col.type === "number") {
-                                return (
-                                    <div key={col.field}>
-                                        <div className={styles.filterSectionLabel}>{col.label}</div>
-                                        <input
-                                            className={styles.fieldInput}
-                                            type={col.type === "number" ? "number" : "text"}
-                                            value={textState[col.field] ?? ""}
-                                            onChange={(e) =>
-                                                setTextState((prev) => ({ ...prev, [col.field]: e.target.value }))
-                                            }
-                                            onKeyDown={(e) => {
-                                                if (e.key === "Enter") emit(selectState, rangeState, textState, dateState);
-                                            }}
-                                            placeholder={`Filter by ${col.label.toLowerCase()}…`}
-                                        />
-                                    </div>
-                                );
-                            }
-
-                            return null;
-                        })}
+                        {cols.length === 0
+                            ? <p className={styles.previewPanelEmpty}>No filters available.</p>
+                            : filterBody
+                        }
                     </div>
                 </div>
             </div>
