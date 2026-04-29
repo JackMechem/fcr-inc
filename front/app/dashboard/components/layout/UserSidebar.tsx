@@ -6,8 +6,10 @@ import {
     BiCalendar, BiUser, BiChevronLeft, BiChevronRight, BiChevronDown,
     BiLogOut, BiCar, BiPlus, BiEdit, BiTable, BiGridAlt, BiShieldQuarter,
     BiStar, BiBookmark, BiX, BiSlider, BiReceipt, BiListUl, BiGroup, BiIdCard, BiError, BiLineChart, BiData, BiCode,
+    BiDotsVerticalRounded, BiLayout,
 } from "react-icons/bi";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { usePaneTabStore } from "@/stores/paneTabStore";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import Cookies from "js-cookie";
 import { useMobileSidebarStore } from "@/stores/mobileSidebarStore";
@@ -40,10 +42,10 @@ const ADMIN_SECTIONS: NavSection[] = [
         icon: <BiCar />,
         label: "Cars",
         items: [
-            { icon: <BiPlus />,    label: "Add Car",     view: "add-car"    },
-            { icon: <BiEdit />,    label: "Edit Car",    view: "edit-car"   },
-            { icon: <BiTable />,   label: "Table View",  view: "view-data"  },
-            { icon: <BiListUl />,  label: "List View",   view: "list-data"  },
+            { icon: <BiPlus />,   label: "Add Car",  view: "add-car"   },
+            { icon: <BiEdit />,   label: "Edit Car", view: "edit-car"  },
+            { icon: <BiTable />,  label: "Table",    view: "view-data" },
+            { icon: <BiListUl />, label: "List",     view: "list-data" },
         ],
     },
     {
@@ -51,8 +53,8 @@ const ADMIN_SECTIONS: NavSection[] = [
         icon: <BiCalendar />,
         label: "Reservations",
         items: [
-            { icon: <BiTable />,  label: "Table View", view: "view-reservations" },
-            { icon: <BiListUl />, label: "List View",  view: "list-reservations" },
+            { icon: <BiTable />,  label: "Table", view: "view-reservations" },
+            { icon: <BiListUl />, label: "List",  view: "list-reservations" },
         ],
     },
     {
@@ -60,8 +62,8 @@ const ADMIN_SECTIONS: NavSection[] = [
         icon: <BiIdCard />,
         label: "Accounts",
         items: [
-            { icon: <BiTable />,  label: "Table View", view: "view-accounts" },
-            { icon: <BiListUl />, label: "List View",  view: "list-accounts" },
+            { icon: <BiTable />,  label: "Table", view: "view-accounts" },
+            { icon: <BiListUl />, label: "List",  view: "list-accounts" },
         ],
     },
     {
@@ -69,25 +71,18 @@ const ADMIN_SECTIONS: NavSection[] = [
         icon: <BiGroup />,
         label: "Users",
         items: [
-            { icon: <BiTable />,  label: "Table View", view: "view-users" },
-            { icon: <BiListUl />, label: "List View",  view: "list-users" },
+            { icon: <BiTable />,  label: "Table", view: "view-users" },
+            { icon: <BiListUl />, label: "List",  view: "list-users" },
         ],
     },
     {
-        id: "reviews",
+        id: "engagement",
         icon: <BiStar />,
-        label: "Reviews",
+        label: "Engagement",
         items: [
-            { icon: <BiTable />,  label: "Table View", view: "view-reviews" },
-            { icon: <BiListUl />, label: "List View",  view: "list-reviews" },
-        ],
-    },
-    {
-        id: "bookmarks",
-        icon: <BiBookmark />,
-        label: "Bookmarks",
-        items: [
-            { icon: <BiTable />, label: "Table View", view: "view-bookmarks" },
+            { icon: <BiStar />,     label: "Reviews",         view: "view-reviews"   },
+            { icon: <BiListUl />,   label: "Reviews (List)",  view: "list-reviews"   },
+            { icon: <BiBookmark />, label: "Bookmarks",       view: "view-bookmarks" },
         ],
     },
     {
@@ -96,36 +91,29 @@ const ADMIN_SECTIONS: NavSection[] = [
         label: "Payments",
         items: [
             { icon: <BiPlus />,   label: "Create Invoice", view: "create-invoice" },
-            { icon: <BiTable />,  label: "Table View",     view: "view-payments"  },
-            { icon: <BiListUl />, label: "List View",      view: "list-payments"  },
+            { icon: <BiTable />,  label: "Table",          view: "view-payments"  },
+            { icon: <BiListUl />, label: "List",           view: "list-payments"  },
         ],
     },
     {
-        id: "stats",
+        id: "analytics",
         icon: <BiLineChart />,
-        label: "Statistics",
+        label: "Analytics",
         items: [
-            { icon: <BiLineChart />, label: "Reservations", view: "stats-popularity" },
-            { icon: <BiReceipt />,   label: "Revenue",       view: "stats-revenue"    },
+            { icon: <BiLineChart />, label: "Popularity", view: "stats-popularity" },
+            { icon: <BiReceipt />,   label: "Revenue",    view: "stats-revenue"    },
         ],
     },
     {
-        id: "tools",
-        icon: <BiData />,
-        label: "Tools",
-        items: [
-            { icon: <BiData />, label: "CSV Generator", view: "csv-generator" },
-        ],
-    },
-    {
-        id: "api-tester",
+        id: "dev-tools",
         icon: <BiCode />,
-        label: "API Tester",
+        label: "Dev Tools",
         adminOnly: true,
         items: [
-            { icon: <BiCode />, label: "Guest Checkout",      view: "api-test-guest-checkout"      },
-            { icon: <BiCode />, label: "Create Reservation",  view: "api-test-create-reservation"  },
-            { icon: <BiCode />, label: "Mock Stripe Webhook", view: "api-test-webhook"              },
+            { icon: <BiData />, label: "CSV Generator",      view: "csv-generator"              },
+            { icon: <BiCode />, label: "Guest Checkout",     view: "api-test-guest-checkout"    },
+            { icon: <BiCode />, label: "Create Reservation", view: "api-test-create-reservation"},
+            { icon: <BiCode />, label: "Stripe Webhook",     view: "api-test-webhook"           },
         ],
     },
 ];
@@ -144,22 +132,67 @@ const ADMIN_VIEWS = new Set<UserDashboardView>([
     "api-test-webhook",
 ]);
 
+interface NavItemRowProps {
+    view: UserDashboardView;
+    onDots: (view: UserDashboardView, e: React.MouseEvent<HTMLButtonElement>) => void;
+    children: React.ReactNode;
+}
+function NavItemRow({ view, onDots, children }: NavItemRowProps) {
+    return (
+        <div className={styles.navItemRow}>
+            {children}
+            <button
+                className={styles.navDotsBtn}
+                title="Split pane"
+                onClick={(e) => { e.stopPropagation(); onDots(view, e); }}
+            >
+                <BiDotsVerticalRounded size={13} />
+            </button>
+        </div>
+    );
+}
+
 const DesktopSidebar = () => {
-    const { collapsed, toggle, activeView, setActiveView, userEmail, stripeUserId, role, clearSession } = useUserDashboardStore();
+    const { collapsed, toggle, activeView, setActiveView, userEmail, stripeUserId, role, clearSession, openPaneViews } = useUserDashboardStore();
     const isPrivileged = role === "ADMIN" || role === "STAFF";
     const hasUser = !!stripeUserId;
-    const visibleSections = ADMIN_SECTIONS.filter((s) => !s.adminOnly || role === "ADMIN");
+    const visibleSections = useMemo(() => ADMIN_SECTIONS.filter((s) => !s.adminOnly || role === "ADMIN"), [role]);
 
     const sidebarRef = useRef<HTMLDivElement>(null);
     const [permWarn, setPermWarn] = useState(false);
     const [permWarnCallback, setPermWarnCallback] = useState<(() => void) | null>(null);
 
-    const [openSection, setOpenSection] = useState<string | null>(() => {
-        const adminId = visibleSections.find((s) => s.items.some((i) => i.view === activeView))?.id ?? null;
+    const splitFocusedPane = usePaneTabStore((s) => s.splitFocusedPane);
+    const [splitCtx, setSplitCtx] = useState<{ view: UserDashboardView; x: number; y: number } | null>(null);
+    const splitCtxRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!splitCtx) return;
+        const handler = (e: MouseEvent) => {
+            if (!splitCtxRef.current?.contains(e.target as Node)) setSplitCtx(null);
+        };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, [splitCtx]);
+
+    const handleDots = useCallback((view: UserDashboardView, e: React.MouseEvent<HTMLButtonElement>) => {
+        setSplitCtx({ view, x: e.clientX, y: e.clientY });
+    }, []);
+
+    const sectionIdForView = useCallback((view: UserDashboardView): string | null => {
+        const adminId = visibleSections.find((s) => s.items.some((i) => i.view === view))?.id ?? null;
         if (adminId) return adminId;
-        if (activeView === "reservations" || activeView === "view-reservation") return "reservations";
+        if (view === "view-permissions-admin" || view === "view-permissions-staff") return "permissions";
         return null;
+    }, [visibleSections]);
+
+    const [openSections, setOpenSections] = useState<Set<string>>(() => {
+        const set = new Set<string>();
+        const id = sectionIdForView(activeView);
+        if (id) set.add(id);
+        return set;
     });
+
     const [flyout, setFlyout] = useState<string | null>(null);
     const [flyoutPos, setFlyoutPos] = useState<{ left: number; top?: number; bottom?: number }>({ left: 0, top: 0 });
 
@@ -173,14 +206,29 @@ const DesktopSidebar = () => {
         return () => document.removeEventListener("mousedown", close);
     }, [flyout]);
 
+    // Open the section for the active view
     useEffect(() => {
-        const sectionId = visibleSections.find((s) => s.items.some((i) => i.view === activeView))?.id
-            ?? (activeView === "view-permissions-admin" || activeView === "view-permissions-staff" ? "permissions" : undefined)
-            ?? (activeView === "reservations" || activeView === "view-reservation" ? "reservations" : undefined);
-        if (sectionId) setOpenSection(sectionId);
-    }, [activeView]);
+        const id = sectionIdForView(activeView);
+        if (id) setOpenSections((prev) => prev.has(id) ? prev : new Set([...prev, id]));
+    }, [activeView, sectionIdForView]);
 
-    const handleSection = (id: string) => setOpenSection((prev) => (prev === id ? null : id));
+    // Open sections for all non-focused open pane views
+    useEffect(() => {
+        const ids = openPaneViews.map(sectionIdForView).filter(Boolean) as string[];
+        if (ids.length === 0) return;
+        setOpenSections((prev) => {
+            const next = new Set(prev);
+            let changed = false;
+            ids.forEach((id) => { if (!next.has(id)) { next.add(id); changed = true; } });
+            return changed ? next : prev;
+        });
+    }, [openPaneViews, sectionIdForView]);
+
+    const handleSection = (id: string) => setOpenSections((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id); else next.add(id);
+        return next;
+    });
     const toggleFlyout = useCallback((id: string, btn: HTMLElement) => {
         setFlyout((prev) => {
             if (prev === id) return null;
@@ -301,24 +349,27 @@ const DesktopSidebar = () => {
                                 </div>
 
                                 {/* Reservations — simple button */}
-                                <button
-                                    onClick={() => setActiveView("reservations")}
-                                    className={`${styles.dashBtn} ${(activeView === "reservations" || activeView === "view-reservation") ? styles.dashBtnActive : ""}`}
-                                >
-                                    <span className={styles.dashBtnIcon}><BiCalendar /></span>
-                                    <span className={styles.dashBtnLabel}>Reservations</span>
-                                </button>
+                                <NavItemRow view="reservations" onDots={handleDots}>
+                                    <button
+                                        onClick={() => setActiveView("reservations")}
+                                        className={`${styles.dashBtn} ${(activeView === "reservations" || activeView === "view-reservation") ? styles.dashBtnActive : ""}`}
+                                    >
+                                        <span className={styles.dashBtnIcon}><BiCalendar /></span>
+                                        <span className={styles.dashBtnLabel}>Reservations</span>
+                                    </button>
+                                </NavItemRow>
 
                                 {/* Other personal items */}
                                 {CUSTOMER_ITEMS.map((item) => (
-                                    <button
-                                        key={item.view}
-                                        onClick={() => setActiveView(item.view)}
-                                        className={`${styles.dashBtn} ${activeView === item.view ? styles.dashBtnActive : ""}`}
-                                    >
-                                        <span className={styles.dashBtnIcon}>{item.icon}</span>
-                                        <span className={styles.dashBtnLabel}>{item.label}</span>
-                                    </button>
+                                    <NavItemRow key={item.view} view={item.view} onDots={handleDots}>
+                                        <button
+                                            onClick={() => setActiveView(item.view)}
+                                            className={`${styles.dashBtn} ${activeView === item.view ? styles.dashBtnActive : ""}`}
+                                        >
+                                            <span className={styles.dashBtnIcon}>{item.icon}</span>
+                                            <span className={styles.dashBtnLabel}>{item.label}</span>
+                                        </button>
+                                    </NavItemRow>
                                 ))}
                             </>
                         )}
@@ -365,17 +416,20 @@ const DesktopSidebar = () => {
                                     </div>
                                 </div>
                             </div>
-                                <button
-                                    onClick={() => setActiveView("admin-dashboard")}
-                                    className={`${styles.dashBtn} ${activeView === "admin-dashboard" ? styles.dashBtnActive : ""}`}
-                                >
-                                    <BiGridAlt className={styles.dashBtnIcon} />
-                                    <span className={styles.dashBtnLabel}>Overview</span>
-                                </button>
+                                <NavItemRow view="admin-dashboard" onDots={handleDots}>
+                                    <button
+                                        onClick={() => setActiveView("admin-dashboard")}
+                                        className={`${styles.dashBtn} ${activeView === "admin-dashboard" ? styles.dashBtnActive : ""}`}
+                                    >
+                                        <BiGridAlt className={styles.dashBtnIcon} />
+                                        <span className={styles.dashBtnLabel}>Overview</span>
+                                    </button>
+                                </NavItemRow>
 
                                 {visibleSections.map((s) => {
-                                    const isOpen = openSection === s.id;
+                                    const isOpen = openSections.has(s.id);
                                     const hasActive = s.items.some((i) => i.view === activeView);
+                                    const hasOpenPane = s.items.some((i) => openPaneViews.includes(i.view));
                                     return (
                                         <div key={s.id} className={`${styles.navSection} ${isOpen ? styles.navSectionOpen : ""}`}>
                                             <button
@@ -390,17 +444,19 @@ const DesktopSidebar = () => {
                                                 <div className={styles.subItems}>
                                                     {s.items.map((item) => {
                                                         const isActive = activeView === item.view;
+                                                        const isOpenPane = openPaneViews.includes(item.view);
                                                         return (
-                                                            <button
-                                                                key={item.view}
-                                                                onClick={() => setActiveView(item.view)}
-                                                                className={`${styles.subItem} ${isActive ? styles.subItemActive : ""}`}
-                                                            >
-                                                                <span className={`${styles.subItemIcon} ${isActive ? styles.subItemIconActive : ""}`}>
-                                                                    {item.icon}
-                                                                </span>
-                                                                <span className={styles.subItemLabel}>{item.label}</span>
-                                                            </button>
+                                                            <NavItemRow key={item.view} view={item.view} onDots={handleDots}>
+                                                                <button
+                                                                    onClick={() => setActiveView(item.view)}
+                                                                    className={`${styles.subItem} ${isActive ? styles.subItemActive : isOpenPane ? styles.subItemOpenPane : ""}`}
+                                                                >
+                                                                    <span className={`${styles.subItemIcon} ${isActive ? styles.subItemIconActive : ""}`}>
+                                                                        {item.icon}
+                                                                    </span>
+                                                                    <span className={styles.subItemLabel}>{item.label}</span>
+                                                                </button>
+                                                            </NavItemRow>
                                                         );
                                                     })}
                                                 </div>
@@ -416,7 +472,7 @@ const DesktopSidebar = () => {
                     {/* Permissions — pinned to bottom in red, ADMIN only */}
                     {role === "ADMIN" && (() => {
                         const permViews = ["view-permissions-admin", "view-permissions-staff"] as const;
-                        const isOpen = openSection === "permissions";
+                        const isOpen = openSections.has("permissions");
                         const hasActive = permViews.some((v) => v === activeView);
                         return (
                             <div style={{ padding: "0 10px 8px" }}>
@@ -472,6 +528,50 @@ const DesktopSidebar = () => {
                     </div>
                 </div>
             )}
+            {/* Split pane context menu */}
+            {splitCtx && typeof document !== "undefined" && createPortal(
+                <div
+                    ref={splitCtxRef}
+                    style={{
+                        position: "fixed",
+                        top: splitCtx.y,
+                        left: splitCtx.x,
+                        zIndex: 9999,
+                        background: "var(--color-primary)",
+                        border: "1px solid var(--color-third)",
+                        borderRadius: 10,
+                        padding: "4px 0",
+                        minWidth: 170,
+                        boxShadow: "0 8px 24px rgba(0,0,0,0.2), 0 2px 6px rgba(0,0,0,0.1)",
+                    }}
+                >
+                    <p style={{ padding: "5px 14px 3px", fontSize: "7pt", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-foreground-light)", opacity: 0.7, margin: 0, userSelect: "none" }}>
+                        Open in split
+                    </p>
+                    <div style={{ height: 1, background: "var(--color-third)", margin: "4px 8px" }} />
+                    {(["vertical", "horizontal"] as const).map((dir) => (
+                        <button
+                            key={dir}
+                            onClick={() => { splitFocusedPane(dir, splitCtx.view); setSplitCtx(null); }}
+                            style={{
+                                display: "flex", alignItems: "center", gap: 8,
+                                width: "calc(100% - 8px)", margin: "0 4px",
+                                padding: "6px 10px", fontSize: "9.5pt",
+                                color: "var(--color-foreground)", background: "transparent",
+                                border: "none", borderRadius: 6,
+                                cursor: "pointer", textAlign: "left", boxSizing: "border-box",
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--color-primary-dark)"; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                        >
+                            <BiLayout size={14} style={{ flexShrink: 0 }} />
+                            {dir === "vertical" ? "Tile Right" : "Tile Down"}
+                        </button>
+                    ))}
+                </div>,
+                document.body
+            )}
+
             {/* Permissions warning modal */}
             {permWarn && typeof document !== "undefined" && createPortal(
                 <div style={{

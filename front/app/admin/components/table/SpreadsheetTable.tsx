@@ -6,6 +6,7 @@ import {
     BiEdit,
     BiTrash,
     BiDotsVerticalRounded,
+    BiDockRight,
     BiChevronLeft,
     BiChevronRight,
     BiChevronUp,
@@ -47,6 +48,12 @@ import styles from "./spreadsheetTable.module.css";
 import { useTablePrefsStore } from "@/stores/tablePrefsStore";
 import { FilterableColumn, ActiveFilter, formatFilterLabel } from "./FilterPanel";
 import BrowseFilterPanel from "./BrowseFilterPanel";
+import OptionsSidePanel from "./OptionsSidePanel";
+import { useCurrentPane } from "@/app/dashboard/components/layout/CurrentPaneContext";
+import { useContext } from "react";
+import { PaneContext } from "@/app/dashboard/components/layout/PaneContext";
+import { PANE_VIEW_SECTIONS } from "@/app/dashboard/components/layout/paneViewSections";
+import { UserDashboardView } from "@/stores/userDashboardStore";
 export type { FilterableColumn, ActiveFilter } from "./FilterPanel";
 
 // ── Public types ─────────────────────────────────────────────────────────────
@@ -983,21 +990,7 @@ export default function SpreadsheetTable<T>({
     // Helper: should a column wrap?
     const shouldWrap = (key: string) => colWrapOverrides[key] ?? wrapMode;
 
-    // ── Mobile header menu ────────────────────────────────────────────────
-    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const [mobileMenuPos, setMobileMenuPos] = useState({ top: 0, right: 0 });
-    const mobileMenuRef = useRef<HTMLDivElement>(null);
-    const mobileBtnRef = useRef<HTMLButtonElement>(null);
-
-    useEffect(() => {
-        if (!mobileMenuOpen) return;
-        const handler = (e: MouseEvent) => {
-            if (mobileMenuRef.current && !mobileMenuRef.current.contains(e.target as Node))
-                setMobileMenuOpen(false);
-        };
-        document.addEventListener("mousedown", handler);
-        return () => document.removeEventListener("mousedown", handler);
-    }, [mobileMenuOpen]);
+    // (mobile menu replaced by options panel)
 
     // ── Sort ─────────────────────────────────────────────────────────────
     const [sortMenuCol, setSortMenuCol] = useState<string | null>(null);
@@ -1557,12 +1550,44 @@ export default function SpreadsheetTable<T>({
     // ── Fullscreen overlay ───────────────────────────────────────────────
     const [isFullscreen, setIsFullscreen] = useState(false);
 
-    // ── Filter side panel ─────────────────────────────────────────────────
-    const filterBtnRef = useRef<HTMLButtonElement>(null);
+    // ── Window controls (pane system) ────────────────────────────────────
+    const currentPane = useCurrentPane();
+    const paneCtx = useContext(PaneContext);
+    type SplitStep = { type: "dir" } | { type: "view"; dir: "vertical" | "horizontal" };
+    const [splitStep, setSplitStep] = useState<SplitStep | null>(null);
+    const greenBtnRef = useRef<HTMLButtonElement>(null);
+    const splitMenuRef = useRef<HTMLDivElement>(null);
+    const [splitMenuPos, setSplitMenuPos] = useState({ top: 0, left: 0 });
+
+    useEffect(() => {
+        if (!splitStep) return;
+        const close = (e: MouseEvent) => {
+            if (!splitMenuRef.current?.contains(e.target as Node) &&
+                !greenBtnRef.current?.contains(e.target as Node)) {
+                setSplitStep(null);
+            }
+        };
+        document.addEventListener("mousedown", close);
+        return () => document.removeEventListener("mousedown", close);
+    }, [splitStep]);
+
+    const handleGreenClick = () => {
+        if (splitStep) { setSplitStep(null); return; }
+        const rect = greenBtnRef.current?.getBoundingClientRect();
+        if (rect) setSplitMenuPos({ top: rect.bottom + 6, left: rect.left });
+        setSplitStep({ type: "dir" });
+    };
+
+    const handleSplitView = (view: UserDashboardView) => {
+        if (!currentPane || !paneCtx || splitStep?.type !== "view") return;
+        paneCtx.onSplit(currentPane.paneId, splitStep.dir, view);
+        setSplitStep(null);
+    };
+
+    // ── Options side panel ────────────────────────────────────────────────
     const [filterOpen, setFilterOpen] = useState(false);
     const [filterPanelWidth, setFilterPanelWidth] = useState(280);
-
-    const openFilter = () => setFilterOpen((o) => !o);
+    const [panelTab, setPanelTab] = useState("export");
 
     useEffect(() => {
         const handler = (e: KeyboardEvent) => {
@@ -1620,13 +1645,6 @@ export default function SpreadsheetTable<T>({
         <div className={`${styles.container} ${isFullscreen ? styles.containerFullscreen : ""}`}>
             {/* ── Header bar ───────────────────────────────────────────── */}
             <div className={`${styles.topBar} ${isEditMode ? styles.topBarEditMode : ""}`}>
-                <button
-                    onClick={toggleFullscreen}
-                    className={`${styles.btnIcon} ${isFullscreen ? styles.btnIconActive : ""}`}
-                    title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-                >
-                    {isFullscreen ? <BiExitFullscreen /> : <BiFullscreen />}
-                </button>
                 <h2 className={styles.topTitle}>{title}</h2>
                 {isEditMode && (
                     <span className={styles.editModeBadge}>EDITING</span>
@@ -1634,53 +1652,24 @@ export default function SpreadsheetTable<T>({
                 {subtitle && !isEditMode && <span className={styles.topSubtitle}>{subtitle}</span>}
                 <div style={{ flex: 1 }} />
 
-                {/* ── Desktop buttons ──────────────────────────────────── */}
+                {/* ── Header buttons ───────────────────────────────────── */}
                 <div className={styles.headerBtns}>
                     {isEditMode ? (
-                        <>
-                            {headerActions}
-                            <ExportButton options={exportOptions} disabled={data.length === 0} btnClassName={styles.btnIcon} />
-                            <button ref={searchBtnRef} onClick={() => openSearch()} className={`${styles.btnIcon} ${searchOpen ? styles.btnIconActive : ""}`} title="Search"><BiSearch /></button>
-                            <button onClick={onRefresh} disabled={loading || refreshing} className={styles.btnIcon} title="Refresh"><BiRefresh className={refreshing ? styles.spinning : ""} /></button>
-                            <button ref={menuBtnRef} onClick={() => openColMenu()} className={`${styles.btnIcon} ${colMenuOpen ? styles.btnIconActive : ""}`} title="Columns"><BiMenu /></button>
-                            {renderPreview && <button onClick={togglePanel} className={`${styles.btnIcon} ${panelOpen ? styles.btnIconActive : ""}`} title="Preview"><BiColumns /></button>}
-                            <button onClick={exitEditMode} className={styles.btnIcon} title="Exit edit mode"><BiX /></button>
-                        </>
+                        <button onClick={exitEditMode} className={styles.btnIcon} title="Exit edit mode"><BiX /></button>
                     ) : (
-                        <>
-                            {headerActions}
-                            <ExportButton options={exportOptions} disabled={data.length === 0} btnClassName={styles.btnIcon} />
-                            {onSaveEdits && <button onClick={enterEditMode} className={styles.btnIcon} title="Edit mode" disabled={data.length === 0}><BiPencil /></button>}
-                            {filterableColumns && filterableColumns.length > 0 && (
-                                <button
-                                    ref={filterBtnRef}
-                                    onClick={() => openFilter()}
-                                    className={`${styles.btnIcon} ${filterOpen ? styles.btnIconActive : ""} ${activeFilters?.length ? styles.btnIconBadge : ""}`}
-                                    title="Filter"
-                                    data-count={activeFilters?.length || undefined}
-                                >
-                                    <BiFilter />
-                                </button>
-                            )}
-                            <button ref={searchBtnRef} onClick={() => openSearch()} className={`${styles.btnIcon} ${searchOpen ? styles.btnIconActive : ""}`} title="Search"><BiSearch /></button>
-                            <button onClick={onRefresh} disabled={loading || refreshing} className={styles.btnIcon} title="Refresh"><BiRefresh className={refreshing ? styles.spinning : ""} /></button>
-                            <button ref={menuBtnRef} onClick={() => openColMenu()} className={`${styles.btnIcon} ${colMenuOpen ? styles.btnIconActive : ""}`} title="Columns"><BiMenu /></button>
-                            {renderPreview && <button onClick={togglePanel} className={`${styles.btnIcon} ${panelOpen ? styles.btnIconActive : ""}`} title="Preview"><BiColumns /></button>}
-                        </>
+                        onSaveEdits && <button onClick={enterEditMode} className={styles.btnIcon} title="Edit mode" disabled={data.length === 0}><BiPencil /></button>
                     )}
+                    <button onClick={onRefresh} disabled={loading || refreshing} className={styles.btnIcon} title="Refresh"><BiRefresh className={refreshing ? styles.spinning : ""} /></button>
                 </div>
 
-                {/* ── Mobile 3-dots button ─────────────────────────────── */}
+                {/* ── Side panel toggle ────────────────────────────────── */}
                 <button
-                    ref={mobileBtnRef}
-                    className={styles.headerMobileBtn}
-                    onClick={(e) => {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        setMobileMenuPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right });
-                        setMobileMenuOpen((o) => !o);
-                    }}
+                    className={`${styles.headerMobileBtn} ${filterOpen ? styles.btnIconActive : ""} ${activeFilters?.length ? styles.btnIconBadge : ""}`}
+                    data-count={activeFilters?.length || undefined}
+                    onClick={() => setFilterOpen((o) => !o)}
+                    title="Options"
                 >
-                    <BiDotsVerticalRounded />
+                    <BiDockRight />
                 </button>
             </div>
 
@@ -1691,7 +1680,7 @@ export default function SpreadsheetTable<T>({
                         <button
                             key={f.id}
                             className={styles.filterChip}
-                            onClick={() => setFilterOpen(true)}
+                            onClick={() => { setFilterOpen(true); setPanelTab("filters"); }}
                         >
                             {formatFilterLabel(f)}
                             <span
@@ -1938,13 +1927,13 @@ export default function SpreadsheetTable<T>({
                         <tbody>
                             {data.map((item) => {
                                 const id = getRowId(item);
-                                const isPreviewActive = panelOpen && renderPreview && previewItem && getRowId(previewItem) === id;
+                                const isPreviewActive = filterOpen && panelTab === "preview" && renderPreview && previewItem && getRowId(previewItem) === id;
                                 return (
                                     <tr
                                         key={String(id)}
                                         className={isPreviewActive ? styles.previewActiveRow : undefined}
-                                        onClick={panelOpen && renderPreview ? () => setPreviewItem(item) : undefined}
-                                        style={panelOpen && renderPreview ? { cursor: "pointer" } : undefined}
+                                        onClick={renderPreview && filterOpen && panelTab === "preview" ? () => setPreviewItem(item) : undefined}
+                                        style={renderPreview && filterOpen && panelTab === "preview" ? { cursor: "pointer" } : undefined}
                                     >
                                         <td className={styles.stickyCol}>
                                             <div className={styles.stickyColInner}>
@@ -2497,15 +2486,120 @@ export default function SpreadsheetTable<T>({
                 )}
             </div>
 
-            {/* ── Browse filter side panel ─────────────────────────────── */}
-            {filterOpen && filterableColumns && filterableColumns.length > 0 && onFiltersChange && (
-                <BrowseFilterPanel
-                    filterableColumns={filterableColumns}
-                    activeFilters={activeFilters ?? []}
-                    onFiltersChange={onFiltersChange}
+            {/* ── Options side panel ───────────────────────────────────── */}
+            {filterOpen && (
+                <OptionsSidePanel
+                    activeTab={panelTab}
+                    onTabChange={setPanelTab}
                     width={filterPanelWidth}
                     onWidthChange={setFilterPanelWidth}
                     onClose={() => setFilterOpen(false)}
+                    tabs={[
+                        {
+                            key: "export",
+                            label: "Export",
+                            icon: <BiDownload />,
+                            content: (
+                                <div className={styles.tabPanel}>
+                                    {headerActions}
+                                    {exportOptions.map((opt) => (
+                                        <button key={opt.label} className={styles.ctxItem} onClick={opt.onClick} disabled={opt.disabled || data.length === 0}>
+                                            {opt.icon} {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            ),
+                        },
+                        {
+                            key: "search",
+                            label: "Search",
+                            icon: <BiSearch />,
+                            content: (
+                                <div className={styles.tabPanel}>
+                                    {searchContent ?? (
+                                        <input
+                                            className={styles.fieldInput}
+                                            placeholder={searchPlaceholder ?? "Search…"}
+                                            value={searchQuery}
+                                            onChange={(e) => onSearchChange(e.target.value)}
+                                            autoFocus
+                                        />
+                                    )}
+                                </div>
+                            ),
+                        },
+                        {
+                            key: "columns",
+                            label: "Columns",
+                            icon: <BiColumns />,
+                            content: (
+                                <div className={styles.tabPanel}>
+                                    <button className={styles.ctxItem} onClick={handleToggleWrap}>
+                                        <BiText /> {wrapMode ? "Disable Wrap" : "Enable Wrap"}
+                                    </button>
+                                    <div className={styles.ctxDivider} />
+                                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                                        <button className={styles.colMenuActionBtn} onClick={() => setVisibleCols(new Set(columns.map((c) => c.key)))}>Show All</button>
+                                        <button className={styles.colMenuActionBtn} onClick={() => { setVisibleCols(new Set(columns.filter((c) => c.defaultVisible).map((c) => c.key))); setColOrder(columns.map((c) => c.key)); }}>Reset</button>
+                                    </div>
+                                    {orderedColumns.map((col) => (
+                                        <div
+                                            key={col.key}
+                                            className={[
+                                                styles.colMenuRow,
+                                                menuDragKey === col.key ? styles.colMenuRowDragging : "",
+                                                menuDragOverKey === col.key && menuDragKey !== col.key ? styles.colMenuRowDragOver : "",
+                                            ].filter(Boolean).join(" ")}
+                                            onMouseEnter={() => handleMenuDragEnter(col.key)}
+                                        >
+                                            <span className={styles.colMenuHandle} onMouseDown={() => handleMenuDragStart(col.key)}>
+                                                <BiGridVertical />
+                                            </span>
+                                            <label className={styles.colMenuLabel}>
+                                                <input type="checkbox" checked={visibleCols.has(col.key)}
+                                                    onChange={() => setVisibleCols((prev) => { const n = new Set(prev); if (n.has(col.key)) n.delete(col.key); else n.add(col.key); return n; })}
+                                                    style={{ accentColor: "var(--color-accent)", cursor: "pointer", flexShrink: 0 }}
+                                                />
+                                                {col.label}
+                                            </label>
+                                            {col.editable && (
+                                                <button
+                                                    className={`${styles.colMenuLockBtn} ${isColLocked(col.key) ? styles.colMenuLockBtnActive : ""}`}
+                                                    onClick={() => toggleColLock(col.key)}
+                                                    title={isPermanentForRole(col.key) ? "Always locked" : isColLocked(col.key) ? "Unlock column" : "Lock column"}
+                                                    disabled={isPermanentForRole(col.key)}
+                                                >
+                                                    <BiLock />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ),
+                        },
+                        ...(renderPreview ? [{
+                            key: "preview",
+                            label: "Preview",
+                            icon: <BiShow />,
+                            content: previewItem
+                                ? <div style={{ overflow: "auto" }}>{renderPreview(previewItem)}</div>
+                                : <p className={styles.previewPanelEmpty}>Click a row to preview.</p>,
+                        }] : []),
+                        ...(filterableColumns?.length ? [{
+                            key: "filters",
+                            label: "Filters",
+                            icon: <BiFilter />,
+                            badge: activeFilters?.length || undefined,
+                            content: (
+                                <BrowseFilterPanel
+                                    contentOnly
+                                    filterableColumns={filterableColumns}
+                                    activeFilters={activeFilters ?? []}
+                                    onFiltersChange={onFiltersChange}
+                                />
+                            ),
+                        }] : []),
+                    ]}
                 />
             )}
 
@@ -3000,45 +3094,92 @@ export default function SpreadsheetTable<T>({
                 document.body
             )}
 
-            {/* ── Mobile header menu ───────────────────────────────────── */}
-            {mobileMenuOpen && createPortal(
+            {/* ── Split window menu ────────────────────────────────────── */}
+            {splitStep && typeof document !== "undefined" && createPortal(
                 <div
-                    ref={mobileMenuRef}
-                    className={styles.contextMenu}
-                    style={{ top: mobileMenuPos.top, right: mobileMenuPos.right, left: "auto", minWidth: 200 }}
+                    ref={splitMenuRef}
+                    style={{
+                        position: "fixed",
+                        top: splitMenuPos.top,
+                        left: splitMenuPos.left,
+                        zIndex: 9999,
+                        background: "var(--color-primary)",
+                        border: "1px solid var(--color-third)",
+                        borderRadius: 10,
+                        boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+                        padding: "4px 0",
+                        minWidth: splitStep.type === "view" ? 210 : 150,
+                    }}
                 >
-                    {onSaveEdits && (
+                    {splitStep.type === "dir" ? (
                         <>
-                            <button className={`${styles.ctxItem} ${isEditMode ? styles.ctxItemActive : ""}`} onClick={() => { isEditMode ? exitEditMode() : enterEditMode(); setMobileMenuOpen(false); }}>
-                                <BiPencil /> {isEditMode ? "Exit Edit Mode" : "Edit Mode"}
+                            {(["vertical", "horizontal"] as const).map((dir) => (
+                                <button
+                                    key={dir}
+                                    onClick={() => setSplitStep({ type: "view", dir })}
+                                    style={{
+                                        display: "flex", alignItems: "center", gap: 8,
+                                        width: "calc(100% - 8px)", margin: "0 4px",
+                                        padding: "6px 10px", fontSize: "9.5pt",
+                                        color: "var(--color-foreground)", background: "transparent",
+                                        border: "1px solid transparent", borderRadius: 6,
+                                        cursor: "pointer", textTransform: "capitalize",
+                                    }}
+                                    onMouseEnter={(e) => { e.currentTarget.style.background = "var(--color-primary-dark)"; }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                                >
+                                    {dir}
+                                </button>
+                            ))}
+                        </>
+                    ) : (
+                        <>
+                            <button
+                                onClick={() => setSplitStep({ type: "dir" })}
+                                style={{
+                                    display: "flex", alignItems: "center", gap: 8,
+                                    width: "calc(100% - 8px)", margin: "0 4px",
+                                    padding: "6px 10px", fontSize: "9.5pt",
+                                    color: "var(--color-foreground-light)", background: "transparent",
+                                    border: "1px solid transparent", borderRadius: 6,
+                                    cursor: "pointer", marginBottom: 2,
+                                }}
+                                onMouseEnter={(e) => { e.currentTarget.style.background = "var(--color-primary-dark)"; }}
+                                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                            >
+                                ← Back
                             </button>
-                            <div className={styles.ctxDivider} />
+                            <div style={{ height: 1, background: "var(--color-third)", margin: "4px 8px" }} />
+                            <div style={{ maxHeight: 360, overflowY: "auto" }}>
+                                {PANE_VIEW_SECTIONS.map((section, si) => (
+                                    <div key={section.heading}>
+                                        {si > 0 && <div style={{ height: 1, background: "var(--color-third)", margin: "4px 8px" }} />}
+                                        <div style={{ padding: "6px 14px 2px", fontSize: 8, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--color-foreground-light)", opacity: 0.7 }}>
+                                            {section.heading}
+                                        </div>
+                                        {section.items.map(({ view, label }) => (
+                                            <button
+                                                key={view}
+                                                onClick={() => handleSplitView(view)}
+                                                style={{
+                                                    display: "flex", alignItems: "center", gap: 8,
+                                                    width: "calc(100% - 8px)", margin: "0 4px",
+                                                    padding: "6px 10px", fontSize: "9.5pt",
+                                                    color: "var(--color-foreground)", background: "transparent",
+                                                    border: "1px solid transparent", borderRadius: 6,
+                                                    cursor: "pointer",
+                                                }}
+                                                onMouseEnter={(e) => { e.currentTarget.style.background = "var(--color-primary-dark)"; }}
+                                                onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                                            >
+                                                {label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                ))}
+                            </div>
                         </>
                     )}
-                    <button className={styles.ctxItem} onClick={() => { handleExportCsv(); setMobileMenuOpen(false); }} disabled={data.length === 0}>
-                        <BiTable /> Export CSV
-                    </button>
-                    <button className={styles.ctxItem} onClick={() => { handleExportJson(); setMobileMenuOpen(false); }} disabled={data.length === 0}>
-                        <BiCode /> Export JSON
-                    </button>
-                    <button className={styles.ctxItem} onClick={() => { openSearch(mobileBtnRef.current ?? undefined); setMobileMenuOpen(false); }}>
-                        <BiSearch /> Search
-                    </button>
-                    <button className={styles.ctxItem} onClick={() => { onRefresh(); setMobileMenuOpen(false); }} disabled={loading || refreshing}>
-                        <BiRefresh className={refreshing ? styles.spinning : ""} /> Refresh
-                    </button>
-                    <button className={styles.ctxItem} onClick={() => { openColMenu(mobileBtnRef.current ?? undefined); setMobileMenuOpen(false); }}>
-                        <BiMenu /> Columns
-                    </button>
-                    {renderPreview && (
-                        <button className={`${styles.ctxItem} ${panelOpen ? styles.ctxItemActive : ""}`} onClick={() => { togglePanel(); setMobileMenuOpen(false); }}>
-                            <BiColumns /> Preview
-                        </button>
-                    )}
-                    <div className={styles.ctxDivider} />
-                    <button className={`${styles.ctxItem} ${isFullscreen ? styles.ctxItemActive : ""}`} onClick={() => { toggleFullscreen(); setMobileMenuOpen(false); }}>
-                        {isFullscreen ? <BiExitFullscreen /> : <BiFullscreen />} {isFullscreen ? "Exit Fullscreen" : "Fullscreen"}
-                    </button>
                 </div>,
                 document.body
             )}

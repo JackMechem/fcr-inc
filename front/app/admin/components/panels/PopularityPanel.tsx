@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useUserDashboardStore } from "@/stores/userDashboardStore";
-import { BiRefresh, BiLineChart, BiBarChartAlt2, BiX, BiCircle, BiCalendar, BiFilter, BiListUl, BiChevronDown, BiTable, BiCode, BiImage } from "react-icons/bi";
+import { BiRefresh, BiLineChart, BiBarChartAlt2, BiX, BiCircle, BiCalendar, BiListUl, BiChevronDown, BiTable, BiCode, BiImage, BiDockRight, BiFilter, BiDownload } from "react-icons/bi";
 import ExportButton from "@/app/admin/components/table/ExportButton";
 import CarColorPicker from "./CarColorPicker";
 import { downloadData, safeFilename, buildCsv, exportSvg, exportSvgAsPng } from "@/app/admin/components/table/exportUtils";
@@ -11,6 +11,7 @@ import { buildQuery } from "@/app/lib/fcr-client/core";
 import { FaRegEyeSlash } from "react-icons/fa6";
 import tableStyles from "@/app/admin/components/table/spreadsheetTable.module.css";
 import BrowseFilterPanel from "@/app/admin/components/table/BrowseFilterPanel";
+import OptionsSidePanel from "@/app/admin/components/table/OptionsSidePanel";
 import { type ActiveFilter, type FilterableColumn, formatFilterLabel, filtersToRecord } from "@/app/admin/components/table/FilterPanel";
 import { getFilterBarData } from "@/app/browse/actions";
 import s from "./PopularityPanel.module.css";
@@ -278,6 +279,7 @@ function catmullRomPath(pts: [number, number][], yFloor: number): string {
 // ── Tooltip ────────────────────────────────────────────────────────────────────
 
 interface TooltipPayloadItem {
+    vin: string;
     name: string;
     value: number;
     color: string;
@@ -306,7 +308,7 @@ function ChartTooltip({ payload, label, mouseX, mouseY }: {
         >
             <div className={s.tooltipLabel}>{label}</div>
             {sorted.map((item) => (
-                <div key={item.name} className={s.tooltipRow}>
+                <div key={item.vin} className={s.tooltipRow}>
                     <span className={s.tooltipDot} style={{ background: item.color }} />
                     <span className={s.tooltipCar}>{item.name}</span>
                     <span className={s.tooltipPop}>{item.value}</span>
@@ -475,6 +477,7 @@ function LineChart({ seriesMap, dates, colors, visibleVins }: LineChartProps) {
 
     const tooltipItems: TooltipPayloadItem[] = hoverIdx !== null && !dragging
         ? visibleSeries.map(([vin, entries]) => ({
+            vin,
             name: entries[0]?.car ? carLabel(entries[0].car) : vin,
             value: chartData[hoverIdx][vin],
             color: colors.get(vin) ?? "#888",
@@ -669,7 +672,7 @@ function BarChart({ carTotals, sortedVins, colors, visibleVins }: BarChartProps)
             )}
             {hoverVin !== null && typeof document !== "undefined" && createPortal(
                 <ChartTooltip
-                    payload={[{ name: carLabel(carTotals.get(hoverVin)!.car), value: carTotals.get(hoverVin)!.total, color: colors.get(hoverVin) ?? "#888" }]}
+                    payload={[{ vin: hoverVin, name: carLabel(carTotals.get(hoverVin)!.car), value: carTotals.get(hoverVin)!.total, color: colors.get(hoverVin) ?? "#888" }]}
                     label=""
                     mouseX={mousePos.x}
                     mouseY={mousePos.y}
@@ -700,8 +703,9 @@ export default function PopularityPanel() {
     const groupByCarOn  = chartMode !== "per-time";
     const groupByTimeOn = chartMode !== "per-car";
     const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([]);
-    const [filterPanelOpen, setFilterPanelOpen] = useState(false);
-    const [filterPanelWidth, setFilterPanelWidth] = useState(280);
+    const [panelOpen, setPanelOpen] = useState(false);
+    const [panelTab, setPanelTab] = useState("daterange");
+    const [panelWidth, setPanelWidth] = useState(280);
 
     // Makes (fetched for multi-select pill)
     const [makes, setMakes] = useState<string[]>([]);
@@ -716,37 +720,11 @@ export default function PopularityPanel() {
     const [colorOverrides, setColorOverrides] = useState<Map<string, string>>(new Map());
     const [colorPickerVin, setColorPickerVin] = useState<string | null>(null);
     const [colorPickerPos, setColorPickerPos] = useState({ top: 0, left: 0 });
-    const [sidePanelOpen, setSidePanelOpen] = useState(true);
-    const [panelWidth, setPanelWidth] = useState(280);
     const chartAreaRef = useRef<HTMLDivElement>(null);
-    const dragStartX = useRef<number | null>(null);
-    const dragStartW = useRef<number>(280);
 
-    const [openMenu, setOpenMenu] = useState<OpenMenu>(null);
-    const [menuPos, setMenuPos] = useState<{ top: number; right: number }>({ top: 48, right: 8 });
-    const dateRangeBtnRef = useRef<HTMLButtonElement>(null);
     const [chartModeOpen, setChartModeOpen] = useState(false);
     const [chartModePos, setChartModePos] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
     const chartModeBtnRef = useRef<HTMLButtonElement>(null);
-
-    const toggleMenu = (menu: OpenMenu, btnRef: React.RefObject<HTMLButtonElement | null>) => {
-        if (openMenu === menu) { setOpenMenu(null); return; }
-        setMenuPos(getMenuPos(btnRef.current));
-        setOpenMenu(menu);
-    };
-
-    useEffect(() => {
-        if (!openMenu) return;
-        const handler = (e: MouseEvent) => {
-            const target = e.target as Node;
-            const insideMenu = (document.querySelector("[data-popularity-menu]") as HTMLElement | null)?.contains(target);
-            if (!insideMenu && !dateRangeBtnRef.current?.contains(target)) {
-                setOpenMenu(null);
-            }
-        };
-        document.addEventListener("mousedown", handler);
-        return () => document.removeEventListener("mousedown", handler);
-    }, [openMenu]);
 
     useEffect(() => {
         if (!chartModeOpen) return;
@@ -922,42 +900,14 @@ export default function PopularityPanel() {
                     </span>
                 )}
                 <div className={s.spacer} />
-                <div className={tableStyles.headerBtns}>
-                    <button
-                        ref={dateRangeBtnRef}
-                        className={`${tableStyles.btnIcon} ${openMenu === "daterange" ? tableStyles.btnIconActive : ""}`}
-                        onClick={() => toggleMenu("daterange", dateRangeBtnRef)}
-                        title="Date range & time unit"
-                    >
-                        <BiCalendar />
-                    </button>
-                    <button
-                        className={`${tableStyles.btnIcon} ${filterPanelOpen ? tableStyles.btnIconActive : ""} ${hasFilters ? tableStyles.btnIconBadge : ""}`}
-                        onClick={() => { setFilterPanelOpen((o) => { if (!o) setSidePanelOpen(false); return !o; }); }}
-                        title="Filters"
-                    >
-                        <BiFilter />
-                    </button>
-                    {groupByCarOn && (
-                        <button
-                            className={`${tableStyles.btnIcon} ${sidePanelOpen ? tableStyles.btnIconActive : ""}`}
-                            onClick={() => { setSidePanelOpen((o) => { if (!o) setFilterPanelOpen(false); return !o; }); }}
-                            title={sidePanelOpen ? "Hide cars panel" : "Show cars panel"}
-                        >
-                            <BiListUl />
-                        </button>
-                    )}
-                    <div className={tableStyles.topDivider} />
-                    <ExportButton options={exportOptions} disabled={loading || entries.length === 0} btnClassName={tableStyles.btnIcon} />
-                    <button
-                        className={tableStyles.btnIcon}
-                        onClick={fetchData}
-                        disabled={loading}
-                        title="Refresh"
-                    >
-                        <BiRefresh className={loading ? tableStyles.spinning : ""} />
-                    </button>
-                </div>
+                <button
+                    className={`${tableStyles.headerMobileBtn} ${panelOpen ? tableStyles.btnIconActive : ""} ${hasFilters ? tableStyles.btnIconBadge : ""}`}
+                    data-count={hasFilters ? activeFilters.length : undefined}
+                    onClick={() => setPanelOpen((o) => !o)}
+                    title="Options"
+                >
+                    <BiDockRight />
+                </button>
             </div>
 
             {/* ── Active filter chips ── */}
@@ -967,7 +917,7 @@ export default function PopularityPanel() {
                         <button
                             key={f.id}
                             className={tableStyles.filterChip}
-                            onClick={() => { setFilterPanelOpen(true); setSidePanelOpen(false); }}
+                            onClick={() => { setPanelOpen(true); setPanelTab("filters"); }}
                         >
                             {formatFilterLabel(f)}
                             <span
@@ -1008,96 +958,129 @@ export default function PopularityPanel() {
                     )}
                 </div>
 
-                {/* ── Browse filter side panel ── */}
-                {filterPanelOpen && (
-                    <BrowseFilterPanel
-                        filterableColumns={filterableColumns}
-                        activeFilters={activeFilters}
-                        onFiltersChange={setActiveFilters}
-                        width={filterPanelWidth}
-                        onWidthChange={setFilterPanelWidth}
-                        onClose={() => setFilterPanelOpen(false)}
-                    />
-                )}
-
-                {groupByCarOn && sidePanelOpen && !loading && !error && (
-                    <div
-                        className={tableStyles.panelResizeHandle}
-                        onMouseDown={(e) => {
-                            e.preventDefault();
-                            dragStartX.current = e.clientX;
-                            dragStartW.current = panelWidth;
-                            const onMove = (ev: MouseEvent) => {
-                                if (dragStartX.current === null) return;
-                                setPanelWidth(Math.max(200, Math.min(600, dragStartW.current + dragStartX.current - ev.clientX)));
-                            };
-                            const onUp = () => {
-                                dragStartX.current = null;
-                                window.removeEventListener("mousemove", onMove);
-                                window.removeEventListener("mouseup", onUp);
-                            };
-                            window.addEventListener("mousemove", onMove);
-                            window.addEventListener("mouseup", onUp);
-                        }}
-                    />
-                )}
-
-                {groupByCarOn && sidePanelOpen && !loading && !error && sortedVins.length > 0 && (
-                    <div className={tableStyles.previewPanel} style={{ width: panelWidth }}>
-                        <div className={tableStyles.previewPanelHeader}>
-                            <span className={tableStyles.previewPanelTitle}>Cars</span>
-                            {(mutedVins.size > 0 || soloedVins.size > 0 || colorOverrides.size > 0) && (
-                                <button
-                                    className={s.panelResetBtn}
-                                    onClick={() => { setMutedVins(new Set()); setSoloedVins(new Set()); setColorOverrides(new Map()); }}
-                                >Reset</button>
-                            )}
-                            <div style={{ flex: 1 }} />
-                            <button className={tableStyles.btnIcon} onClick={() => setSidePanelOpen(false)} title="Close"><BiX /></button>
-                        </div>
-
-                        <div className={tableStyles.previewPanelBody} style={{ padding: 0 }}>
-                            {sortedVins.length === 0 ? (
-                                <p className={tableStyles.previewPanelEmpty}>No data.</p>
-                            ) : sortedVins.map((vin) => {
-                                const info = carTotals.get(vin)!;
-                                const color = effectiveColorMap.get(vin) ?? "#888";
-                                const isMuted = mutedVins.has(vin);
-                                const isSoloed = soloedVins.has(vin);
-                                const isVisible = visibleVins.has(vin);
-                                return (
-                                    <div key={vin} className={`${s.carRow} ${!isVisible ? s.carRowHidden : ""}`}>
-                                        <button
-                                            className={s.carDotBtn}
-                                            title="Change color"
-                                            onClick={(e) => {
-                                                const r = e.currentTarget.getBoundingClientRect();
-                                                setColorPickerPos({ top: r.bottom + 4, left: r.left });
-                                                setColorPickerVin((prev) => prev === vin ? null : vin);
-                                            }}
-                                        >
-                                            <span className={s.carDot} style={{ background: color }} />
-                                        </button>
-                                        <div className={s.carInfo}>
-                                            <p className={s.carName}>{carLabel(info.car)}</p>
-                                            <p className={s.carTotal}>{info.total} total</p>
+                {/* ── Options side panel ── */}
+                {panelOpen && (
+                    <OptionsSidePanel
+                        activeTab={panelTab}
+                        onTabChange={setPanelTab}
+                        width={panelWidth}
+                        onWidthChange={setPanelWidth}
+                        onClose={() => setPanelOpen(false)}
+                        tabs={[
+                            {
+                                key: "daterange",
+                                label: "Date Range",
+                                icon: <BiCalendar />,
+                                content: (
+                                    <div className={tableStyles.tabPanel}>
+                                        <div className={tableStyles.tabField}>
+                                            <label className={tableStyles.tabLabel}>Start Date</label>
+                                            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={tableStyles.fieldInput} />
                                         </div>
-                                        <button
-                                            className={`${s.trackBtn} ${isSoloed ? s.soloBtnActive : ""}`}
-                                            style={!isSoloed && anySoloed ? { color: "var(--color-foreground-light)" } : undefined}
-                                            onClick={() => toggleSolo(vin)}
-                                            title="Isolate"
-                                        ><BiCircle /></button>
-                                        <button
-                                            className={`${s.trackBtn} ${isMuted ? s.muteBtnActive : ""}`}
-                                            onClick={() => toggleMute(vin)}
-                                            title="Hide"
-                                        ><FaRegEyeSlash /></button>
+                                        <div className={tableStyles.tabField}>
+                                            <label className={tableStyles.tabLabel}>End Date</label>
+                                            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={tableStyles.fieldInput} />
+                                        </div>
+                                        {groupByTimeOn && (
+                                            <div className={tableStyles.tabField}>
+                                                <label className={tableStyles.tabLabel}>Time Unit</label>
+                                                <select value={timeUnit} onChange={(e) => setTimeUnit(e.target.value as TimeUnit | "")} className={tableStyles.fieldInput}>
+                                                    <option value="">Auto</option>
+                                                    <option value="day">Day</option>
+                                                    <option value="week">Week</option>
+                                                    <option value="month">Month</option>
+                                                    <option value="year">Year</option>
+                                                </select>
+                                            </div>
+                                        )}
                                     </div>
-                                );
-                            })}
-                        </div>
-                    </div>
+                                ),
+                            },
+                            {
+                                key: "export",
+                                label: "Export",
+                                icon: <BiDownload />,
+                                content: (
+                                    <div className={tableStyles.tabPanel}>
+                                        {exportOptions.map((opt) => (
+                                            <button key={opt.label} className={tableStyles.ctxItem} onClick={opt.onClick} disabled={opt.disabled || loading || entries.length === 0}>
+                                                {opt.icon} {opt.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                ),
+                            },
+                            {
+                                key: "refresh",
+                                label: "Refresh",
+                                icon: <BiRefresh />,
+                                content: (
+                                    <div className={tableStyles.tabPanel}>
+                                        <button className={tableStyles.ctxItem} onClick={fetchData} disabled={loading}>
+                                            <BiRefresh className={loading ? tableStyles.spinning : ""} /> Refresh Data
+                                        </button>
+                                    </div>
+                                ),
+                            },
+                            {
+                                key: "filters",
+                                label: "Filters",
+                                icon: <BiFilter />,
+                                badge: activeFilters.length || undefined,
+                                content: (
+                                    <BrowseFilterPanel
+                                        contentOnly
+                                        filterableColumns={filterableColumns}
+                                        activeFilters={activeFilters}
+                                        onFiltersChange={setActiveFilters}
+                                    />
+                                ),
+                            },
+                            ...(groupByCarOn ? [{
+                                key: "cars",
+                                label: "Cars",
+                                icon: <BiListUl />,
+                                badge: (mutedVins.size + soloedVins.size) || undefined,
+                                content: (
+                                    <div className={tableStyles.tabPanel}>
+                                        {(mutedVins.size > 0 || soloedVins.size > 0 || colorOverrides.size > 0) && (
+                                            <button
+                                                className={tableStyles.colMenuActionBtn}
+                                                onClick={() => { setMutedVins(new Set()); setSoloedVins(new Set()); setColorOverrides(new Map()); }}
+                                                style={{ alignSelf: "flex-start" }}
+                                            >
+                                                Reset
+                                            </button>
+                                        )}
+                                        {loading || error ? (
+                                            <p className={tableStyles.previewPanelEmpty}>{error ?? "Loading…"}</p>
+                                        ) : sortedVins.length === 0 ? (
+                                            <p className={tableStyles.previewPanelEmpty}>No data.</p>
+                                        ) : sortedVins.map((vin) => {
+                                            const info = carTotals.get(vin)!;
+                                            const color = effectiveColorMap.get(vin) ?? "#888";
+                                            const isMuted = mutedVins.has(vin);
+                                            const isSoloed = soloedVins.has(vin);
+                                            const isVisible = visibleVins.has(vin);
+                                            return (
+                                                <div key={vin} className={`${s.carRow} ${!isVisible ? s.carRowHidden : ""}`}>
+                                                    <button className={s.carDotBtn} title="Change color" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setColorPickerPos({ top: r.bottom + 4, left: r.left }); setColorPickerVin((prev) => prev === vin ? null : vin); }}>
+                                                        <span className={s.carDot} style={{ background: color }} />
+                                                    </button>
+                                                    <div className={s.carInfo}>
+                                                        <p className={s.carName}>{carLabel(info.car)}</p>
+                                                        <p className={s.carTotal}>{info.total} total</p>
+                                                    </div>
+                                                    <button className={`${s.trackBtn} ${isSoloed ? s.soloBtnActive : ""}`} style={!isSoloed && anySoloed ? { color: "var(--color-foreground-light)" } : undefined} onClick={() => toggleSolo(vin)} title="Isolate"><BiCircle /></button>
+                                                    <button className={`${s.trackBtn} ${isMuted ? s.muteBtnActive : ""}`} onClick={() => toggleMute(vin)} title="Hide"><FaRegEyeSlash /></button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                ),
+                            }] : []),
+                        ]}
+                    />
                 )}
             </div>
 
@@ -1120,44 +1103,6 @@ export default function PopularityPanel() {
                             <span className={s.chartModePickerLabel}>{CHART_MODE_LABELS[m as ChartMode]}</span>
                         </button>
                     ))}
-                </div>,
-                document.body
-            )}
-
-            {/* ── Portaled popup menus ── */}
-            {typeof document !== "undefined" && openMenu === "daterange" && createPortal(
-                <div
-                    data-popularity-menu="true"
-                    className={`${tableStyles.contextMenu} ${s.menuContent}`}
-                    style={{ top: menuPos.top, right: menuPos.right, minWidth: 240 }}
-                >
-                    <p className={tableStyles.ctxSection} style={{ padding: "0 0 8px" }}>Date Range</p>
-                    <div className={s.menuFields}>
-                        <div className={s.menuField}>
-                            <label className={s.menuLabel}>Start Date</label>
-                            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={s.menuInput} />
-                        </div>
-                        <div className={s.menuField}>
-                            <label className={s.menuLabel}>End Date</label>
-                            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={s.menuInput} />
-                        </div>
-                        <div className={tableStyles.ctxDivider} />
-                        <div className={s.menuField}>
-                            <label className={s.menuLabel} style={!groupByTimeOn ? { opacity: 0.4 } : undefined}>Time Unit</label>
-                            <select
-                                value={timeUnit}
-                                onChange={(e) => setTimeUnit(e.target.value as TimeUnit | "")}
-                                className={s.menuInput}
-                                disabled={!groupByTimeOn}
-                            >
-                                <option value="">Auto</option>
-                                <option value="day">Day</option>
-                                <option value="week">Week</option>
-                                <option value="month">Month</option>
-                                <option value="year">Year</option>
-                            </select>
-                        </div>
-                    </div>
                 </div>,
                 document.body
             )}
