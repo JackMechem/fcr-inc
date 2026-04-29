@@ -5,8 +5,7 @@
 	padding-left: 20px;
 	padding-right: 20px;
 	width: 100%;
-	background-color: var(--color-primary);
-	transition: padding 200ms;
+	container-type: inline-size;
 }
 
 @media (min-width: 1024px) {
@@ -21,6 +20,89 @@
 		padding-left: 200px;
 		padding-right: 200px;
 	}
+}
+
+/* ── Browse two-pane layout ──────────────────────────────────────────────────── */
+
+.browseRow {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	padding: 8px;
+}
+
+@media (min-width: 1024px) {
+	.browseRow {
+		flex: 1;
+		min-height: 0;
+		overflow: hidden;
+		align-items: stretch;
+		padding-top: 0;
+	}
+}
+
+.carListPane {
+	flex: 1;
+	min-width: 0;
+	/* overflow: clip lets sticky children work on mobile while still clipping visually */
+	overflow: clip;
+}
+
+.carListPaneCard {
+	border-radius: 0.75rem;
+	border: 1px solid var(--color-third);
+	background: var(--color-primary);
+	box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+}
+
+@media (min-width: 1024px) {
+	.carListPane {
+		overflow-y: auto;
+		overflow-x: hidden;
+	}
+}
+
+.carListPaneHeader {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 6px;
+	padding: 8px 12px;
+	border-bottom: 1px solid var(--color-third);
+	flex-shrink: 0;
+}
+
+.previewResizeHandle {
+	display: none;
+}
+
+@media (min-width: 1024px) {
+	.previewResizeHandle {
+		display: block;
+		width: 10px;
+		flex-shrink: 0;
+		cursor: col-resize;
+		position: relative;
+		z-index: 10;
+	}
+}
+
+.previewResizeHandle::after {
+	content: "";
+	position: absolute;
+	top: 20%;
+	bottom: 20%;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 2px;
+	background: var(--color-third);
+	border-radius: 2px;
+	transition: background 120ms;
+}
+
+.previewResizeHandle:hover::after,
+.previewResizeHandle:active::after {
+	background: var(--color-accent);
 }
 
 /* ── InfiniteCarList ─────────────────────────────────────────────────────────── */
@@ -44,15 +126,15 @@
 	color: var(--color-foreground);
 }
 
-@media (min-width: 640px) {
+@container (min-width: 480px) {
 	.carGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
-@media (min-width: 1280px) {
+@container (min-width: 800px) {
 	.carGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
-@media (min-width: 1536px) {
+@container (min-width: 1100px) {
 	.carGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 }
 
@@ -103,22 +185,55 @@
 	height: 100%;
 }
 
-.toolbar {
+@media (min-width: 1024px) {
+	.page {
+		height: 100dvh;
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+	}
+}
+
+/* ── Pane toolbar (sticky inside the car list pane) ────────────────────────── */
+
+.paneToolbar {
 	position: sticky;
-	top: 124px; /* mobile: below compact header (64px) + search row (60px) */
-	z-index: 9;
+	top: 124px; /* mobile: below compact header + search row */
+	z-index: 20;
 	width: 100%;
-	padding: 8px 16px;
-	display: flex;
-	flex-direction: row;
-	flex-wrap: wrap;
-	justify-content: space-between;
-	align-items: flex-start;
 	pointer-events: none;
 }
 
-.toolbar > * {
+.paneToolbar > * {
 	pointer-events: auto;
+}
+
+@media (min-width: 1024px) {
+	.paneToolbar {
+		top: 0; /* desktop: sticks to top of the car list pane scroll area */
+	}
+}
+
+.toolbarInner {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	align-items: center;
+	padding: 8px 16px;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.toolbarRight {
+	display: none;
+}
+
+@media (min-width: 1024px) {
+	.toolbarRight {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+	}
 }
 
 /* Active filter chips row — full width second row inside the toolbar, mobile only */
@@ -141,12 +256,6 @@
 @media (min-width: 1024px) {
 	.toolbarFiltersRow {
 		display: none;
-	}
-}
-
-@media (min-width: 1024px) {
-	.toolbar {
-		top: 64px;
 	}
 }
 

@@ -28,12 +28,14 @@ const CarGridCard = ({
 	untilDate,
 	cartInfo,
 	datesReady = true,
+	onPreviewClick,
 }: {
 	car: Car;
 	fromDate?: string;
 	untilDate?: string;
 	cartInfo?: CartCardInfo;
 	datesReady?: boolean;
+	onPreviewClick?: () => void;
 }) => {
 	const engineLabel =
 		car.engineLayout === "DUAL_MOTOR" || car.engineLayout === "SINGLE_MOTOR"
@@ -43,8 +45,12 @@ const CarGridCard = ({
 	const { status } = getAvailability(car, fromDate, untilDate);
 	const { cartItem, userReserved } = cartInfo ?? {};
 
+	const handleClick = onPreviewClick
+		? (e: React.MouseEvent) => { e.preventDefault(); onPreviewClick(); }
+		: undefined;
+
 	return (
-		<Link href={`/car/${car.vin}`} className={styles.card}>
+		<Link href={`/car/${car.vin}`} className={styles.card} onClick={handleClick}>
 			<div className={styles.imageWrapper}>
 				<CarImageFill
 					src={car.images[0]}

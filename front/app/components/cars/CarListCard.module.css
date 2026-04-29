@@ -15,7 +15,7 @@
 	transform: scale(1.005);
 }
 
-@media (min-width: 768px) {
+@container (min-width: 700px) {
 	.card {
 		flex-direction: row;
 		height: 360px;
@@ -33,7 +33,7 @@
 }
 
 
-@media (min-width: 768px) {
+@container (min-width: 700px) {
 	.imageWrapper {
 		width: 46%;
 		height: auto;
@@ -41,7 +41,7 @@
 	}
 }
 
-@media (min-width: 1500px) {
+@container (min-width: 1100px) {
 	.imageWrapper {
 		width: 56%;
 		height: auto;
@@ -92,7 +92,7 @@
 	width: 100%;
 }
 
-@media (min-width: 768px) {
+@container (min-width: 700px) {
 	.body {
 		width: 52%;
 		gap: 0;
@@ -315,7 +315,7 @@
 	gap: 10px;
 }
 
-@media (min-width: 768px) {
+@container (min-width: 700px) {
 	.bottomRow {
 		flex-direction: row;
 		justify-content: space-between;
@@ -330,7 +330,7 @@
 	margin-top: 10px;
 }
 
-@media (min-width: 768px) {
+@container (min-width: 700px) {
 	.statsDivider {
 		display: none;
 	}
@@ -349,7 +349,7 @@
 	background-color: var(--color-accent);
 }
 
-@media (min-width: 1280px) {
+@container (min-width: 900px) {
 	.statsGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 
@@ -377,7 +377,7 @@
 	padding-top: 10px;
 }
 
-@media (min-width: 768px) {
+@container (min-width: 700px) {
 	.priceGroup {
 		flex-direction: column;
 		align-items: flex-end;

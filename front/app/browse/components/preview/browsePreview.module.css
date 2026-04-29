@@ -1,0 +1,78 @@
+/* Browse car preview side panel */
+
+.panel {
+    display: none;
+}
+
+@media (min-width: 1024px) {
+    .panel {
+        display: flex;
+        flex-direction: column;
+        flex-shrink: 0;
+        /* width set via inline style from BrowseTwoPaneLayout */
+        border-radius: 0.75rem;
+        border: 1px solid var(--color-third);
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+        background: var(--color-primary);
+        overflow: hidden;
+        /* fills the fixed-height browseRow */
+        align-self: stretch;
+    }
+}
+
+/* ── Full page link (inside innerContent) ── */
+
+.fullPageLink {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--color-accent);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.fullPageLink:hover {
+    text-decoration: underline;
+}
+
+/* ── Body ── */
+
+.panelBody {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+}
+
+.emptyState {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 200px;
+    font-size: 14px;
+    color: var(--color-foreground-light);
+}
+
+/* ── Content ── */
+
+.panelContent {
+    display: flex;
+    flex-direction: column;
+}
+
+.imageWrapper {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.innerContent {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 20px;
+}

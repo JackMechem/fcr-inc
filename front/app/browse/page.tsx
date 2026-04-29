@@ -9,6 +9,8 @@ import ActiveFilters from "./components/filters/activeFilters";
 import InfiniteCarList from "./components/list/InfiniteCarList";
 import LayoutToggle from "./components/filters/layoutToggle";
 import BrowseContentWrapper from "./components/list/BrowseContentWrapper";
+import BrowsePreviewToggle from "./components/preview/BrowsePreviewToggle";
+import BrowseTwoPaneLayout from "./components/list/BrowseTwoPaneLayout";
 import BrowseParamsSync from "./components/list/BrowseParamsSync";
 import PageFooter from "../components/footer/PageFooter";
 import styles from "./components/list/browseContent.module.css";
@@ -93,28 +95,32 @@ const BrowsePage = async ({
 				}
 				activeFilters={<ActiveFilters className="self-center" />}
 			/>
-			<div className={styles.toolbar}>
-				<div className={styles.toolbarLeft}>
-					<SortButtons />
-				</div>
-				<div className={styles.layoutToggleWrap}>
-					<Suspense>
-						<LayoutToggle />
-					</Suspense>
-				</div>
-				<div className={styles.toolbarFiltersRow}>
-					<ActiveFilters className={styles.toolbarActiveFilters} />
-				</div>
-			</div>
-			<BrowseContentWrapper>
-				<InfiniteCarList
-					filterParams={filterParams}
-					layout={layout}
-					fromDate={str(p.fromDate)}
-					untilDate={str(p.untilDate)}
-				/>
-			</BrowseContentWrapper>
-			<PageFooter />
+			<BrowseTwoPaneLayout toolbar={
+				<>
+					<div className={styles.toolbarInner}>
+						<div className={styles.toolbarLeft}>
+							<SortButtons />
+						</div>
+						<div className={styles.toolbarRight}>
+							<Suspense><LayoutToggle /></Suspense>
+							<Suspense><BrowsePreviewToggle /></Suspense>
+						</div>
+					</div>
+					<div className={styles.toolbarFiltersRow}>
+						<ActiveFilters className={styles.toolbarActiveFilters} />
+					</div>
+				</>
+			}>
+				<BrowseContentWrapper>
+					<InfiniteCarList
+						filterParams={filterParams}
+						layout={layout}
+						fromDate={str(p.fromDate)}
+						untilDate={str(p.untilDate)}
+					/>
+				</BrowseContentWrapper>
+				<PageFooter />
+			</BrowseTwoPaneLayout>
 		</div>
 	);
 };

@@ -10,6 +10,8 @@ import { saveBrowseListCache, getBrowseListCache } from "@/app/lib/browseListCac
 import CarCard from "@/app/components/cars/CarListCard";
 import CarGridCard from "@/app/components/cars/carGridCard";
 import styles from "./browseContent.module.css";
+import { useBrowsePreviewStore } from "@/stores/browsePreviewStore";
+import { useBrowseScrollContainer } from "./BrowseScrollContext";
 
 const LIST_PAGE_SIZE = 12;
 const GRID_PAGE_SIZE = 48;
@@ -42,6 +44,8 @@ function cartItemOverlapsBrowse(item: CartProps, fromDate: string, untilDate: st
 
 const InfiniteCarList = ({ filterParams, layout = "list", fromDate, untilDate }: InfiniteCarListProps) => {
 	const PAGE_SIZE = layout === "grid" ? GRID_PAGE_SIZE : LIST_PAGE_SIZE;
+	const { previewOpen, setSelectedVin } = useBrowsePreviewStore();
+	const scrollContainerRef = useBrowseScrollContainer();
 	const paramsKey = JSON.stringify(filterParams);
 
 	// Read from in-memory module-level cache (populated on unmount when navigating to a car).
@@ -70,6 +74,24 @@ const InfiniteCarList = ({ filterParams, layout = "list", fromDate, untilDate }:
 	const paramsKeyRef = useRef(paramsKey);
 	useEffect(() => { paramsKeyRef.current = paramsKey; }, [paramsKey]);
 
+	// Track scroll position continuously via event listener so the value is always
+	// fresh in a ref — reading scrollTop/scrollY during the unmount cleanup is
+	// unreliable because the DOM element may already be detached by then.
+	const scrollPosRef = useRef(0);
+	useEffect(() => {
+		const pane = scrollContainerRef?.current;
+		if (pane) {
+			const onScroll = () => { scrollPosRef.current = pane.scrollTop; };
+			pane.addEventListener("scroll", onScroll, { passive: true });
+			return () => pane.removeEventListener("scroll", onScroll);
+		} else {
+			const onScroll = () => { scrollPosRef.current = window.scrollY; };
+			window.addEventListener("scroll", onScroll, { passive: true });
+			return () => window.removeEventListener("scroll", onScroll);
+		}
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, []);
+
 	// Save state to the in-memory cache when unmounting (navigating to a car detail page).
 	useEffect(() => {
 		return () => {
@@ -78,7 +100,7 @@ const InfiniteCarList = ({ filterParams, layout = "list", fromDate, untilDate }:
 					cars: carsRef.current,
 					page: pageRef.current,
 					hasMore: hasMoreRef2.current,
-					scrollY: window.scrollY,
+					scrollY: scrollPosRef.current,
 					paramsKey: paramsKeyRef.current,
 				});
 			}
@@ -91,11 +113,17 @@ const InfiniteCarList = ({ filterParams, layout = "list", fromDate, untilDate }:
 	useEffect(() => {
 		if (!cached?.scrollY) return;
 		const id = setTimeout(() => {
-			// On mobile the browser toolbar re-appears on back-navigation, shrinking
-			// the viewport and causing the restore to overshoot. Subtract the
-			// approximate toolbar height to compensate.
-			const mobileOffset = window.innerWidth < 768 ? 120 : 0;
-			window.scrollTo({ top: Math.max(0, cached.scrollY - mobileOffset), behavior: "instant" });
+			const pane = scrollContainerRef?.current;
+			const overflow = pane ? getComputedStyle(pane).overflowY : "";
+			const isScrollPane = pane && (overflow === "auto" || overflow === "scroll");
+			if (isScrollPane) {
+				pane.scrollTop = cached.scrollY;
+			} else {
+				// On mobile the browser toolbar re-appears on back-navigation, shrinking
+				// the viewport and causing the restore to overshoot.
+				const mobileOffset = window.innerWidth < 768 ? 120 : 0;
+				window.scrollTo({ top: Math.max(0, cached.scrollY - mobileOffset), behavior: "instant" });
+			}
 		}, 0);
 		return () => clearTimeout(id);
 	// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -208,12 +236,18 @@ const InfiniteCarList = ({ filterParams, layout = "list", fromDate, untilDate }:
 	useEffect(() => { fetchNextPageRef.current = fetchNextPage; }, [fetchNextPage]);
 
 	useEffect(() => {
+		// Use the pane element as root when it is the scroll container (desktop fixed layout).
+		// Fall back to null (viewport) on mobile where the page itself scrolls.
+		const el = scrollContainerRef?.current ?? null;
+		const overflow = el ? getComputedStyle(el).overflowY : "";
+		const root = el && (overflow === "auto" || overflow === "scroll") ? el : null;
 		const observer = new IntersectionObserver(
 			(entries) => { if (entries[0].isIntersecting) fetchNextPageRef.current(); },
-			{ rootMargin: "0px 0px 300px 0px" }
+			{ root, rootMargin: "0px 0px 300px 0px" }
 		);
 		if (sentinelRef.current) observer.observe(sentinelRef.current);
 		return () => observer.disconnect();
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
 	const filterCar = (car: Car) => {
@@ -243,27 +277,29 @@ const InfiniteCarList = ({ filterParams, layout = "list", fromDate, untilDate }:
 				</div>
 			) : (
 				<div className={isList ? styles.listGrid : styles.carGrid}>
-					{visibleCars.map((car) =>
-						isList ? (
-							<CarCard
-								key={car.vin}
-								car={car}
-								fromDate={fromDate}
-								untilDate={untilDate}
-								cartInfo={getCartInfo(car)}
-								datesReady={datesReady}
-							/>
-						) : (
-							<CarGridCard
-								key={car.vin}
-								car={car}
-								fromDate={fromDate}
-								untilDate={untilDate}
-								cartInfo={getCartInfo(car)}
-								datesReady={datesReady}
-							/>
-						)
-					)}
+					{visibleCars.map((car) => (
+						<div key={car.vin}>
+							{isList ? (
+								<CarCard
+									car={car}
+									fromDate={fromDate}
+									untilDate={untilDate}
+									cartInfo={getCartInfo(car)}
+									datesReady={datesReady}
+									onPreviewClick={previewOpen ? () => setSelectedVin(car.vin) : undefined}
+								/>
+							) : (
+								<CarGridCard
+									car={car}
+									fromDate={fromDate}
+									untilDate={untilDate}
+									cartInfo={getCartInfo(car)}
+									datesReady={datesReady}
+									onPreviewClick={previewOpen ? () => setSelectedVin(car.vin) : undefined}
+								/>
+							)}
+						</div>
+					))}
 				</div>
 			)}
 			{loading && (

@@ -336,23 +336,10 @@ const NavHeader = ({
 					)}
 				</Link>
 
-				{/* Browse icon link — white mode only (compact mode has it inside the search group) */}
-				{isWhite && (
-					<Link href="/browse" className={`${styles.browseNavLink} ${styles.browseNavLinkWhite}`}>
-						<MdOutlineExplore />
-						<span className={styles.browseNavLinkText}>Browse Cars</span>
-					</Link>
-				)}
 
 				{/* Desktop search pills (centered) */}
 				{!isWhite && (
 					<div className={`${styles.desktopSearch} ${mobileFilterButton ? styles.desktopSearchHideLg : styles.desktopSearchHideMd}`}>
-
-						{/* Browse icon link */}
-						<Link href="/browse" className={`${styles.browseNavLink} ${styles.browseNavLinkCompact}`}>
-							<MdOutlineExplore />
-							<span className={styles.browseNavLinkText}>Browse Cars</span>
-						</Link>
 
 						{/* Search pill */}
 						<div ref={searchPillRef} className={`${styles.headerPill} ${searchOpen ? styles.headerPillOpen : ""}`}>
@@ -441,6 +428,14 @@ const NavHeader = ({
 								</div>
 							</div>
 						</div>
+
+						{/* Browse Cars link — after Dates, hidden on the browse page */}
+						{pathname !== "/browse" && (
+							<Link href="/browse" className={`${styles.browseNavLink} ${styles.browseNavLinkCompact}`}>
+								<MdOutlineExplore />
+								<span className={styles.browseNavLinkText}>Browse Cars</span>
+							</Link>
+						)}
 
 						{filterControls && (
 							<div className={styles.filterControlsWrapper}>{filterControls}</div>
