@@ -13,3 +13,4 @@ services:
 networks:
   fcr-net:
     name: fcr-net
+    external: true
