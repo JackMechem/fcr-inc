@@ -1,0 +1,15 @@
+services:
+  nginx:
+    image: nginx:alpine
+    container_name: fcr-nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx:/etc/nginx/conf.d:ro
+    networks:
+      - fcr-net
+    restart: unless-stopped
+
+networks:
+  fcr-net:
+    name: fcr-net

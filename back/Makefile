@@ -17,11 +17,17 @@ NORMAL := \e[0m
 
 IMAGE_NAME := fcr-backend
 PORT := 8080
+NETWORK := fcr-net
 
 ## -- Help --
 
 help:
 	@echo -e "$(BOLD)FCR Backend Makefile$(NORMAL)"
+	@echo ""
+	@echo -e "$(YELLOW)$(BOLD)Zero-downtime deployment:$(RESET)"
+	@echo -e "  $(GREEN)init$(RESET)                   - first-time setup: create network + deploy"
+	@echo -e "  $(GREEN)deploy$(RESET)                 - blue/green deploy with zero downtime"
+	@echo -e "  $(GREEN)stop$(RESET)                   - stop all backend containers and nginx"
 	@echo ""
 	@echo -e "$(YELLOW)$(BOLD)Local:$(RESET)"
 	@echo -e "  $(GREEN)build$(RESET)                  - compile and package with Maven"
@@ -48,6 +54,23 @@ help:
 	@echo ""
 	@echo -e "$(YELLOW)$(BOLD)Utilities:$(RESET)"
 	@echo -e "  $(GREEN)gen-secret$(RESET)             - generate a random 32-byte hex secret (e.g. for JWT/API keys)"
+
+## -- Zero-downtime deployment --
+
+# First-time setup
+init:
+	docker network create $(NETWORK) 2>/dev/null || true
+	@$(MAKE) deploy
+
+# Blue/green zero-downtime deploy
+deploy:
+	@chmod +x deploy.sh
+	@./deploy.sh
+
+# Stop all backend containers and nginx
+stop:
+	-docker rm -f fcr-backend-blue fcr-backend-green 2>/dev/null || true
+	docker compose down
 
 ## -- Local --
 build:
