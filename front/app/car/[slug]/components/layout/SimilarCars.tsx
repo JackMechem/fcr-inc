@@ -36,7 +36,7 @@ const SimilarCars = async ({ make, excludeVin }: { make: string; excludeVin: str
             </div>
             <div className={styles.similarGrid}>
                 {cars.map((car) => (
-                    <CarGridCard key={car.vin} car={car} datesReady={false} />
+                    <CarGridCard key={car.vin} car={car} />
                 ))}
             </div>
             <div className={styles.similarCtaRow}>

@@ -156,6 +156,10 @@ function carLabel(car: PopularityCar | undefined): string {
     return `${car.modelYear ? car.modelYear + " " : ""}${car.make} ${car.model}`;
 }
 
+function truncateLabel(text: string, maxLen = 18): string {
+    return text.length > maxLen ? text.slice(0, maxLen - 1) + "…" : text;
+}
+
 function groupByCar(entries: PopularityEntry[]): Map<string, PopularityEntry[]> {
     const map = new Map<string, PopularityEntry[]>();
     for (const entry of entries) {
@@ -610,15 +614,19 @@ function BarChart({ carTotals, sortedVins, colors, visibleVins }: BarChartProps)
 
     const { width, height } = size;
     const innerW = Math.max(0, width  - BAR_MARGIN.left - BAR_MARGIN.right);
-    const innerH = Math.max(0, height - BAR_MARGIN.top  - BAR_MARGIN.bottom);
+
+    const gap = Math.max(2, innerW * 0.08 / visibleVinList.length);
+    const barW = Math.max(4, (innerW - gap * (visibleVinList.length + 1)) / visibleVinList.length);
+    const showXLabels = barW >= 20;
+
+    const bottomMargin = showXLabels ? BAR_MARGIN.bottom : 24;
+    const innerH = Math.max(0, height - BAR_MARGIN.top  - bottomMargin);
 
     const maxVal = Math.max(...visibleVinList.map((v) => carTotals.get(v)?.total ?? 0), 1);
     const yTicks = computeYTicks(maxVal);
     const yMax   = yTicks[yTicks.length - 1];
     const yScale = (v: number) => innerH - (v / yMax) * innerH;
 
-    const gap = Math.max(2, innerW * 0.08 / visibleVinList.length);
-    const barW = Math.max(4, (innerW - gap * (visibleVinList.length + 1)) / visibleVinList.length);
     const xPos = (i: number) => gap + i * (barW + gap);
 
     return (
@@ -655,12 +663,14 @@ function BarChart({ carTotals, sortedVins, colors, visibleVins }: BarChartProps)
                                         rx={2}
                                     />
                                     {/* X-axis label */}
-                                    <text
-                                        transform={`translate(${x + barW / 2},${innerH + 8}) rotate(-45)`}
-                                        textAnchor="end" fill="var(--color-foreground-light)" fontSize={10}
-                                    >
-                                        {carLabel(carTotals.get(vin)!.car)}
-                                    </text>
+                                    {showXLabels && (
+                                        <text
+                                            transform={`translate(${x + barW / 2},${innerH + 8}) rotate(-45)`}
+                                            textAnchor="end" fill="var(--color-foreground-light)" fontSize={10}
+                                        >
+                                            {truncateLabel(carLabel(carTotals.get(vin)!.car))}
+                                        </text>
+                                    )}
                                 </g>
                             );
                         })}
@@ -835,6 +845,7 @@ export default function PopularityPanel() {
     const exportOptions = [
         {
             label: "PNG",
+            sub: "Download chart as image",
             icon: <BiImage />,
             onClick: async () => {
                 const svgEl = chartAreaRef.current?.querySelector<SVGSVGElement>("svg");
@@ -844,6 +855,7 @@ export default function PopularityPanel() {
         },
         {
             label: "SVG",
+            sub: "Download as vector graphic",
             icon: <BiImage />,
             onClick: () => {
                 const svgEl = chartAreaRef.current?.querySelector<SVGSVGElement>("svg");
@@ -853,6 +865,7 @@ export default function PopularityPanel() {
         },
         {
             label: "CSV",
+            sub: "Download data as .csv",
             icon: <BiTable />,
             onClick: () => {
                 const headers = groupByCarOn
@@ -869,6 +882,7 @@ export default function PopularityPanel() {
         },
         {
             label: "JSON",
+            sub: "Download data as .json",
             icon: <BiCode />,
             onClick: () => downloadData(JSON.stringify(entries, null, 2), "application/json", panelFilename("json")),
             disabled: entries.length === 0,
@@ -881,25 +895,34 @@ export default function PopularityPanel() {
         <div className={tableStyles.container}>
             {/* ── Top bar ── */}
             <div className={tableStyles.topBar}>
+                <div style={{ display: "flex", alignItems: "center", flex: 1, minWidth: 0, overflow: "hidden", gap: 4, marginLeft: -6 }}>
+                    <button
+                        ref={chartModeBtnRef}
+                        className={s.chartModeTitle}
+                        onClick={() => {
+                            const rect = chartModeBtnRef.current?.getBoundingClientRect();
+                            if (rect) setChartModePos({ top: rect.bottom + 4, left: rect.left });
+                            setChartModeOpen((o) => !o);
+                        }}
+                    >
+                        <span className={s.chartModeTitleIcon}>{CHART_MODE_ICONS[chartMode]}</span>
+                        {CHART_MODE_LABELS[chartMode]}
+                        <BiChevronDown className={s.chartModeTitleChevron} />
+                    </button>
+                    {entries.length > 0 && !loading && (
+                        <span className={s.statsCount}>
+                            {sortedVins.length} car{sortedVins.length !== 1 ? "s" : ""}{groupByTimeOn ? ` \u00b7 ${dates.length} ${timeUnit || "period"}${dates.length !== 1 ? "s" : ""}` : ""}
+                        </span>
+                    )}
+                </div>
                 <button
-                    ref={chartModeBtnRef}
-                    className={s.chartModeTitle}
-                    onClick={() => {
-                        const rect = chartModeBtnRef.current?.getBoundingClientRect();
-                        if (rect) setChartModePos({ top: rect.bottom + 4, left: rect.left });
-                        setChartModeOpen((o) => !o);
-                    }}
+                    className={tableStyles.headerMobileBtn}
+                    onClick={fetchData}
+                    disabled={loading}
+                    title="Refresh"
                 >
-                    <span className={s.chartModeTitleIcon}>{CHART_MODE_ICONS[chartMode]}</span>
-                    {CHART_MODE_LABELS[chartMode]}
-                    <BiChevronDown className={s.chartModeTitleChevron} />
+                    <BiRefresh size={17} className={loading ? tableStyles.spinning : ""} />
                 </button>
-                {entries.length > 0 && !loading && (
-                    <span className={s.statsCount}>
-                        {sortedVins.length} car{sortedVins.length !== 1 ? "s" : ""}{groupByTimeOn ? ` \u00b7 ${dates.length} ${timeUnit || "period"}${dates.length !== 1 ? "s" : ""}` : ""}
-                    </span>
-                )}
-                <div className={s.spacer} />
                 <button
                     className={`${tableStyles.headerMobileBtn} ${panelOpen ? tableStyles.btnIconActive : ""} ${hasFilters ? tableStyles.btnIconBadge : ""}`}
                     data-count={hasFilters ? activeFilters.length : undefined}
@@ -996,61 +1019,24 @@ export default function PopularityPanel() {
                                     </div>
                                 ),
                             },
-                            {
-                                key: "export",
-                                label: "Export",
-                                icon: <BiDownload />,
-                                content: (
-                                    <div className={tableStyles.tabPanel}>
-                                        {exportOptions.map((opt) => (
-                                            <button key={opt.label} className={tableStyles.ctxItem} onClick={opt.onClick} disabled={opt.disabled || loading || entries.length === 0}>
-                                                {opt.icon} {opt.label}
-                                            </button>
-                                        ))}
-                                    </div>
-                                ),
-                            },
-                            {
-                                key: "refresh",
-                                label: "Refresh",
-                                icon: <BiRefresh />,
-                                content: (
-                                    <div className={tableStyles.tabPanel}>
-                                        <button className={tableStyles.ctxItem} onClick={fetchData} disabled={loading}>
-                                            <BiRefresh className={loading ? tableStyles.spinning : ""} /> Refresh Data
-                                        </button>
-                                    </div>
-                                ),
-                            },
-                            {
-                                key: "filters",
-                                label: "Filters",
-                                icon: <BiFilter />,
-                                badge: activeFilters.length || undefined,
-                                content: (
-                                    <BrowseFilterPanel
-                                        contentOnly
-                                        filterableColumns={filterableColumns}
-                                        activeFilters={activeFilters}
-                                        onFiltersChange={setActiveFilters}
-                                    />
-                                ),
-                            },
                             ...(groupByCarOn ? [{
                                 key: "cars",
                                 label: "Cars",
                                 icon: <BiListUl />,
+                                dividerBefore: true,
                                 badge: (mutedVins.size + soloedVins.size) || undefined,
+                                noPadding: true,
                                 content: (
-                                    <div className={tableStyles.tabPanel}>
+                                    <>
                                         {(mutedVins.size > 0 || soloedVins.size > 0 || colorOverrides.size > 0) && (
-                                            <button
-                                                className={tableStyles.colMenuActionBtn}
-                                                onClick={() => { setMutedVins(new Set()); setSoloedVins(new Set()); setColorOverrides(new Map()); }}
-                                                style={{ alignSelf: "flex-start" }}
-                                            >
-                                                Reset
-                                            </button>
+                                            <div style={{ padding: "10px 12px 0" }}>
+                                                <button
+                                                    className={tableStyles.colMenuActionBtn}
+                                                    onClick={() => { setMutedVins(new Set()); setSoloedVins(new Set()); setColorOverrides(new Map()); }}
+                                                >
+                                                    Reset
+                                                </button>
+                                            </div>
                                         )}
                                         {loading || error ? (
                                             <p className={tableStyles.previewPanelEmpty}>{error ?? "Loading…"}</p>
@@ -1076,9 +1062,49 @@ export default function PopularityPanel() {
                                                 </div>
                                             );
                                         })}
-                                    </div>
+                                    </>
                                 ),
                             }] : []),
+                            {
+                                key: "filters",
+                                label: "Filters",
+                                icon: <BiFilter />,
+                                dividerBefore: !groupByCarOn,
+                                badge: activeFilters.length || undefined,
+                                titleActions: activeFilters.length ? (
+                                    <button className={tableStyles.colMenuActionBtn} onClick={() => setActiveFilters([])} style={{ fontSize: "8pt", padding: "2px 8px" }}>
+                                        Clear all
+                                    </button>
+                                ) : undefined,
+                                content: (
+                                    <BrowseFilterPanel
+                                        contentOnly
+                                        hideClearAll
+                                        filterableColumns={filterableColumns}
+                                        activeFilters={activeFilters}
+                                        onFiltersChange={setActiveFilters}
+                                    />
+                                ),
+                            },
+                            {
+                                key: "export",
+                                label: "Export",
+                                icon: <BiDownload />,
+                                dividerBefore: true,
+                                content: (
+                                    <div className={tableStyles.tabPanel}>
+                                        {exportOptions.map((opt) => (
+                                            <button key={opt.label} className={tableStyles.panelMenuBtn} onClick={opt.onClick} disabled={opt.disabled || loading || entries.length === 0}>
+                                                <span className={tableStyles.panelMenuIcon}>{opt.icon}</span>
+                                                <span className={tableStyles.panelMenuText}>
+                                                    <span className={tableStyles.panelMenuTitle}>{opt.label}</span>
+                                                    {opt.sub && <span className={tableStyles.panelMenuSub}>{opt.sub}</span>}
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                ),
+                            },
                         ]}
                     />
                 )}

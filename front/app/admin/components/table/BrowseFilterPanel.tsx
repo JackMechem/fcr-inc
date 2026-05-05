@@ -156,6 +156,8 @@ function stateToFilters(
 interface BrowseFilterPanelProps {
     /** When true: renders only filter fields, no panel shell/header/resize-handle */
     contentOnly?: boolean;
+    /** When true: suppresses the internal "Clear all" button (e.g. when rendered via titleActions) */
+    hideClearAll?: boolean;
     filterableColumns?: FilterableColumn[];
     activeFilters?: ActiveFilter[];
     onFiltersChange?: (filters: ActiveFilter[]) => void;
@@ -166,6 +168,7 @@ interface BrowseFilterPanelProps {
 
 export default function BrowseFilterPanel({
     contentOnly,
+    hideClearAll,
     filterableColumns,
     activeFilters,
     onFiltersChange,
@@ -351,7 +354,7 @@ export default function BrowseFilterPanel({
     if (contentOnly) {
         return (
             <div style={{ display: "flex", flexDirection: "column", gap: 22, width: "100%" }}>
-                {hasAny && (
+                {hasAny && !hideClearAll && (
                     <button
                         className={styles.colMenuActionBtn}
                         onClick={handleClearAll}

@@ -31,12 +31,14 @@ import {
     BiLinkExternal,
     BiPlus,
     BiImages,
+    BiImage,
     BiFilter,
     BiTable,
     BiCode,
     BiPrinter,
     BiClipboard,
     BiUpload,
+    BiSlider,
 } from "react-icons/bi";
 import ExportButton, { ExportOption } from "./ExportButton";
 import { downloadData, safeFilename, buildCsv, escapeCell, parseCsv } from "./exportUtils";
@@ -1373,13 +1375,13 @@ export default function SpreadsheetTable<T>({
     };
 
     const exportOptions: ExportOption[] = [
-        { label: "CSV",              icon: <BiTable />,   onClick: handleExportCsv,  disabled: data.length === 0 },
-        { label: "JSON",             icon: <BiCode />,    onClick: handleExportJson,  disabled: data.length === 0 },
-        { label: "Copy as CSV",      icon: <BiCopy />,    onClick: handleCopyCsv,     disabled: data.length === 0, divider: true },
-        { label: "Print",            icon: <BiPrinter />, onClick: handlePrint },
+        { label: "CSV",             sub: "Download table as .csv",     icon: <BiTable />,     onClick: handleExportCsv,  disabled: data.length === 0 },
+        { label: "JSON",            sub: "Download table as .json",    icon: <BiCode />,      onClick: handleExportJson,  disabled: data.length === 0 },
+        { label: "Copy as CSV",     sub: "Copy to clipboard",          icon: <BiCopy />,      onClick: handleCopyCsv,     disabled: data.length === 0, divider: true },
+        { label: "Print",           sub: "Print current view",         icon: <BiPrinter />,   onClick: handlePrint },
         ...(onCreateRow ? [
-            { label: "Import CSV File",  icon: <BiUpload />,  onClick: () => fileInputRef.current?.click(), divider: true, section: "Import" },
-            { label: "Paste CSV",        icon: <BiClipboard />, onClick: () => { setImportText(""); setImportError(null); setImportModalOpen(true); } },
+            { label: "Import CSV File", sub: "Upload a .csv file",     icon: <BiUpload />,    onClick: () => fileInputRef.current?.click(), divider: true, section: "Import" },
+            { label: "Paste CSV",       sub: "Import from clipboard",  icon: <BiClipboard />, onClick: () => { setImportText(""); setImportError(null); setImportModalOpen(true); } },
         ] : []),
     ];
 
@@ -2495,25 +2497,40 @@ export default function SpreadsheetTable<T>({
                     onWidthChange={setFilterPanelWidth}
                     onClose={() => setFilterOpen(false)}
                     tabs={[
-                        {
-                            key: "export",
-                            label: "Export",
-                            icon: <BiDownload />,
+                        ...(renderPreview ? [{
+                            key: "preview",
+                            label: "Preview",
+                            icon: <BiImage />,
+                            content: previewItem
+                                ? <div style={{ overflow: "auto" }}>{renderPreview(previewItem)}</div>
+                                : <p className={styles.previewPanelEmpty}>Click a row to preview.</p>,
+                        }] : []),
+                        ...(filterableColumns?.length ? [{
+                            key: "filters",
+                            label: "Filters",
+                            icon: <BiFilter />,
+                            dividerBefore: true,
+                            badge: activeFilters?.length || undefined,
+                            titleActions: activeFilters?.length ? (
+                                <button className={styles.colMenuActionBtn} onClick={() => onFiltersChange?.([])} style={{ fontSize: "8pt", padding: "2px 8px" }}>
+                                    Clear all
+                                </button>
+                            ) : undefined,
                             content: (
-                                <div className={styles.tabPanel}>
-                                    {headerActions}
-                                    {exportOptions.map((opt) => (
-                                        <button key={opt.label} className={styles.ctxItem} onClick={opt.onClick} disabled={opt.disabled || data.length === 0}>
-                                            {opt.icon} {opt.label}
-                                        </button>
-                                    ))}
-                                </div>
+                                <BrowseFilterPanel
+                                    contentOnly
+                                    hideClearAll
+                                    filterableColumns={filterableColumns}
+                                    activeFilters={activeFilters ?? []}
+                                    onFiltersChange={onFiltersChange}
+                                />
                             ),
-                        },
+                        }] : []),
                         {
                             key: "search",
                             label: "Search",
                             icon: <BiSearch />,
+                            dividerBefore: !(filterableColumns?.length),
                             content: (
                                 <div className={styles.tabPanel}>
                                     {searchContent ?? (
@@ -2532,16 +2549,15 @@ export default function SpreadsheetTable<T>({
                             key: "columns",
                             label: "Columns",
                             icon: <BiColumns />,
+                            dividerBefore: false,
+                            titleActions: (
+                                <>
+                                    <button className={styles.colMenuActionBtn} onClick={() => setVisibleCols(new Set(columns.map((c) => c.key)))}>Show All</button>
+                                    <button className={styles.colMenuActionBtn} onClick={() => { setVisibleCols(new Set(columns.filter((c) => c.defaultVisible).map((c) => c.key))); setColOrder(columns.map((c) => c.key)); }}>Reset</button>
+                                </>
+                            ),
                             content: (
                                 <div className={styles.tabPanel}>
-                                    <button className={styles.ctxItem} onClick={handleToggleWrap}>
-                                        <BiText /> {wrapMode ? "Disable Wrap" : "Enable Wrap"}
-                                    </button>
-                                    <div className={styles.ctxDivider} />
-                                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-                                        <button className={styles.colMenuActionBtn} onClick={() => setVisibleCols(new Set(columns.map((c) => c.key)))}>Show All</button>
-                                        <button className={styles.colMenuActionBtn} onClick={() => { setVisibleCols(new Set(columns.filter((c) => c.defaultVisible).map((c) => c.key))); setColOrder(columns.map((c) => c.key)); }}>Reset</button>
-                                    </div>
                                     {orderedColumns.map((col) => (
                                         <div
                                             key={col.key}
@@ -2574,31 +2590,63 @@ export default function SpreadsheetTable<T>({
                                             )}
                                         </div>
                                     ))}
+                                    <div style={{ borderTop: "1px solid var(--color-third)", marginTop: 4, paddingTop: 8 }}>
+                                        <p style={{ margin: 0, padding: "6px 0 12px", fontSize: "11pt", fontWeight: 700, color: "var(--color-foreground)", letterSpacing: "-0.01em" }}>Options</p>
+                                        <button className={styles.panelMenuBtn} onClick={handleToggleWrap}>
+                                            <span className={styles.panelMenuIcon}><BiText /></span>
+                                            <span className={styles.panelMenuText}>
+                                                <span className={styles.panelMenuTitle}>{wrapMode ? "Disable Wrap" : "Enable Wrap"}</span>
+                                                <span className={styles.panelMenuSub}>Toggle text wrapping in cells</span>
+                                            </span>
+                                        </button>
+                                    </div>
                                 </div>
                             ),
                         },
-                        ...(renderPreview ? [{
-                            key: "preview",
-                            label: "Preview",
-                            icon: <BiShow />,
-                            content: previewItem
-                                ? <div style={{ overflow: "auto" }}>{renderPreview(previewItem)}</div>
-                                : <p className={styles.previewPanelEmpty}>Click a row to preview.</p>,
-                        }] : []),
-                        ...(filterableColumns?.length ? [{
-                            key: "filters",
-                            label: "Filters",
-                            icon: <BiFilter />,
-                            badge: activeFilters?.length || undefined,
-                            content: (
-                                <BrowseFilterPanel
-                                    contentOnly
-                                    filterableColumns={filterableColumns}
-                                    activeFilters={activeFilters ?? []}
-                                    onFiltersChange={onFiltersChange}
-                                />
-                            ),
-                        }] : []),
+                        {
+                            key: "export",
+                            label: "Import & Export",
+                            icon: <BiDownload />,
+                            dividerBefore: true,
+                            content: (() => {
+                                const exportOnly = exportOptions.filter((o) => o.section !== "Import");
+                                const importOnly = exportOptions.filter((o) => o.section === "Import");
+                                const sectionTitle = (text: string, first?: boolean) => (
+                                    <p style={{ margin: 0, padding: `${first ? 0 : 10}px 0 12px`, fontSize: "11pt", fontWeight: 700, color: "var(--color-foreground)", letterSpacing: "-0.01em" }}>{text}</p>
+                                );
+                                return (
+                                    <div className={styles.tabPanel}>
+                                        {headerActions}
+                                        {importOnly.length > 0 && (
+                                            <>
+                                                {sectionTitle("Import", true)}
+                                                {importOnly.map((opt) => (
+                                                    <button key={opt.label} className={styles.panelMenuBtn} onClick={opt.onClick} disabled={opt.disabled}>
+                                                        <span className={styles.panelMenuIcon}>{opt.icon}</span>
+                                                        <span className={styles.panelMenuText}>
+                                                            <span className={styles.panelMenuTitle}>{opt.label}</span>
+                                                            {opt.sub && <span className={styles.panelMenuSub}>{opt.sub}</span>}
+                                                        </span>
+                                                    </button>
+                                                ))}
+                                                <div style={{ borderTop: "1px solid var(--color-third)", marginTop: 4 }} />
+                                                {sectionTitle("Export")}
+                                            </>
+                                        )}
+                                        {!importOnly.length && sectionTitle("Export", true)}
+                                        {exportOnly.map((opt) => (
+                                            <button key={opt.label} className={styles.panelMenuBtn} onClick={opt.onClick} disabled={opt.disabled || data.length === 0}>
+                                                <span className={styles.panelMenuIcon}>{opt.icon}</span>
+                                                <span className={styles.panelMenuText}>
+                                                    <span className={styles.panelMenuTitle}>{opt.label}</span>
+                                                    {opt.sub && <span className={styles.panelMenuSub}>{opt.sub}</span>}
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                );
+                            })(),
+                        },
                     ]}
                 />
             )}

@@ -98,7 +98,10 @@
     margin: 0;
     white-space: nowrap;
     padding: 0 14px;
-    flex-shrink: 0;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .topSubtitle {
@@ -893,20 +896,24 @@ th:hover .sortBtn:hover {
 }
 
 .fieldInput {
-    background-color: var(--color-primary-dark);
+    background-color: var(--color-primary);
     border: 1px solid var(--color-third);
-    border-radius: 8px;
-    padding: 7px 10px;
+    border-radius: 0.75rem;
+    padding: 9px 12px;
     font-size: 10pt;
     color: var(--color-foreground);
-    transition: border-color 0.2s;
+    transition: border-color 0.15s;
     width: 100%;
     box-sizing: border-box;
 }
 
+.fieldInput::placeholder {
+    color: color-mix(in srgb, var(--color-foreground-light) 60%, transparent);
+}
+
 .fieldInput:focus {
     outline: none;
-    border-color: var(--color-accent);
+    border-color: color-mix(in srgb, var(--color-accent) 60%, transparent);
 }
 
 select.fieldInput {
@@ -1244,7 +1251,7 @@ textarea.editInput {
 .tabPanel {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 3px;
     width: 100%;
 }
 
@@ -1252,6 +1259,7 @@ textarea.editInput {
     display: flex;
     flex-direction: column;
     gap: 5px;
+    margin-bottom: 8px;
 }
 
 .tabLabel {
@@ -1447,27 +1455,91 @@ textarea.editInput {
     display: flex;
     align-items: center;
     gap: 8px;
-    width: calc(100% - 8px);
-    margin: 0 4px;
+    width: 100%;
+    margin: 0;
     padding: 6px 10px;
     font-size: 9.5pt;
     color: var(--color-foreground);
     background: transparent;
-    border: none;
-    border-radius: 6px;
+    border: 1px solid transparent;
+    border-radius: 8px;
     cursor: pointer;
-    transition: background-color 0.1s;
+    transition: background-color 0.12s, border-color 0.12s, color 0.12s;
     text-align: left;
     box-sizing: border-box;
 }
 
+
 .ctxItem:hover {
-    background-color: var(--color-primary-dark);
+    background-color: color-mix(in srgb, var(--color-accent) 10%, transparent);
+    border-color: color-mix(in srgb, var(--color-accent) 25%, transparent);
+    color: var(--color-accent);
 }
 
 .ctxItemActive {
     color: var(--color-accent);
     font-weight: 600;
+}
+
+/* ── Card-style action buttons (matches header menu Dashboard/Dev Console) ── */
+
+.panelMenuBtn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 0.75rem;
+    border: 1px solid var(--color-third);
+    background: var(--color-primary-dark);
+    cursor: pointer;
+    width: 100%;
+    box-sizing: border-box;
+    text-align: left;
+    font-size: 10pt;
+    font-weight: 600;
+    color: var(--color-foreground);
+    transition: background 150ms, border-color 150ms;
+}
+
+.panelMenuBtn:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-accent) 8%, var(--color-primary-dark));
+    border-color: color-mix(in srgb, var(--color-accent) 35%, transparent);
+}
+
+.panelMenuBtn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.panelMenuIcon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 0.6rem;
+    background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+    color: var(--color-accent);
+    font-size: 17px;
+    flex-shrink: 0;
+}
+
+.panelMenuText {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.panelMenuTitle {
+    font-size: 10pt;
+    font-weight: 600;
+    color: var(--color-foreground);
+}
+
+.panelMenuSub {
+    font-size: 8pt;
+    color: var(--color-foreground-light);
 }
 
 .ctxEmpty {
@@ -2258,6 +2330,7 @@ tr:hover .markdownCellBtn {
     display: flex;
     align-items: center;
     gap: 2px;
+    flex-shrink: 0;
 }
 
 .headerMobileBtn {
@@ -2273,6 +2346,7 @@ tr:hover .markdownCellBtn {
     color: var(--color-foreground-light);
     font-size: 16pt;
     transition: background 0.12s, color 0.12s;
+    flex-shrink: 0;
 }
 
 .headerMobileBtn:hover {

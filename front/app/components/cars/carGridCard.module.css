@@ -210,7 +210,8 @@
 .badgeAvailable,
 .badgePartial,
 .badgeUnavailable,
-.badgeUserReserved {
+.badgeUserReserved,
+.badgeInService {
 	font-size: 8pt;
 	font-weight: 600;
 	border-radius: 9999px;
@@ -273,6 +274,11 @@
 	background-color: rgba(220, 38, 38, 0.1);
 }
 
+.badgeInService {
+	color: #92400e;
+	background-color: rgba(234, 179, 8, 0.15);
+}
+
 /* Dark mode badges */
 :global([data-theme="dark"]) .badgeInCart {
 	color: #93c5fd;
@@ -307,4 +313,9 @@
 :global([data-theme="dark"]) .badgeUnavailable {
 	color: #f87171;
 	background-color: color-mix(in srgb, #f87171 15%, transparent);
+}
+
+:global([data-theme="dark"]) .badgeInService {
+	color: #fde047;
+	background-color: color-mix(in srgb, #fde047 15%, transparent);
 }

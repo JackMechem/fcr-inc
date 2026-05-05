@@ -83,6 +83,19 @@ export default function WindowControls({ paneId, currentView }: Props) {
         setMenu((prev) => prev === m ? null : m);
     }, []);
 
+    // Clamp menu to viewport after it renders (same pattern as SpreadsheetTable context menu)
+    useEffect(() => {
+        if (!menu || !menuRef.current) return;
+        const r = menuRef.current.getBoundingClientRect();
+        const pad = 8;
+        let { left, top } = menuPos;
+        if (r.right  > window.innerWidth  - pad) left = window.innerWidth  - r.width  - pad;
+        if (r.left   < pad)                       left = pad;
+        if (r.bottom > window.innerHeight - pad)  top  = window.innerHeight - r.height - pad;
+        if (left !== menuPos.left || top !== menuPos.top) setMenuPos({ top, left });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [menu]);
+
     const btnEnter: React.MouseEventHandler<HTMLButtonElement> = (e) => {
         e.currentTarget.style.background = "color-mix(in srgb, var(--color-foreground) 10%, transparent)";
         e.currentTarget.style.color = "var(--color-foreground)";

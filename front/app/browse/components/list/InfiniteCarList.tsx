@@ -251,6 +251,7 @@ const InfiniteCarList = ({ filterParams, layout = "list", fromDate, untilDate }:
 	}, []);
 
 	const filterCar = (car: Car) => {
+		if (car.carStatus === "DISABLED" || car.carStatus === "ARCHIVED" || car.carStatus === "SERVICE") return false;
 		if (!availabilityFilter || !fromDate || !untilDate) return true;
 		const { status } = getAvailability(car, fromDate, untilDate);
 		if (availabilityFilter === "available") return status === "available";

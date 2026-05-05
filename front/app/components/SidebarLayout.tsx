@@ -7,6 +7,7 @@ import HeaderMenu from "./menus/headerMenu";
 import FilterSidebar from "./menus/filterSidebar";
 import DevConsole from "./menus/DevConsole";
 import DevConsoleProvider from "./DevConsoleProvider";
+import DisclaimerModal from "./DisclaimerModal";
 import { useDevConsoleStore } from "@/stores/devConsoleStore";
 import { useWindowSize } from "@/app/hooks/useWindowSize";
 import styles from "./SidebarLayout.module.css";
@@ -46,6 +47,7 @@ const SidebarLayout = ({ children }: { children: React.ReactNode }) => {
             </Suspense>
             <DevConsole />
             <DevConsoleProvider />
+            <DisclaimerModal />
         </div>
     );
 };

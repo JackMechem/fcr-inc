@@ -5,7 +5,7 @@ import { useSidebarStore } from "@/stores/sidebarStore";
 import { useDevConsoleStore, RequestLog } from "@/stores/devConsoleStore";
 import { useUserDashboardStore } from "@/stores/userDashboardStore";
 import { IoClose } from "react-icons/io5";
-import { BiTrash, BiChevronDown, BiChevronRight, BiSend, BiRefresh } from "react-icons/bi";
+import { BiTrash, BiChevronDown, BiChevronRight, BiSend, BiRefresh, BiCopy, BiEdit, BiCheck, BiX } from "react-icons/bi";
 import styles from "./devConsole.module.css";
 
 // ── Route Runner catalog ──────────────────────────────────────────────────────
@@ -683,6 +683,256 @@ function RequestPanel() {
     );
 }
 
+// ── Storage Panel ─────────────────────────────────────────────────────────────
+
+type StorageEntry = { key: string; value: string };
+
+function parseCookies(): StorageEntry[] {
+    return document.cookie
+        .split(";")
+        .map((c) => c.trim())
+        .filter(Boolean)
+        .map((c) => {
+            const eq = c.indexOf("=");
+            return eq === -1
+                ? { key: c, value: "" }
+                : { key: c.slice(0, eq).trim(), value: decodeURIComponent(c.slice(eq + 1).trim()) };
+        });
+}
+
+function parseLocalStorage(): StorageEntry[] {
+    const entries: StorageEntry[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key !== null) entries.push({ key, value: localStorage.getItem(key) ?? "" });
+    }
+    return entries;
+}
+
+function StorageSection({
+    title,
+    entries,
+    emptyMsg,
+    onEdit,
+    onDelete,
+}: {
+    title: string;
+    entries: StorageEntry[];
+    emptyMsg: string;
+    onEdit: (key: string, value: string) => void;
+    onDelete: (key: string) => void;
+}) {
+    const [open, setOpen] = useState(true);
+    const [copied, setCopied] = useState<string | null>(null);
+    const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
+    const [editingKey, setEditingKey] = useState<string | null>(null);
+    const [editDraft, setEditDraft] = useState("");
+    const [confirmDeleteKey, setConfirmDeleteKey] = useState<string | null>(null);
+
+    const copy = (text: string, key: string) => {
+        navigator.clipboard.writeText(text).catch(() => {});
+        setCopied(key);
+        setTimeout(() => setCopied(null), 1200);
+    };
+
+    const toggleKey = (key: string) =>
+        setExpandedKeys((prev) => {
+            const next = new Set(prev);
+            if (next.has(key)) next.delete(key);
+            else next.add(key);
+            return next;
+        });
+
+    const startEdit = (e: StorageEntry) => {
+        setEditingKey(e.key);
+        setEditDraft(e.value);
+        setExpandedKeys((prev) => new Set(prev).add(e.key));
+    };
+
+    const saveEdit = (key: string) => {
+        onEdit(key, editDraft);
+        setEditingKey(null);
+    };
+
+    const cancelEdit = () => setEditingKey(null);
+
+    const startDelete = (key: string) => setConfirmDeleteKey(key);
+    const confirmDelete = (key: string) => { onDelete(key); setConfirmDeleteKey(null); };
+    const cancelDelete = () => setConfirmDeleteKey(null);
+
+    return (
+        <div className={styles.storageSection}>
+            <button
+                className={styles.storageSectionHeader}
+                onClick={() => setOpen((v) => !v)}
+            >
+                <span className={styles.expandIcon}>
+                    {open ? <BiChevronDown /> : <BiChevronRight />}
+                </span>
+                <span className={styles.storageSectionTitle}>{title}</span>
+                <span className={styles.storageSectionCount}>{entries.length}</span>
+            </button>
+            {open && (
+                entries.length === 0 ? (
+                    <p className={styles.storageEmpty}>{emptyMsg}</p>
+                ) : (
+                    <div className={styles.storageEntries}>
+                        {entries.map((e) => {
+                            const isExpanded = expandedKeys.has(e.key);
+                            const isEditing = editingKey === e.key;
+                            const isConfirmingDelete = confirmDeleteKey === e.key;
+                            const formatted = (() => {
+                                try { return JSON.stringify(JSON.parse(e.value), null, 2); }
+                                catch { return e.value || "(empty)"; }
+                            })();
+                            return (
+                                <div key={e.key} className={styles.storageEntry}>
+                                    {/* Key row */}
+                                    <div
+                                        className={styles.storageEntryKeyRow}
+                                        onClick={() => !isEditing && toggleKey(e.key)}
+                                        role="button"
+                                        tabIndex={0}
+                                        onKeyDown={(ev) => ev.key === "Enter" && !isEditing && toggleKey(e.key)}
+                                    >
+                                        <span className={styles.expandIcon}>
+                                            {isExpanded ? <BiChevronDown /> : <BiChevronRight />}
+                                        </span>
+                                        <span className={styles.storageEntryKey}>{e.key}</span>
+                                        <span className={styles.storageEntryActions}>
+                                            <button
+                                                className={styles.storageCopyBtn}
+                                                onClick={(ev) => { ev.stopPropagation(); copy(e.value, e.key); }}
+                                                title="Copy value"
+                                            >
+                                                {copied === e.key ? "✓" : <BiCopy />}
+                                            </button>
+                                            <button
+                                                className={styles.storageEditBtn}
+                                                onClick={(ev) => { ev.stopPropagation(); startEdit(e); }}
+                                                title="Edit value"
+                                            >
+                                                <BiEdit />
+                                            </button>
+                                            <button
+                                                className={styles.storageDeleteBtn}
+                                                onClick={(ev) => { ev.stopPropagation(); startDelete(e.key); }}
+                                                title="Delete entry"
+                                            >
+                                                <BiTrash />
+                                            </button>
+                                        </span>
+                                    </div>
+
+                                    {/* Delete confirmation */}
+                                    {isConfirmingDelete && (
+                                        <div className={styles.storageConfirmRow}>
+                                            <span className={styles.storageConfirmText}>Delete &quot;{e.key}&quot;?</span>
+                                            <button className={styles.storageConfirmYes} onClick={() => confirmDelete(e.key)}>
+                                                <BiCheck /> Yes
+                                            </button>
+                                            <button className={styles.storageConfirmNo} onClick={cancelDelete}>
+                                                <BiX /> No
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {/* Value / edit area */}
+                                    {isExpanded && (
+                                        isEditing ? (
+                                            <div className={styles.storageEditArea}>
+                                                <textarea
+                                                    className={styles.storageEditTextarea}
+                                                    value={editDraft}
+                                                    onChange={(ev) => setEditDraft(ev.target.value)}
+                                                    spellCheck={false}
+                                                    rows={Math.min(12, editDraft.split("\n").length + 1)}
+                                                />
+                                                <div className={styles.storageEditActions}>
+                                                    <button className={styles.storageEditSave} onClick={() => saveEdit(e.key)}>
+                                                        <BiCheck /> Save
+                                                    </button>
+                                                    <button className={styles.storageEditCancel} onClick={cancelEdit}>
+                                                        <BiX /> Cancel
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <pre className={styles.storageEntryValue}>{formatted}</pre>
+                                        )
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+                )
+            )}
+        </div>
+    );
+}
+
+function StoragePanel() {
+    const [localEntries, setLocalEntries] = useState<StorageEntry[]>([]);
+    const [cookieEntries, setCookieEntries] = useState<StorageEntry[]>([]);
+
+    const refresh = useCallback(() => {
+        setLocalEntries(parseLocalStorage());
+        setCookieEntries(parseCookies());
+    }, []);
+
+    useEffect(() => { refresh(); }, [refresh]);
+
+    const editLocalStorage = useCallback((key: string, value: string) => {
+        localStorage.setItem(key, value);
+        refresh();
+    }, [refresh]);
+
+    const deleteLocalStorage = useCallback((key: string) => {
+        localStorage.removeItem(key);
+        refresh();
+    }, [refresh]);
+
+    const editCookie = useCallback((key: string, value: string) => {
+        const expires = new Date();
+        expires.setDate(expires.getDate() + 365);
+        document.cookie = `${key}=${encodeURIComponent(value)}; expires=${expires.toUTCString()}; path=/; SameSite=Lax`;
+        refresh();
+    }, [refresh]);
+
+    const deleteCookie = useCallback((key: string) => {
+        document.cookie = `${key}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax`;
+        refresh();
+    }, [refresh]);
+
+    return (
+        <div className={styles.storagePanel}>
+            <div className={styles.storageToolbar}>
+                <button className={styles.storageRefreshBtn} onClick={refresh} title="Refresh">
+                    <BiRefresh />
+                    <span>Refresh</span>
+                </button>
+                <span className={styles.storageNote}>* HttpOnly cookies not visible to JS</span>
+            </div>
+            <div className={styles.storagePanelScroll}>
+                <StorageSection
+                    title="Local Storage"
+                    entries={localEntries}
+                    emptyMsg="No localStorage entries."
+                    onEdit={editLocalStorage}
+                    onDelete={deleteLocalStorage}
+                />
+                <StorageSection
+                    title="Cookies"
+                    entries={cookieEntries}
+                    emptyMsg="No readable cookies."
+                    onEdit={editCookie}
+                    onDelete={deleteCookie}
+                />
+            </div>
+        </div>
+    );
+}
+
 // ── Main console ──────────────────────────────────────────────────────────────
 
 const MIN_WIDTH = 320;
@@ -694,7 +944,7 @@ const DevConsole = () => {
     const { logs, clearLogs, panelWidth, setPanelWidth } = useDevConsoleStore();
 
     const [mounted, setMounted] = useState(false);
-    const [tab, setTab] = useState<"logs" | "request" | "routes">("logs");
+    const [tab, setTab] = useState<"logs" | "request" | "routes" | "storage">("logs");
     useEffect(() => { setMounted(true); }, []);
 
     const isDragging = useRef(false);
@@ -771,6 +1021,7 @@ const DevConsole = () => {
                 <button className={`${styles.tab} ${tab === "logs" ? styles.tabActive : ""}`} onClick={() => setTab("logs")}>Logs</button>
                 <button className={`${styles.tab} ${tab === "request" ? styles.tabActive : ""}`} onClick={() => setTab("request")}>Request</button>
                 <button className={`${styles.tab} ${tab === "routes" ? styles.tabActive : ""}`} onClick={() => setTab("routes")}>Routes</button>
+                <button className={`${styles.tab} ${tab === "storage" ? styles.tabActive : ""}`} onClick={() => setTab("storage")}>Storage</button>
             </div>
 
             {tab === "logs" ? (
@@ -804,8 +1055,10 @@ const DevConsole = () => {
                 </>
             ) : tab === "request" ? (
                 <RequestPanel />
-            ) : (
+            ) : tab === "routes" ? (
                 <RunnerPanel />
+            ) : (
+                <StoragePanel />
             )}
         </div>
     );

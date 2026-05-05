@@ -21,7 +21,7 @@
 .windowControls {
     position: absolute;
     bottom: 100%;
-    left: 6px;
+    right: 6px;
     z-index: 20;
     opacity: 0;
     pointer-events: none;
@@ -30,7 +30,7 @@
     padding-bottom: 5px;
 }
 
-/* In fullscreen the card fills the viewport — fall back to top-left inside */
+/* In fullscreen the card fills the viewport — fall back to top-right inside */
 .windowControlsFullscreen {
     bottom: auto;
     top: 6px;

@@ -43,12 +43,14 @@ const BrandScrollSection = async () => {
 
 const FeaturedCarsSection = async () => {
 	const result = await getFeaturedCars();
-	const cars: Car[] = result.data;
+	const cars: Car[] = result.data.filter(
+		(c) => c.carStatus !== "DISABLED" && c.carStatus !== "ARCHIVED"
+	);
 	if (cars.length === 0) return null;
 	return (
 		<div className={styles.featuredGrid}>
 			{cars.map((car) => (
-				<CarGridCard key={car.vin} car={car} datesReady={false} />
+				<CarGridCard key={car.vin} car={car} datesReady={true} />
 			))}
 		</div>
 	);

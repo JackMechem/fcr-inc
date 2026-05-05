@@ -77,14 +77,20 @@ const CarGridCard = ({
 							<>
 								{cartItem && <span className={styles.badgeInCart}>In Cart</span>}
 								{userReserved && <span className={styles.badgeUserReserved}>Your Reservation</span>}
-								{status === "available" && (
-									<span className={styles.badgeAvailable}>Available</span>
-								)}
-								{status === "partial" && (
-									<span className={styles.badgePartial}>Partial</span>
-								)}
-								{status === "unavailable" && (
-									<span className={styles.badgeUnavailable}>Unavailable</span>
+								{car.carStatus === "SERVICE" ? (
+									<span className={styles.badgeInService}>In Service</span>
+								) : (
+									<>
+										{status === "available" && (
+											<span className={styles.badgeAvailable}>Available</span>
+										)}
+										{status === "partial" && (
+											<span className={styles.badgePartial}>Partial</span>
+										)}
+										{status === "unavailable" && (
+											<span className={styles.badgeUnavailable}>Unavailable</span>
+										)}
+									</>
 								)}
 							</>
 						)}

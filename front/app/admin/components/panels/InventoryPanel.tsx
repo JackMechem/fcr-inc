@@ -533,13 +533,11 @@ const InventoryPanel = () => {
 
     // Custom search bar with mode dropdown
     const searchBar = (
-        <div className={styles.searchCombo}>
-            <div className={styles.ctxSection}>Search</div>
-            <div className={styles.ctxDivider} />
-            <div className={styles.searchModeRow}>
-                <span className={styles.searchModeLabel}>By</span>
+        <div className={styles.tabPanel}>
+            <div className={styles.tabField}>
+                <label className={styles.tabLabel}>Search by</label>
                 <select
-                    className={styles.searchModeSelect}
+                    className={styles.fieldInput}
                     value={searchMode}
                     onChange={(e) => {
                         setSearchMode(e.target.value as SearchMode);
@@ -550,27 +548,25 @@ const InventoryPanel = () => {
                     <option value="vin">VIN</option>
                 </select>
             </div>
-            <div className={styles.searchWrapper}>
-                <BiSearch className={styles.searchIcon} />
+            <div className={styles.tabField}>
+                <label className={styles.tabLabel}>Query</label>
                 <input
                     autoFocus
-                    className={styles.searchInputCombo}
+                    className={styles.fieldInput}
                     placeholder={searchMode === "vin" ? "Enter full VIN…" : "Search make, model…"}
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onKeyDown={handleSearchKeyDown}
                 />
             </div>
-            <div className={styles.searchComboActions}>
-                <button className={styles.btn} onClick={handleSearchSubmit}>
-                    <BiSearch /> Search
+            <button className={styles.ctxItem} onClick={handleSearchSubmit}>
+                <BiSearch /> Search
+            </button>
+            {activeSearch && (
+                <button className={styles.ctxItem} onClick={handleClearSearch}>
+                    <BiX /> Clear
                 </button>
-                {activeSearch && (
-                    <button className={styles.btn} onClick={handleClearSearch}>
-                        <BiX /> Clear
-                    </button>
-                )}
-            </div>
+            )}
         </div>
     );
 

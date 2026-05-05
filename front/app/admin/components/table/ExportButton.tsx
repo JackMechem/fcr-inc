@@ -7,6 +7,7 @@ import styles from "./spreadsheetTable.module.css";
 
 export interface ExportOption {
     label: string;
+    sub?: string;
     icon: React.ReactNode;
     onClick: () => void | Promise<void>;
     disabled?: boolean;
